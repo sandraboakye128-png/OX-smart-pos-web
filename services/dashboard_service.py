@@ -1,0 +1,209 @@
+from database.db import get_connection
+from datetime import date
+
+
+# ----------------- TODAY'S TOTAL SALES -----------------
+def get_today_sales(selected_date=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    dt = selected_date or date.today()
+    dt = dt.isoformat() if hasattr(dt, "isoformat") else str(dt)
+
+    cursor.execute("""
+        SELECT IFNULL(SUM(s.total), 0)
+        FROM sales s
+        JOIN sales_items si ON si.sale_id = s.id
+        WHERE DATE(s.date)=?
+        AND s.reversed = 0
+        AND NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = si.product_id 
+            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.source = 'product'
+        )
+    """, (dt,))
+
+    total = cursor.fetchone()[0]
+    conn.close()
+    return total
+
+
+# ----------------- TODAY'S PROFIT -----------------
+def get_today_profit(selected_date=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    dt = selected_date or date.today()
+    dt = dt.isoformat() if hasattr(dt, "isoformat") else str(dt)
+
+    cursor.execute("""
+        SELECT IFNULL(SUM((si.selling_price - si.cost_price) * si.quantity), 0)
+        FROM sales_items si
+        JOIN sales s ON si.sale_id = s.id
+        WHERE DATE(s.date)=?
+        AND s.reversed = 0
+        AND NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = si.product_id 
+            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.source = 'product'
+        )
+    """, (dt,))
+
+    profit = cursor.fetchone()[0]
+    conn.close()
+    return profit
+
+
+# ----------------- TOTAL PRODUCTS -----------------
+def get_total_products():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*) 
+        FROM products p
+        WHERE NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = p.id 
+            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.source = 'product'
+        )
+    """)
+    total = cursor.fetchone()[0]
+
+    conn.close()
+    return total
+
+
+# ----------------- LOW STOCK PRODUCTS -----------------
+def get_low_stock_products(threshold=10):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT p.name, p.brand, p.category, p.stock
+        FROM products p
+        WHERE p.stock <= ?
+        AND NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = p.id 
+            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.source = 'product'
+        )
+        ORDER BY p.stock ASC
+    """, (threshold,))
+
+    products = cursor.fetchall()
+    conn.close()
+    return products
+
+
+# ----------------- WEEKLY SALES -----------------
+def get_weekly_sales():
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT DATE(s.date), IFNULL(SUM(s.total), 0)
+        FROM sales s
+        JOIN sales_items si ON si.sale_id = s.id
+        WHERE DATE(s.date) >= DATE('now','-6 day')
+        AND s.reversed = 0
+        AND NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = si.product_id 
+            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.source = 'product'
+        )
+        GROUP BY DATE(s.date)
+        ORDER BY DATE(s.date)
+    """)
+
+    data = cursor.fetchall()
+    conn.close()
+    return data
+
+
+# ----------------- TOP PRODUCTS -----------------
+def get_top_products(selected_date=None, limit=5):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    params = []
+    query = """
+        SELECT p.name, p.brand, p.category, SUM(si.quantity) as qty
+        FROM sales_items si
+        JOIN sales s ON si.sale_id = s.id
+        JOIN products p ON si.product_id = p.id
+        WHERE s.reversed = 0
+        AND NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = p.id 
+            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.source = 'product'
+        )
+    """
+
+    if selected_date:
+        dt = selected_date.isoformat() if hasattr(selected_date, "isoformat") else str(selected_date)
+        query += " AND DATE(s.date)=?"
+        params.append(dt)
+
+    query += " GROUP BY si.product_id ORDER BY qty DESC LIMIT ?"
+    params.append(limit)
+
+    cursor.execute(query, params)
+    products = cursor.fetchall()
+    conn.close()
+    return products
+
+
+# ----------------- SALES HISTORY -----------------
+def get_sales_history(selected_date=None):
+    conn = get_connection()
+    cursor = conn.cursor()
+
+    if selected_date:
+        dt = selected_date.isoformat() if hasattr(selected_date, "isoformat") else str(selected_date)
+
+        cursor.execute("""
+            SELECT DATE(s.date),
+                   IFNULL(SUM(s.total),0) AS total_sales,
+                   IFNULL(SUM((si.selling_price - si.cost_price) * si.quantity),0) AS total_profit,
+                   IFNULL(SUM(s.discount),0) AS total_discount
+            FROM sales_items si
+            JOIN sales s ON si.sale_id = s.id
+            WHERE DATE(s.date)=?
+            AND s.reversed = 0
+            AND NOT EXISTS (
+                SELECT 1 FROM deleted_products dp 
+                WHERE dp.product_id = si.product_id 
+                AND dp.action = 'PERMANENTLY DELETED' 
+                AND dp.source = 'product'
+            )
+            GROUP BY DATE(s.date)
+        """, (dt,))
+    else:
+        cursor.execute("""
+            SELECT DATE(s.date),
+                   IFNULL(SUM(s.total),0),
+                   IFNULL(SUM((si.selling_price - si.cost_price) * si.quantity),0),
+                   IFNULL(SUM(s.discount),0)
+            FROM sales_items si
+            JOIN sales s ON si.sale_id = s.id
+            WHERE s.reversed = 0
+            AND NOT EXISTS (
+                SELECT 1 FROM deleted_products dp 
+                WHERE dp.product_id = si.product_id 
+                AND dp.action = 'PERMANENTLY DELETED' 
+                AND dp.source = 'product'
+            )
+            GROUP BY DATE(s.date)
+            ORDER BY DATE(s.date) DESC
+        """)
+
+    data = cursor.fetchall()
+    conn.close()
+    return data

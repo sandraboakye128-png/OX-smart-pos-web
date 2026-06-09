@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-100">
+    <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+        <div class="text-center mb-6">
+            <h2 class="text-3xl font-bold text-indigo-600">🔐 Welcome Back</h2>
+            <p class="text-gray-500 mt-1">Login to your account</p>
+        </div>
+        
+        <form id="loginForm">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">👤 Username</label>
+                <input type="text" id="username" name="username" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">🔒 Password</label>
+                <input type="password" id="password" name="password" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div class="mb-6">
+                <label class="flex items-center">
+                    <input type="checkbox" id="showPassword" class="mr-2">
+                    <span class="text-sm text-gray-600">👁 Show Password</span>
+                </label>
+            </div>
+            <button type="submit" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition">
+                🚀 Login
+            </button>
+        </form>
+        
+        <div class="mt-6 text-center">
+            <p class="text-gray-600">Don't have an account? 
+                <a href="/signup" class="text-indigo-600 hover:underline">Create Account</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle password visibility
+    const showPasswordCheckbox = document.getElementById('showPassword');
+    const passwordField = document.getElementById('password');
+    showPasswordCheckbox.addEventListener('change', () => {
+        passwordField.type = showPasswordCheckbox.checked ? 'text' : 'password';
+    });
+    
+    // Handle login form submission
+    const loginForm = document.getElementById('loginForm');
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const data = await response.json();
+        if (data.success) {
+            // Redirect to dashboard
+            window.location.href = '/';
+        } else {
+            alert('Login failed: ' + data.error);
+        }
+    });
+</script>
+{% endblock %}

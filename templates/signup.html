@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-100">
+    <div class="bg-white rounded-xl shadow-lg p-8 w-full max-w-md">
+        <div class="text-center mb-6">
+            <h2 class="text-3xl font-bold text-indigo-600">📝 Create Account</h2>
+            <p class="text-gray-500 mt-1">Sign up to continue</p>
+        </div>
+        
+        <form id="signupForm">
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">👤 Username</label>
+                <input type="text" id="username" name="username" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div class="mb-4">
+                <label class="block text-gray-700 text-sm font-bold mb-2">🔒 Password</label>
+                <input type="password" id="password" name="password" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div class="mb-4">
+                <label class="flex items-center">
+                    <input type="checkbox" id="showPassword" class="mr-2">
+                    <span class="text-sm text-gray-600">👁 Show Password</span>
+                </label>
+            </div>
+            <div id="roleContainer" class="mb-6" style="display: none;">
+                <label class="block text-gray-700 text-sm font-bold mb-2">🛡 Role</label>
+                <select id="role" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            <button type="submit" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-lg transition">
+                ✅ Register
+            </button>
+        </form>
+        
+        <div class="mt-6 text-center">
+            <p class="text-gray-600">Already have an account? 
+                <a href="/login" class="text-indigo-600 hover:underline">Login</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle password visibility
+    const showPasswordCheckbox = document.getElementById('showPassword');
+    const passwordField = document.getElementById('password');
+    showPasswordCheckbox.addEventListener('change', () => {
+        passwordField.type = showPasswordCheckbox.checked ? 'text' : 'password';
+    });
+    
+    // Check if an admin already exists → show role dropdown if true
+    async function checkAdminExists() {
+        // We need a new endpoint to tell us if admin exists
+        // Alternatively, we can try to fetch current session, but better to ask backend
+        const res = await fetch('/api/auth/admin_exists');
+        const data = await res.json();
+        if (data.admin_exists) {
+            document.getElementById('roleContainer').style.display = 'block';
+        }
+    }
+    
+    // We'll add an optional helper endpoint in app.py (see below)
+    // For simplicity, we can also just show role selection always – but desktop shows only if admin exists.
+    // Let's implement the helper endpoint.
+    checkAdminExists();
+    
+    // Handle signup form submission
+    const signupForm = document.getElementById('signupForm');
+    signupForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        let role = 'user';
+        if (document.getElementById('roleContainer').style.display === 'block') {
+            role = document.getElementById('role').value;
+        }
+        const response = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password, role })
+        });
+        const data = await response.json();
+        if (data.success) {
+            alert('Account created successfully! Please login.');
+            window.location.href = '/login';
+        } else {
+            alert('Signup failed: ' + data.error);
+        }
+    });
+</script>
+{% endblock %}

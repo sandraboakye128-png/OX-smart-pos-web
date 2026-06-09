@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header + Add Product Form -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+        <h2 class="text-2xl font-bold text-indigo-600 mb-4">📦 Product Manager</h2>
+        
+        <!-- Add Product Form -->
+        <div class="border-t pt-4 mt-2">
+            <h3 class="text-lg font-semibold mb-3">Add New Product</h3>
+            <div class="grid grid-cols-1 md:grid-cols-7 gap-3">
+                <input type="text" id="newName" placeholder="Product Name" class="border rounded-lg px-3 py-2">
+                <input type="text" id="newBrand" placeholder="Brand" class="border rounded-lg px-3 py-2">
+                <input type="text" id="newCategory" placeholder="Category" class="border rounded-lg px-3 py-2">
+                <input type="number" id="newQty" placeholder="Quantity" class="border rounded-lg px-3 py-2">
+                <input type="number" step="0.01" id="newCost" placeholder="Cost Price" class="border rounded-lg px-3 py-2">
+                <input type="number" step="0.01" id="newDiscount" placeholder="Discount" class="border rounded-lg px-3 py-2">
+                <input type="number" step="0.01" id="newSelling" placeholder="Selling Price" class="border rounded-lg px-3 py-2">
+            </div>
+            <button id="addProductBtn" class="mt-3 bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg">➕ Add Product</button>
+        </div>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="mb-4">
+        <input type="text" id="searchInput" placeholder="🔍 Search by name, brand or category..." 
+               class="w-full border border-gray-300 rounded-lg px-4 py-2">
+    </div>
+
+    <!-- Summary -->
+    <div id="summary" class="text-teal-600 font-bold mb-4"></div>
+
+    <!-- Products List (cards) -->
+    <div id="productsList" class="space-y-4">
+        <!-- dynamic content -->
+    </div>
+</div>
+
+<!-- Modal: View Batches -->
+<div id="batchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-3xl max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
+            <h3 class="text-xl font-bold" id="modalTitle">Batches</h3>
+            <button onclick="closeBatchModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        </div>
+        <div id="batchList" class="p-4 space-y-3"></div>
+        <div class="sticky bottom-0 bg-white p-4 border-t flex justify-between">
+            <div>
+                <button onclick="selectAllBatches()" class="bg-blue-500 text-white px-3 py-1 rounded mr-2">Select All</button>
+                <button onclick="deselectAllBatches()" class="bg-orange-500 text-white px-3 py-1 rounded">Deselect All</button>
+            </div>
+            <div>
+                <button onclick="deleteSelectedBatches()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Delete Selected</button>
+                <button onclick="closeBatchModal()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded ml-2">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Delete Product Options -->
+<div id="deleteProductModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-xl w-96 p-6">
+        <h3 class="text-xl font-bold mb-2">Delete Product</h3>
+        <p id="deleteProductName" class="mb-4 text-gray-600"></p>
+        <button id="deleteKeepBtn" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded mb-2">📦 Keep History (Recommended)</button>
+        <p class="text-xs text-gray-500 mb-3">✓ Product deleted but sales/purchase history remains<br>✓ Can be restored from Archive</p>
+        <button id="deleteCleanBtn" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded mb-2">⚠️ Clean Everything (Permanent)</button>
+        <p class="text-xs text-red-500 mb-3">⚠️ Product AND all history deleted – CANNOT be restored!</p>
+        <button onclick="closeDeleteProductModal()" class="w-full bg-gray-400 hover:bg-gray-500 text-white py-2 rounded">Cancel</button>
+    </div>
+</div>
+
+<script>
+    let currentProducts = [];
+    let currentProductIdForDelete = null;
+    let currentBatchSelections = []; // { var: checkbox element, batchId, data }
+    let currentBatchModalProductName = "";
+
+    // Helper: escape HTML
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // Load products from API
+    async function loadProducts() {
+        try {
+            const res = await fetch('/api/products');
+            const data = await res.json();
+            currentProducts = data.products;
+            document.getElementById('summary').innerHTML = `Total Products: ${data.total_products} | Total Batches: ${data.total_batches}`;
+            applySearch();
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    // Filter products based on search input
+    function applySearch() {
+        const keyword = document.getElementById('searchInput').value.toLowerCase();
+        let filtered = currentProducts;
+        if (keyword) {
+            filtered = currentProducts.filter(p => 
+                (p.name && p.name.toLowerCase().includes(keyword)) ||
+                (p.brand && p.brand.toLowerCase().includes(keyword)) ||
+                (p.category && p.category.toLowerCase().includes(keyword))
+            );
+        }
+        renderProducts(filtered);
+    }
+
+    // Render product cards
+    function renderProducts(products) {
+        const container = document.getElementById('productsList');
+        if (!products.length) {
+            container.innerHTML = '<div class="text-center text-gray-400 py-8">No products found.</div>';
+            return;
+        }
+        container.innerHTML = products.map(p => {
+            const status = p.stock > 0 ? "In Stock" : "Out of Stock";
+            const statusColor = p.stock > 0 ? "text-green-600" : "text-red-600";
+            return `
+                <div class="bg-white rounded-xl shadow-md p-4 border">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="text-xl font-bold text-indigo-700">${escapeHtml(p.name)} (${escapeHtml(p.brand)})</h3>
+                            <p class="text-gray-600 text-sm">Category: ${escapeHtml(p.category)} | Stock: ${p.stock}</p>
+                            <p class="text-sm">Cost: ₵${p.cost_price.toFixed(2)} | Selling: ₵${p.selling_price.toFixed(2)} | Discount: ₵${p.discount.toFixed(2)}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-semibold ${statusColor}">● ${status}</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex justify-end space-x-2">
+                        <button onclick="viewBatches(${p.product_id}, '${escapeHtml(p.name)}', ${JSON.stringify(p.batches).replace(/"/g, '&quot;')})" 
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">View Batches</button>
+                        <button onclick="confirmDeleteProduct(${p.product_id}, '${escapeHtml(p.name)}')" 
+                                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">Delete Product</button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ----- Batch Management -----
+    let currentBatches = [];
+    function viewBatches(productId, productName, batches) {
+        currentBatches = batches;
+        currentBatchModalProductName = productName;
+        document.getElementById('modalTitle').innerHTML = `Batches for ${productName}`;
+        const container = document.getElementById('batchList');
+        container.innerHTML = '';
+        currentBatchSelections = [];
+        batches.forEach((batch, idx) => {
+            const div = document.createElement('div');
+            div.className = 'border rounded-lg p-3 flex items-start space-x-3';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.className = 'mt-1';
+            cb.dataset.batchId = batch.batch_id;
+            cb.dataset.batchData = JSON.stringify(batch);
+            div.appendChild(cb);
+            const info = document.createElement('div');
+            info.className = 'flex-1 text-sm';
+            info.innerHTML = `
+                <strong>Batch #${batch.batch_id}</strong><br>
+                Qty: ${batch.quantity} | Remaining: ${batch.remaining_quantity}<br>
+                Cost: ₵${batch.cost_price.toFixed(2)} | Selling: ₵${batch.selling_price.toFixed(2)} | Discount: ₵${batch.discount.toFixed(2)}<br>
+                Date: ${new Date(batch.date).toLocaleString()}
+            `;
+            div.appendChild(info);
+            container.appendChild(div);
+            currentBatchSelections.push({ cb, batchId: batch.batch_id, batch });
+        });
+        document.getElementById('batchModal').classList.remove('hidden');
+    }
+
+    function closeBatchModal() {
+        document.getElementById('batchModal').classList.add('hidden');
+    }
+
+    function selectAllBatches() {
+        currentBatchSelections.forEach(item => item.cb.checked = true);
+    }
+    function deselectAllBatches() {
+        currentBatchSelections.forEach(item => item.cb.checked = false);
+    }
+
+    async function deleteSelectedBatches() {
+        const selected = currentBatchSelections.filter(item => item.cb.checked);
+        if (selected.length === 0) {
+            alert('Please select at least one batch.');
+            return;
+        }
+        // Ask user for deletion type (keep history or permanent)
+        const choice = confirm(`Delete ${selected.length} batch(es)?\n\n- Click OK to KEEP history (recommended, can restore)\n- Click Cancel for PERMANENT deletion (cannot restore)`);
+        const deleteType = choice ? 'keep' : 'clean';
+        
+        for (const item of selected) {
+            try {
+                const res = await fetch(`/api/batches/${item.batchId}?type=${deleteType}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error);
+            } catch (err) {
+                alert(`Error deleting batch ${item.batchId}: ${err.message}`);
+                return;
+            }
+        }
+        alert(`${selected.length} batch(es) deleted.`);
+        closeBatchModal();
+        loadProducts(); // refresh product list
+    }
+
+    // ----- Product Deletion -----
+    function confirmDeleteProduct(productId, productName) {
+        currentProductIdForDelete = productId;
+        document.getElementById('deleteProductName').innerHTML = `Product: ${productName}`;
+        document.getElementById('deleteProductModal').classList.remove('hidden');
+    }
+
+    function closeDeleteProductModal() {
+        document.getElementById('deleteProductModal').classList.add('hidden');
+        currentProductIdForDelete = null;
+    }
+
+    async function deleteProduct(deleteType) {
+        if (!currentProductIdForDelete) return;
+        try {
+            const res = await fetch(`/api/products/${currentProductIdForDelete}?type=${deleteType}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                alert(`Product ${deleteType === 'clean' ? 'permanently deleted' : 'deleted (history kept)'}.`);
+                closeDeleteProductModal();
+                loadProducts();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // ----- Add Product -----
+    async function addProduct() {
+        const payload = {
+            name: document.getElementById('newName').value.trim(),
+            brand: document.getElementById('newBrand').value.trim(),
+            category: document.getElementById('newCategory').value.trim(),
+            quantity: parseInt(document.getElementById('newQty').value),
+            cost_price: parseFloat(document.getElementById('newCost').value),
+            discount: parseFloat(document.getElementById('newDiscount').value) || 0,
+            selling_price: parseFloat(document.getElementById('newSelling').value)
+        };
+        if (!payload.name || !payload.brand || !payload.quantity || !payload.cost_price || !payload.selling_price) {
+            alert('Please fill Product Name, Brand, Quantity, Cost Price and Selling Price.');
+            return;
+        }
+        const res = await fetch('/api/products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+            alert('Product added successfully!');
+            // Clear form
+            document.getElementById('newName').value = '';
+            document.getElementById('newBrand').value = '';
+            document.getElementById('newCategory').value = '';
+            document.getElementById('newQty').value = '';
+            document.getElementById('newCost').value = '';
+            document.getElementById('newDiscount').value = '';
+            document.getElementById('newSelling').value = '';
+            loadProducts();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    }
+
+    // Event listeners
+    document.getElementById('searchInput').addEventListener('input', applySearch);
+    document.getElementById('addProductBtn').addEventListener('click', addProduct);
+    document.getElementById('deleteKeepBtn').addEventListener('click', () => deleteProduct('keep'));
+    document.getElementById('deleteCleanBtn').addEventListener('click', () => deleteProduct('clean'));
+
+    // Initial load
+    loadProducts();
+</script>
+{% endblock %}

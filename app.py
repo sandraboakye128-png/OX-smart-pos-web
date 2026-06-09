@@ -1,0 +1,1215 @@
+from flask import Flask, render_template, request, redirect, url_for, jsonify, send_file, session
+from functools import wraps
+from services.product_service import get_all_products as get_all_products_service
+import os   # <-- ADDED for environment variable
+
+# ---------- IMPORT PURCHASE SERVICES ----------
+from services.purchase_service import (
+    add_purchase,
+    get_all_purchases,
+    get_purchases_by_date_range,
+    get_product_suggestions,
+    get_category_suggestions,
+    update_product
+)
+
+# ---------- IMPORT DASHBOARD SERVICES ----------
+from services.dashboard_service import (
+    get_today_sales,
+    get_today_profit,
+    get_total_products,
+    get_low_stock_products,
+    get_top_products,
+    get_sales_history
+)
+
+# ---------- IMPORT PRODUCT DELETION SERVICES ----------
+from services.product_service import (
+    delete_product_keep_history,
+    delete_product_clean_all,
+    delete_batch,
+    delete_batch_clean_all
+)
+
+# ---------- IMPORT SALES SERVICES ----------
+from services.sales_service import (
+    get_products_for_sale,
+    get_batches_for_product,
+    get_batch_by_id,
+    create_multi_sale,
+    update_product_stock
+)
+
+# ---------- IMPORT RECEIPT SERVICE ----------
+from services.receipt_service import generate_receipt_multi
+
+# ---------- IMPORT AUTH SERVICES ----------
+from services.auth_service import login_user, create_user, admin_exists
+
+# ---------- IMPORT ARCHIVE SERVICES ----------
+from services.product_service import get_deleted_products, restore_archive
+
+# ---------- DATABASE CONNECTION (for Today's Sales & Analytics queries) ----------
+from database.db import get_connection
+
+# ---------- PDF GENERATION ----------
+import io
+from datetime import datetime, date, timedelta
+from reportlab.lib.pagesizes import landscape, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+from reportlab.lib.units import cm
+
+app = Flask(__name__)
+
+# ---------------------- SECRET KEY (from environment variable) ----------------------
+app.secret_key = os.getenv(
+    "SECRET_KEY",
+    "temporary-dev-key"   # fallback for local development
+)
+
+# ---------------------- CONTEXT PROCESSOR (injects user into all templates) ----------------------
+@app.context_processor
+def inject_user():
+    if 'user_id' in session:
+        return {
+            'current_user': {
+                'username': session.get('username'),
+                'role': session.get('role')
+            }
+        }
+    return {'current_user': None}
+
+# ---------------------- LOGIN REQUIRED DECORATOR ----------------------
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# ---------------------- PUBLIC ROUTES (no login required) ----------------------
+@app.route("/login")
+def login():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    return render_template("login.html")
+
+@app.route("/signup")
+def signup():
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    return render_template("signup.html")
+
+# ---------------------- PROTECTED ROUTES (require login) ----------------------
+@app.route("/")
+@login_required
+def dashboard():
+    return render_template("dashboard.html")
+
+@app.route("/products")
+@login_required
+def products():
+    return render_template("products.html")
+
+@app.route("/products/add", methods=["POST"])
+@login_required
+def add_product():
+    return redirect(url_for("products"))
+
+@app.route("/sales")
+@login_required
+def sales():
+    return render_template("sales.html")
+
+@app.route("/purchases")
+@login_required
+def purchases():
+    return render_template("purchases.html")
+
+@app.route("/analytics")
+@login_required
+def analytics():
+    return render_template("analytics.html")
+
+@app.route("/today-sales")
+@login_required
+def today_sales():
+    return render_template("today_sales.html")
+
+@app.route("/archive")
+@login_required
+def archive():
+    return render_template("archive.html")
+
+# ===================== AUTH API =====================
+
+@app.route('/api/auth/login', methods=['POST'])
+def api_auth_login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    user = login_user(username, password)
+    if user:
+        session['user_id'] = user['id']
+        session['username'] = user['username']
+        session['role'] = user['role']
+        return jsonify({'success': True, 'user': user})
+    else:
+        return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
+
+@app.route('/api/auth/signup', methods=['POST'])
+def api_auth_signup():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    role = data.get('role', 'user')
+    
+    # If no admin exists yet, force role to admin for first user
+    if not admin_exists():
+        role = 'admin'
+    
+    success = create_user(username, password, role)
+    if success:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Username already exists'}), 400
+
+@app.route('/api/auth/logout', methods=['POST'])
+def api_auth_logout():
+    session.clear()
+    return jsonify({'success': True})
+
+@app.route('/api/auth/check', methods=['GET'])
+def api_auth_check():
+    if 'user_id' in session:
+        return jsonify({
+            'logged_in': True,
+            'username': session.get('username'),
+            'role': session.get('role')
+        })
+    else:
+        return jsonify({'logged_in': False})
+
+@app.route('/api/auth/admin_exists', methods=['GET'])
+def api_auth_admin_exists():
+    exists = admin_exists()
+    return jsonify({'admin_exists': exists})
+
+# ===================== DASHBOARD API =====================
+
+@app.route('/api/dashboard/summary', methods=['GET'])
+@login_required
+def api_dashboard_summary():
+    selected_date_str = request.args.get('date')
+    if selected_date_str:
+        try:
+            selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        except:
+            selected_date = date.today()
+    else:
+        selected_date = date.today()
+    
+    sales = get_today_sales(selected_date)
+    profit = get_today_profit(selected_date)
+    total_products = get_total_products()
+    low_stock_products = get_low_stock_products(threshold=10)
+    low_stock_count = len(low_stock_products)
+    
+    return jsonify({
+        'sales': sales,
+        'profit': profit,
+        'total_products': total_products,
+        'low_stock_count': low_stock_count,
+        'low_stock_products': low_stock_products
+    })
+
+@app.route('/api/dashboard/top_products', methods=['GET'])
+@login_required
+def api_dashboard_top_products():
+    selected_date_str = request.args.get('date')
+    if selected_date_str:
+        try:
+            selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        except:
+            selected_date = None
+    else:
+        selected_date = None
+    
+    top = get_top_products(selected_date, limit=5)
+    result = [{'name': row[0], 'brand': row[1], 'category': row[2], 'qty': row[3]} for row in top]
+    return jsonify(result)
+
+@app.route('/api/dashboard/sales_history', methods=['GET'])
+@login_required
+def api_dashboard_sales_history():
+    selected_date_str = request.args.get('date')
+    if selected_date_str:
+        try:
+            selected_date = datetime.strptime(selected_date_str, '%Y-%m-%d').date()
+        except:
+            selected_date = None
+    else:
+        selected_date = None
+    
+    history = get_sales_history(selected_date)
+    result = []
+    for row in history:
+        date_str = row[0].isoformat() if hasattr(row[0], 'isoformat') else str(row[0])
+        result.append({
+            'date': date_str,
+            'total_sales': float(row[1]),
+            'profit': float(row[2]),
+            'discount': float(row[3])
+        })
+    return jsonify(result)
+
+# ===================== PURCHASES API =====================
+
+def serialize_purchase(p):
+    p_copy = p.copy()
+    if 'date' in p_copy and p_copy['date']:
+        if hasattr(p_copy['date'], 'isoformat'):
+            p_copy['date'] = p_copy['date'].isoformat()
+        else:
+            p_copy['date'] = str(p_copy['date'])
+    return p_copy
+
+@app.route('/api/purchases', methods=['GET'])
+@login_required
+def api_get_purchases():
+    purchases = get_all_purchases()
+    return jsonify([serialize_purchase(p) for p in purchases])
+
+@app.route('/api/purchases', methods=['POST'])
+@login_required
+def api_add_purchase():
+    data = request.json
+    try:
+        batch_id = add_purchase(
+            name=data['name'],
+            brand=data['brand'],
+            category=data['category'],
+            quantity=int(data['quantity']),
+            cost_price=float(data['cost_price']),
+            discount=float(data.get('discount', 0)),
+            selling_price=float(data['selling_price'])
+        )
+        return jsonify({'success': True, 'batch_id': batch_id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/purchases/<int:batch_id>', methods=['PUT'])
+@login_required
+def api_update_purchase(batch_id):
+    data = request.json
+    try:
+        update_product(
+            batch_id=batch_id,
+            name=data['name'],
+            brand=data['brand'],
+            category=data['category'],
+            quantity=int(data['quantity']),
+            cost_price=float(data['cost_price']),
+            discount=float(data.get('discount', 0)),
+            selling_price=float(data['selling_price'])
+        )
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/purchases/filter', methods=['GET'])
+@login_required
+def api_filter_purchases():
+    start = request.args.get('start_date')
+    end = request.args.get('end_date')
+    if not start or not end:
+        return jsonify([])
+    purchases = get_purchases_by_date_range(start, end)
+    return jsonify([serialize_purchase(p) for p in purchases])
+
+@app.route('/api/purchases/suggestions/name', methods=['GET'])
+@login_required
+def api_suggest_name():
+    q = request.args.get('q', '')
+    if not q:
+        return jsonify([])
+    suggestions = get_product_suggestions(q)
+    return jsonify(suggestions)
+
+@app.route('/api/purchases/suggestions/category', methods=['GET'])
+@login_required
+def api_suggest_category():
+    q = request.args.get('q', '')
+    if not q:
+        return jsonify([])
+    suggestions = get_category_suggestions(q)
+    return jsonify(suggestions)
+
+@app.route('/api/purchases/pdf', methods=['POST'])
+@login_required
+def api_purchases_pdf():
+    data = request.json
+    purchases = data.get('purchases', [])
+    from_date = data.get('from_date', '')
+    to_date = data.get('to_date', '')
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), rightMargin=15, leftMargin=15,
+                            topMargin=20, bottomMargin=20)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    elements.append(Paragraph("📦 Purchases Report", styles["Title"]))
+    elements.append(Spacer(1, 6))
+    elements.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]))
+    if from_date and to_date:
+        elements.append(Paragraph(f"Date Range: {from_date} → {to_date}", styles["Normal"]))
+    elements.append(Spacer(1, 12))
+
+    table_data = [["ID", "Name", "Brand", "Qty", "Stock", "Cost", "Discount", "Total", "Selling", "Date/Time"]]
+
+    total_qty = total_cost = total_discount = total_selling = 0
+    row_colors = [colors.whitesmoke, colors.lightgrey]
+
+    for p in purchases:
+        date_str = p.get('date', '')
+        if date_str:
+            try:
+                dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                date_str = dt.strftime("%Y-%m-%d %H:%M")
+            except:
+                date_str = str(date_str)[:16]
+
+        table_data.append([
+            p["batch_id"], p["name"], p["brand"],
+            p["quantity"], p["remaining_quantity"],
+            f"₵{p.get('cost_price', 0):.2f}",
+            f"₵{p.get('discount', 0):.2f}",
+            f"₵{p.get('total_cost', 0):.2f}",
+            f"₵{p.get('selling_price', 0):.2f}",
+            date_str
+        ])
+
+        total_qty += p.get("quantity", 0)
+        total_cost += p.get("total_cost", 0)
+        total_discount += p.get("discount", 0)
+        total_selling += p.get("selling_price", 0) * p.get("quantity", 0)
+
+    table = Table(table_data, repeatRows=1, hAlign='LEFT',
+                  colWidths=[1.8*cm, 4.5*cm, 4*cm, 2*cm, 2*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 3.5*cm])
+    style = TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#00CFCF")),
+        ("TEXTCOLOR", (0,0), (-1,0), colors.whitesmoke),
+        ("ALIGN", (3,1), (-2,-1), "CENTER"),
+        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
+        ("GRID", (0,0), (-1,-1), 0.4, colors.black),
+        ("FONTSIZE", (0,0), (-1,-1), 8.5),
+    ])
+    for i in range(1, len(table_data)):
+        style.add("BACKGROUND", (0,i), (-1,i), row_colors[i%2])
+    table.setStyle(style)
+    elements.append(table)
+    elements.append(Spacer(1,12))
+
+    summary = f"Total Qty: {total_qty} | Total Discount: ₵{total_discount:.2f} | Total Cost: ₵{total_cost:.2f} | Total Selling: ₵{total_selling:.2f}"
+    elements.append(Paragraph(summary, styles["Heading2"]))
+
+    doc.build(elements)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True,
+                     download_name=f"Purchases_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                     mimetype='application/pdf')
+
+# ===================== PRODUCT API =====================
+
+@app.route('/api/products', methods=['GET'])
+@login_required
+def api_get_products():
+    purchases = get_all_purchases()
+    all_products = get_all_products_service()
+    id_map = {(prod['name'], prod['brand']): prod['product_id'] for prod in all_products}
+    
+    products_dict = {}
+    total_batches = 0
+    for p in purchases:
+        total_batches += 1
+        key = (p['name'], p['brand'])
+        if key not in products_dict:
+            products_dict[key] = {
+                'name': p['name'],
+                'brand': p['brand'],
+                'category': p['category'],
+                'cost_price': p['cost_price'],
+                'selling_price': p['selling_price'],
+                'discount': p['discount'],
+                'stock': 0,
+                'batches': [],
+                'product_id': id_map.get(key)
+            }
+        products_dict[key]['stock'] += p['remaining_quantity']
+        products_dict[key]['batches'].append({
+            'batch_id': p['batch_id'],
+            'quantity': p['quantity'],
+            'remaining_quantity': p['remaining_quantity'],
+            'cost_price': p['cost_price'],
+            'selling_price': p['selling_price'],
+            'discount': p['discount'],
+            'date': p['date']
+        })
+    
+    result = list(products_dict.values())
+    return jsonify({
+        'products': result,
+        'total_products': len(result),
+        'total_batches': total_batches
+    })
+
+@app.route('/api/products', methods=['POST'])
+@login_required
+def api_add_product():
+    data = request.json
+    try:
+        batch_id = add_purchase(
+            name=data['name'],
+            brand=data['brand'],
+            category=data.get('category', ''),
+            quantity=int(data['quantity']),
+            cost_price=float(data['cost_price']),
+            discount=float(data.get('discount', 0)),
+            selling_price=float(data['selling_price'])
+        )
+        return jsonify({'success': True, 'batch_id': batch_id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/products/<int:product_id>', methods=['DELETE'])
+@login_required
+def api_delete_product(product_id):
+    delete_type = request.args.get('type', 'keep')
+    try:
+        if delete_type == 'clean':
+            delete_product_clean_all(product_id)
+        else:
+            delete_product_keep_history(product_id)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/batches/<int:batch_id>', methods=['DELETE'])
+@login_required
+def api_delete_batch(batch_id):
+    delete_type = request.args.get('type', 'keep')
+    try:
+        if delete_type == 'clean':
+            delete_batch_clean_all(batch_id)
+        else:
+            delete_batch(batch_id)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+# ===================== SALES API =====================
+
+@app.route('/api/sales/products', methods=['GET'])
+@login_required
+def api_sales_products():
+    products = get_products_for_sale()
+    return jsonify(products)
+
+@app.route('/api/sales/batches/<int:product_id>', methods=['GET'])
+@login_required
+def api_sales_batches(product_id):
+    batches = get_batches_for_product(product_id)
+    return jsonify(batches)
+
+@app.route('/api/sales/complete', methods=['POST'])
+@login_required
+def api_sales_complete():
+    data = request.json
+    cart_items = data.get('cart_items', [])
+    sale_datetime = data.get('sale_datetime')
+    selected_batches = data.get('selected_batches', [])
+    
+    try:
+        result = create_multi_sale(cart_items, sale_datetime, selected_batches)
+        
+        # Build receipt cart
+        receipt_cart = []
+        for idx, item in enumerate(cart_items):
+            product_batches = []
+            for sb in selected_batches:
+                if sb.get('product_id') == item['product']['id']:
+                    batch_info = get_batch_by_id(sb['batch_id'])
+                    if batch_info:
+                        product_batches.append({
+                            'batch_id': sb['batch_id'],
+                            'qty': sb['qty'],
+                            'batch': batch_info
+                        })
+            receipt_cart.append({
+                'product': item['product'],
+                'qty': item['qty'],
+                'discount': item['discount'],
+                'selected_batches': product_batches
+            })
+        
+        receipt_file, receipt_text = generate_receipt_multi(receipt_cart, result['total'])
+        
+        return jsonify({
+            'success': True,
+            'sale_id': result['sale_id'],
+            'total': result['total'],
+            'date': result['date'],
+            'receipt_text': receipt_text,
+            'receipt_file': receipt_file
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+# ===================== REVERSE SALE API =====================
+
+@app.route('/api/sales/reverse/<int:sale_id>', methods=['POST'])
+@login_required
+def api_reverse_sale(sale_id):
+    """Reverse a sale: restore stock to batches, mark sale as reversed."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    try:
+        # Check if sale exists and not already reversed
+        cursor.execute("SELECT reversed FROM sales WHERE id = ?", (sale_id,))
+        row = cursor.fetchone()
+        if not row:
+            return jsonify({'success': False, 'error': 'Sale not found'}), 404
+        if row[0] == 1:
+            return jsonify({'success': False, 'error': 'Sale already reversed'}), 400
+        
+        # Get all sale items
+        cursor.execute("""
+            SELECT product_id, batch_id, quantity, cost_price, selling_price, profit
+            FROM sales_items
+            WHERE sale_id = ?
+        """, (sale_id,))
+        items = cursor.fetchall()
+        
+        if not items:
+            return jsonify({'success': False, 'error': 'No items found for this sale'}), 400
+        
+        # Restore each batch
+        for item in items:
+            product_id, batch_id, qty, cost_price, selling_price, profit = item
+            # Increase batch remaining quantity
+            cursor.execute("""
+                UPDATE purchase_batches
+                SET remaining_quantity = remaining_quantity + ?
+                WHERE id = ?
+            """, (qty, batch_id))
+            # Recalculate product stock
+            update_product_stock(cursor, product_id)
+        
+        # Mark sale as reversed
+        cursor.execute("UPDATE sales SET reversed = 1 WHERE id = ?", (sale_id,))
+        
+        conn.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        conn.close()
+
+# ===================== TODAY'S SALES API =====================
+
+@app.route('/api/today_sales', methods=['GET'])
+@login_required
+def api_today_sales():
+    """Get sales data filtered by period (daily/weekly/monthly/yearly) or custom date range (excluding reversed sales)"""
+    period = request.args.get('period', 'daily')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Base query that includes deleted batches (via LEFT JOIN) and excludes reversed sales
+    exclude_permanent = """
+        WHERE NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = products.id 
+            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.source = 'product'
+        )
+    """
+    
+    if start_date and end_date:
+        # Custom date range
+        cursor.execute(f"""
+            SELECT 
+                sales.id, 
+                products.name, 
+                products.brand, 
+                products.category,
+                sales_items.quantity, 
+                sales_items.selling_price,
+                sales_items.quantity * sales_items.selling_price AS subtotal,
+                sales.discount, 
+                sales.total, 
+                sales_items.profit,
+                COALESCE(purchase_batches.id, -1) as batch_id,
+                COALESCE(purchase_batches.cost_price, 0) as cost_price, 
+                sales.date,
+                CASE WHEN purchase_batches.id IS NULL THEN 1 ELSE 0 END as is_deleted_batch
+            FROM sales
+            JOIN sales_items ON sales.id = sales_items.sale_id
+            JOIN products ON products.id = sales_items.product_id
+            LEFT JOIN purchase_batches ON purchase_batches.id = sales_items.batch_id
+            {exclude_permanent}
+            AND DATE(sales.date) BETWEEN ? AND ?
+            AND sales.reversed = 0
+            ORDER BY sales.date DESC
+        """, (start_date, end_date))
+    else:
+        # Use period filter
+        if period == 'weekly':
+            start = (datetime.now() - timedelta(days=6)).strftime('%Y-%m-%d')
+            end = datetime.now().strftime('%Y-%m-%d')
+            cursor.execute(f"""
+                SELECT 
+                    sales.id, 
+                    products.name, 
+                    products.brand, 
+                    products.category,
+                    sales_items.quantity, 
+                    sales_items.selling_price,
+                    sales_items.quantity * sales_items.selling_price AS subtotal,
+                    sales.discount, 
+                    sales.total, 
+                    sales_items.profit,
+                    COALESCE(purchase_batches.id, -1) as batch_id,
+                    COALESCE(purchase_batches.cost_price, 0) as cost_price, 
+                    sales.date,
+                    CASE WHEN purchase_batches.id IS NULL THEN 1 ELSE 0 END as is_deleted_batch
+                FROM sales
+                JOIN sales_items ON sales.id = sales_items.sale_id
+                JOIN products ON products.id = sales_items.product_id
+                LEFT JOIN purchase_batches ON purchase_batches.id = sales_items.batch_id
+                {exclude_permanent}
+                AND DATE(sales.date) BETWEEN ? AND ?
+                AND sales.reversed = 0
+                ORDER BY sales.date DESC
+            """, (start, end))
+        elif period == 'monthly':
+            cursor.execute(f"""
+                SELECT 
+                    sales.id, 
+                    products.name, 
+                    products.brand, 
+                    products.category,
+                    sales_items.quantity, 
+                    sales_items.selling_price,
+                    sales_items.quantity * sales_items.selling_price AS subtotal,
+                    sales.discount, 
+                    sales.total, 
+                    sales_items.profit,
+                    COALESCE(purchase_batches.id, -1) as batch_id,
+                    COALESCE(purchase_batches.cost_price, 0) as cost_price, 
+                    sales.date,
+                    CASE WHEN purchase_batches.id IS NULL THEN 1 ELSE 0 END as is_deleted_batch
+                FROM sales
+                JOIN sales_items ON sales.id = sales_items.sale_id
+                JOIN products ON products.id = sales_items.product_id
+                LEFT JOIN purchase_batches ON purchase_batches.id = sales_items.batch_id
+                {exclude_permanent}
+                AND strftime('%%m', sales.date) = strftime('%%m','now') 
+                AND strftime('%%Y', sales.date) = strftime('%%Y','now')
+                AND sales.reversed = 0
+                ORDER BY sales.date DESC
+            """)
+        elif period == 'yearly':
+            cursor.execute(f"""
+                SELECT 
+                    sales.id, 
+                    products.name, 
+                    products.brand, 
+                    products.category,
+                    sales_items.quantity, 
+                    sales_items.selling_price,
+                    sales_items.quantity * sales_items.selling_price AS subtotal,
+                    sales.discount, 
+                    sales.total, 
+                    sales_items.profit,
+                    COALESCE(purchase_batches.id, -1) as batch_id,
+                    COALESCE(purchase_batches.cost_price, 0) as cost_price, 
+                    sales.date,
+                    CASE WHEN purchase_batches.id IS NULL THEN 1 ELSE 0 END as is_deleted_batch
+                FROM sales
+                JOIN sales_items ON sales.id = sales_items.sale_id
+                JOIN products ON products.id = sales_items.product_id
+                LEFT JOIN purchase_batches ON purchase_batches.id = sales_items.batch_id
+                {exclude_permanent}
+                AND strftime('%%Y', sales.date) = strftime('%%Y','now')
+                AND sales.reversed = 0
+                ORDER BY sales.date DESC
+            """)
+        else:  # daily (default)
+            cursor.execute(f"""
+                SELECT 
+                    sales.id, 
+                    products.name, 
+                    products.brand, 
+                    products.category,
+                    sales_items.quantity, 
+                    sales_items.selling_price,
+                    sales_items.quantity * sales_items.selling_price AS subtotal,
+                    sales.discount, 
+                    sales.total, 
+                    sales_items.profit,
+                    COALESCE(purchase_batches.id, -1) as batch_id,
+                    COALESCE(purchase_batches.cost_price, 0) as cost_price, 
+                    sales.date,
+                    CASE WHEN purchase_batches.id IS NULL THEN 1 ELSE 0 END as is_deleted_batch
+                FROM sales
+                JOIN sales_items ON sales.id = sales_items.sale_id
+                JOIN products ON products.id = sales_items.product_id
+                LEFT JOIN purchase_batches ON purchase_batches.id = sales_items.batch_id
+                {exclude_permanent}
+                AND DATE(sales.date) = DATE('now','localtime')
+                AND sales.reversed = 0
+                ORDER BY sales.date DESC
+            """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Convert rows to list of dictionaries
+    sales_data = []
+    for r in rows:
+        sales_data.append({
+            'sale_id': r[0],
+            'name': r[1],
+            'brand': r[2] or '',
+            'category': r[3] or '',
+            'quantity': r[4],
+            'selling_price': float(r[5]),
+            'subtotal': float(r[6]),
+            'discount': float(r[7]),
+            'total': float(r[8]),
+            'profit': float(r[9]),
+            'batch_id': r[10],
+            'cost_price': float(r[11]),
+            'sale_date': r[12].isoformat() if hasattr(r[12], 'isoformat') else str(r[12]),
+            'is_deleted_batch': bool(r[13])
+        })
+    
+    return jsonify(sales_data)
+
+@app.route('/api/today_sales/pdf', methods=['POST'])
+@login_required
+def api_today_sales_pdf():
+    """Generate PDF report from the currently filtered sales data"""
+    data = request.json
+    sales_data = data.get('sales_data', [])
+    period_text = data.get('period_text', 'Sales Report')
+    
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(A4), 
+                           rightMargin=20, leftMargin=20, topMargin=20, bottomMargin=20)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Title
+    elements.append(Paragraph("Sales Report", styles['Title']))
+    elements.append(Spacer(1, 0.2*cm))
+    elements.append(Paragraph(period_text, styles['Normal']))
+    elements.append(Spacer(1, 0.2*cm))
+    
+    # Calculate totals
+    seen_sales = set()
+    total_sales = 0.0
+    total_discount = 0.0
+    total_profit = 0.0
+    total_items = 0
+    
+    for sale in sales_data:
+        sale_id = sale['sale_id']
+        if sale_id not in seen_sales:
+            total_sales += sale['total']
+            total_discount += sale['discount']
+            seen_sales.add(sale_id)
+        total_profit += sale['profit']
+        total_items += sale['quantity']
+    
+    elements.append(Paragraph(
+        f"🧾 Items: {total_items}   |   💰 Sales: ₵{total_sales:.2f}   |   "
+        f"📉 Discount: ₵{total_discount:.2f}   |   📈 Profit: ₵{total_profit:.2f}",
+        styles['Normal']
+    ))
+    elements.append(Spacer(1, 0.3*cm))
+    
+    # Table headers
+    table_data = [["Name", "Brand", "Category", "Qty", "Price", "Subtotal", 
+                   "Discount", "Total", "Profit", "Batch", "Cost", "Sale Date", "Status"]]
+    
+    for s in sales_data:
+        status = "Deleted Batch" if s['is_deleted_batch'] else "Active"
+        row = [
+            s['name'], s['brand'], s['category'],
+            str(s['quantity']),
+            f"₵{s['selling_price']:.2f}",
+            f"₵{s['subtotal']:.2f}",
+            f"₵{s['discount']:.2f}",
+            f"₵{s['total']:.2f}",
+            f"₵{s['profit']:.2f}",
+            str(s['batch_id']) if s['batch_id'] != -1 else "DELETED",
+            f"₵{s['cost_price']:.2f}",
+            s['sale_date'],
+            status
+        ]
+        table_data.append(row)
+    
+    table = Table(table_data, repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), colors.HexColor("#1E3A5F")),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.black),
+        ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+        ('ALIGN', (3,1), (-1,-1), 'CENTER'),
+        ('FONTSIZE', (0,0), (-1,-1), 8),
+    ]))
+    elements.append(table)
+    
+    doc.build(elements)
+    buffer.seek(0)
+    return send_file(buffer, as_attachment=True,
+                     download_name=f"SalesReport_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                     mimetype='application/pdf')
+
+# ===================== ANALYTICS API =====================
+
+@app.route('/api/analytics/summary', methods=['GET'])
+@login_required
+def api_analytics_summary():
+    """Get summary metrics: items sold, subtotal, discount, total, profit for a period (excluding reversed sales)"""
+    period = request.args.get('period', 'daily')
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Build date filters based on period
+    if period == 'weekly':
+        date_filter = "DATE(sales.date) >= DATE('now', '-6 days')"
+    elif period == 'monthly':
+        date_filter = "strftime('%m', sales.date) = strftime('%m','now') AND strftime('%Y', sales.date) = strftime('%Y','now')"
+    elif period == 'yearly':
+        date_filter = "strftime('%Y', sales.date) = strftime('%Y','now')"
+    else:  # daily
+        date_filter = "DATE(sales.date) = DATE('now','localtime')"
+    
+    # Exclude permanently deleted products and reversed sales
+    exclude = """
+        AND NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = products.id 
+            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.source = 'product'
+        )
+        AND sales.reversed = 0
+    """
+    
+    query = f"""
+        SELECT 
+            IFNULL(SUM(sales_items.quantity), 0) as items_sold,
+            IFNULL(SUM(sales_items.quantity * sales_items.selling_price), 0) as subtotal,
+            IFNULL(SUM(sales.discount), 0) as discount,
+            IFNULL(SUM(sales.total), 0) as total,
+            IFNULL(SUM(sales_items.profit), 0) as profit
+        FROM sales
+        JOIN sales_items ON sales.id = sales_items.sale_id
+        JOIN products ON products.id = sales_items.product_id
+        WHERE {date_filter}
+        {exclude}
+    """
+    cursor.execute(query)
+    row = cursor.fetchone()
+    conn.close()
+    
+    return jsonify({
+        'items_sold': int(row[0]),
+        'subtotal': float(row[1]),
+        'discount': float(row[2]),
+        'total': float(row[3]),
+        'profit': float(row[4])
+    })
+
+@app.route('/api/analytics/trend', methods=['GET'])
+@login_required
+def api_analytics_trend():
+    """Get sales and profit trend over time for a period (excluding reversed sales)"""
+    period = request.args.get('period', 'daily')
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Different grouping based on period
+    if period == 'weekly':
+        cursor.execute("""
+            SELECT 
+                DATE(sales.date) as day,
+                IFNULL(SUM(sales.total), 0) as sales,
+                IFNULL(SUM(sales_items.profit), 0) as profit
+            FROM sales
+            JOIN sales_items ON sales.id = sales_items.sale_id
+            JOIN products ON products.id = sales_items.product_id
+            WHERE DATE(sales.date) >= DATE('now', '-6 days')
+            AND NOT EXISTS (
+                SELECT 1 FROM deleted_products dp 
+                WHERE dp.product_id = products.id 
+                AND dp.action = 'PERMANENTLY DELETED' 
+                AND dp.source = 'product'
+            )
+            AND sales.reversed = 0
+            GROUP BY DATE(sales.date)
+            ORDER BY day ASC
+        """)
+    elif period == 'monthly':
+        cursor.execute("""
+            SELECT 
+                DATE(sales.date) as day,
+                IFNULL(SUM(sales.total), 0) as sales,
+                IFNULL(SUM(sales_items.profit), 0) as profit
+            FROM sales
+            JOIN sales_items ON sales.id = sales_items.sale_id
+            JOIN products ON products.id = sales_items.product_id
+            WHERE DATE(sales.date) >= DATE('now', '-29 days')
+            AND NOT EXISTS (
+                SELECT 1 FROM deleted_products dp 
+                WHERE dp.product_id = products.id 
+                AND dp.action = 'PERMANENTLY DELETED' 
+                AND dp.source = 'product'
+            )
+            AND sales.reversed = 0
+            GROUP BY DATE(sales.date)
+            ORDER BY day ASC
+        """)
+    elif period == 'yearly':
+        cursor.execute("""
+            SELECT 
+                strftime('%Y-%m', sales.date) as month,
+                IFNULL(SUM(sales.total), 0) as sales,
+                IFNULL(SUM(sales_items.profit), 0) as profit
+            FROM sales
+            JOIN sales_items ON sales.id = sales_items.sale_id
+            JOIN products ON products.id = sales_items.product_id
+            WHERE strftime('%Y', sales.date) = strftime('%Y','now')
+            AND NOT EXISTS (
+                SELECT 1 FROM deleted_products dp 
+                WHERE dp.product_id = products.id 
+                AND dp.action = 'PERMANENTLY DELETED' 
+                AND dp.source = 'product'
+            )
+            AND sales.reversed = 0
+            GROUP BY strftime('%Y-%m', sales.date)
+            ORDER BY month ASC
+        """)
+    else:
+        cursor.execute("""
+            SELECT 
+                DATE(sales.date) as day,
+                IFNULL(SUM(sales.total), 0) as sales,
+                IFNULL(SUM(sales_items.profit), 0) as profit
+            FROM sales
+            JOIN sales_items ON sales.id = sales_items.sale_id
+            JOIN products ON products.id = sales_items.product_id
+            WHERE DATE(sales.date) >= DATE('now', '-6 days')
+            AND NOT EXISTS (
+                SELECT 1 FROM deleted_products dp 
+                WHERE dp.product_id = products.id 
+                AND dp.action = 'PERMANENTLY DELETED' 
+                AND dp.source = 'product'
+            )
+            AND sales.reversed = 0
+            GROUP BY DATE(sales.date)
+            ORDER BY day ASC
+        """)
+    
+    rows = cursor.fetchall()
+    conn.close()
+    
+    trend = []
+    for r in rows:
+        trend.append({
+            'label': r[0],
+            'sales': float(r[1]),
+            'profit': float(r[2])
+        })
+    return jsonify(trend)
+
+@app.route('/api/analytics/top_products', methods=['GET'])
+@login_required
+def api_analytics_top_products():
+    """Get top selling products for a period (excluding reversed sales)"""
+    period = request.args.get('period', 'daily')
+    limit = int(request.args.get('limit', 10))
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Date filter
+    if period == 'weekly':
+        date_filter = "DATE(sales.date) >= DATE('now', '-6 days')"
+    elif period == 'monthly':
+        date_filter = "strftime('%m', sales.date) = strftime('%m','now') AND strftime('%Y', sales.date) = strftime('%Y','now')"
+    elif period == 'yearly':
+        date_filter = "strftime('%Y', sales.date) = strftime('%Y','now')"
+    else:  # daily
+        date_filter = "DATE(sales.date) = DATE('now','localtime')"
+    
+    exclude = """
+        AND NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = products.id 
+            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.source = 'product'
+        )
+        AND sales.reversed = 0
+    """
+    
+    query = f"""
+        SELECT 
+            products.name,
+            products.brand,
+            products.category,
+            IFNULL(SUM(sales_items.quantity), 0) as total_qty
+        FROM sales
+        JOIN sales_items ON sales.id = sales_items.sale_id
+        JOIN products ON products.id = sales_items.product_id
+        WHERE {date_filter}
+        {exclude}
+        GROUP BY products.id
+        ORDER BY total_qty DESC
+        LIMIT ?
+    """
+    cursor.execute(query, (limit,))
+    rows = cursor.fetchall()
+    conn.close()
+    
+    result = []
+    for r in rows:
+        result.append({
+            'name': r[0],
+            'brand': r[1] or '',
+            'category': r[2] or '',
+            'quantity': int(r[3])
+        })
+    return jsonify(result)
+
+# ===================== ARCHIVE API =====================
+
+@app.route('/api/archive', methods=['GET'])
+@login_required
+def api_archive():
+    """Return combined archive: active products + deleted records"""
+    status_filter = request.args.get('status', 'ALL')
+    
+    # Active products
+    active_products = get_all_products_service()
+    active_items = []
+    for p in active_products:
+        active_items.append({
+            'id': None,
+            'name': p['name'],
+            'brand': p['brand'],
+            'category': p['category'],
+            'cost': p['cost_price'],
+            'price': p['selling_price'],
+            'stock': p['stock'],
+            'discount': p['discount'],
+            'action': 'ACTIVE',
+            'date': p.get('created_at') or '',
+            'source': 'active',
+            'is_permanent': False,
+            'batch_id': None,
+            'batch_quantity': None,
+            'batch_remaining': None,
+            'product_id': p['product_id']
+        })
+    
+    # Deleted records
+    deleted_records = get_deleted_products()
+    deleted_items = []
+    for r in deleted_records:
+        # r structure: (id, name, brand, cost_price, selling_price, stock, category, discount, action, deleted_at,
+        #               batch_id, batch_quantity, batch_remaining, product_id, source)
+        action = r[8].upper() if len(r) > 8 else 'UNKNOWN'
+        is_permanent = action == 'PERMANENTLY DELETED'
+        deleted_items.append({
+            'id': r[0],
+            'name': r[1] or '-',
+            'brand': r[2] or '-',
+            'category': r[6] or '-',
+            'cost': r[3] or 0,
+            'price': r[4] or 0,
+            'stock': r[5] or 0,
+            'discount': r[7] or 0,
+            'action': action,
+            'date': r[9] if len(r) > 9 else '',
+            'source': r[14] if len(r) > 14 else 'product',
+            'is_permanent': is_permanent,
+            'batch_id': r[10] if len(r) > 10 else None,
+            'batch_quantity': r[11] if len(r) > 11 else None,
+            'batch_remaining': r[12] if len(r) > 12 else None,
+            'product_id': r[13] if len(r) > 13 else None
+        })
+    
+    combined = active_items + deleted_items
+    
+    # Filter by status
+    if status_filter != 'ALL':
+        combined = [item for item in combined if item['action'] == status_filter]
+    
+    # Sort by date (newest first), active products first (they have no date)
+    def sort_key(item):
+        if item['action'] == 'ACTIVE':
+            return (datetime.max, item['name'])
+        else:
+            try:
+                date_obj = datetime.fromisoformat(str(item['date']))
+            except:
+                date_obj = datetime.min
+            return (date_obj, item['name'])
+    combined.sort(key=sort_key, reverse=True)
+    
+    return jsonify(combined)
+
+@app.route('/api/archive/restore', methods=['POST'])
+@login_required
+def api_archive_restore():
+    data = request.json
+    archive_id = data.get('archive_id')
+    if not archive_id:
+        return jsonify({'success': False, 'error': 'Missing archive_id'}), 400
+    try:
+        restore_archive(archive_id)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+@app.route('/api/archive/batches', methods=['GET'])
+@login_required
+def api_archive_batches():
+    """Get all batches for a given product (by name+brand) – used in View Batches modal"""
+    name = request.args.get('name')
+    brand = request.args.get('brand')
+    if not name or not brand:
+        return jsonify([])
+    purchases = get_all_purchases()
+    batches = [b for b in purchases if b['name'] == name and b['brand'] == brand]
+    return jsonify(batches)
+
+# ---------------------- RUN THE APP (for Render) ----------------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)

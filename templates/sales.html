@@ -1,0 +1,533 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Two-column layout -->
+    <div class="flex flex-wrap -mx-4">
+        <!-- LEFT PANEL: Products & Form -->
+        <div class="w-full lg:w-1/2 px-4 mb-6">
+            <div class="bg-white rounded-xl shadow-md p-4">
+                <h2 class="text-xl font-bold text-indigo-600 mb-3">🛒 Sales Terminal</h2>
+                
+                <!-- Product Search -->
+                <input type="text" id="searchProduct" placeholder="🔍 Search product..." 
+                       class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3">
+                
+                <!-- Product List -->
+                <div id="productList" class="max-h-80 overflow-y-auto border rounded-lg p-2 mb-4">
+                    <!-- dynamic product buttons -->
+                </div>
+                
+                <!-- Selected Product Info -->
+                <div id="selectedProductInfo" class="text-gray-600 text-sm mb-2">No product selected</div>
+                
+                <!-- Quantity & Discount -->
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <input type="number" id="quantity" placeholder="Quantity" class="border rounded-lg px-3 py-2">
+                    <input type="number" step="0.01" id="discount" placeholder="Discount (₵)" class="border rounded-lg px-3 py-2">
+                </div>
+                
+                <!-- Date & Time (custom sale datetime) -->
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700">Sale Date</label>
+                    <input type="date" id="saleDate" class="border rounded-lg px-3 py-2 w-full">
+                </div>
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700">Sale Time (HH:MM with AM/PM or 24h)</label>
+                    <input type="text" id="saleTime" placeholder="e.g. 2:30 PM or 14:30" 
+                           class="border rounded-lg px-3 py-2 w-full">
+                </div>
+                
+                <!-- Add to Cart Button -->
+                <button id="addToCartBtn" class="w-full bg-teal-500 hover:bg-teal-600 text-white py-2 rounded-lg">
+                    ➕ Add to Cart
+                </button>
+            </div>
+        </div>
+        
+        <!-- RIGHT PANEL: Cart & Receipt -->
+        <div class="w-full lg:w-1/2 px-4">
+            <div class="bg-white rounded-xl shadow-md p-4">
+                <h2 class="text-xl font-bold text-indigo-600 mb-3">🧾 Cart</h2>
+                <div id="cartItems" class="max-h-96 overflow-y-auto border rounded-lg p-2 mb-4 space-y-3">
+                    <!-- dynamic cart items -->
+                </div>
+                <div class="mb-3 text-right">
+                    <span class="text-lg font-bold">Grand Total: </span>
+                    <span id="grandTotal" class="text-2xl font-bold text-green-600">₵0.00</span>
+                </div>
+                <button id="completeSaleBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg mb-3">
+                    💳 Complete Sale
+                </button>
+                <button id="printReceiptBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg mb-3" disabled>
+                    🖨 Print Receipt
+                </button>
+                <div id="receiptPreview" class="border rounded-lg p-3 bg-gray-50 font-mono text-sm max-h-60 overflow-y-auto">
+                    <!-- receipt text will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Batch Selection Modal -->
+<div id="batchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
+            <h3 class="text-xl font-bold" id="batchModalTitle">Select Batches</h3>
+            <button onclick="closeBatchModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        </div>
+        <div id="batchList" class="p-4 space-y-3"></div>
+        <div class="sticky bottom-0 bg-white p-4 border-t flex justify-between">
+            <div>
+                <button onclick="selectAllBatches()" class="bg-blue-500 text-white px-3 py-1 rounded mr-2">Select All</button>
+                <button onclick="deselectAllBatches()" class="bg-orange-500 text-white px-3 py-1 rounded">Deselect All</button>
+            </div>
+            <div>
+                <span id="assignedQty" class="mr-4 text-sm font-bold">Assigned: 0</span>
+                <span id="remainingQty" class="mr-4 text-sm font-bold">Remaining: 0</span>
+                <button onclick="confirmBatchSelection()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">✓ Confirm</button>
+                <button onclick="closeBatchModal()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded ml-2">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ---------- Global State ----------
+    let products = [];
+    let currentProduct = null;
+    let cart = [];           // each item: { product, qty, discount, selectedBatches, subtotal, final }
+    let lastSale = null;    // store receipt text and total after sale
+    
+    // Batch modal state
+    let currentBatches = [];
+    let currentProductForBatch = null;
+    let neededQty = 0;
+    let batchSelection = [];  // array of { batch, var, qtyEntry }
+    
+    // Helper: format currency
+    function formatMoney(amount) {
+        return '₵' + amount.toFixed(2);
+    }
+    
+    // ---------- Load Products ----------
+    async function loadProducts() {
+        const res = await fetch('/api/sales/products');
+        products = await res.json();
+        renderProductList(products);
+    }
+    
+    function renderProductList(prods) {
+        const container = document.getElementById('productList');
+        if (!prods.length) {
+            container.innerHTML = '<div class="text-gray-400 p-2">No products available</div>';
+            return;
+        }
+        container.innerHTML = '';
+        prods.forEach(p => {
+            const btn = document.createElement('button');
+            btn.className = 'w-full text-left px-3 py-2 hover:bg-gray-100 rounded-lg';
+            btn.innerText = `${p.name} (${p.brand}) - Stock: ${p.stock}`;
+            btn.onclick = () => selectProduct(p);
+            container.appendChild(btn);
+        });
+    }
+    
+    function selectProduct(product) {
+        currentProduct = product;
+        document.getElementById('selectedProductInfo').innerHTML = `<strong>Selected:</strong> ${product.name} (${product.brand}) - ₵${product.selling_price.toFixed(2)}`;
+        // Clear quantity/discount
+        document.getElementById('quantity').value = '';
+        document.getElementById('discount').value = '';
+    }
+    
+    // Product search filter
+    document.getElementById('searchProduct').addEventListener('input', function(e) {
+        const keyword = e.target.value.toLowerCase();
+        const filtered = products.filter(p => 
+            p.name.toLowerCase().includes(keyword) || 
+            p.brand.toLowerCase().includes(keyword)
+        );
+        renderProductList(filtered);
+    });
+    
+    // ---------- Batch Modal ----------
+    async function openBatchSelector(product, qty) {
+        currentProductForBatch = product;
+        neededQty = qty;
+        // Fetch batches for this product
+        const res = await fetch(`/api/sales/batches/${product.id}`);
+        const batches = await res.json();
+        currentBatches = batches.filter(b => b.remaining_quantity > 0);
+        if (currentBatches.length === 0) {
+            alert('No available batches for this product.');
+            return false;
+        }
+        
+        // Build modal content
+        const container = document.getElementById('batchList');
+        container.innerHTML = '';
+        batchSelection = [];
+        
+        // Header row
+        const header = document.createElement('div');
+        header.className = 'grid grid-cols-6 gap-2 bg-gray-100 p-2 font-bold sticky top-0';
+        header.innerHTML = `
+            <div>Select</div>
+            <div>Batch ID</div>
+            <div>Stock</div>
+            <div>Selling Price</div>
+            <div>Cost Price</div>
+            <div>Qty to Sell</div>
+        `;
+        container.appendChild(header);
+        
+        for (const batch of currentBatches) {
+            const row = document.createElement('div');
+            row.className = 'grid grid-cols-6 gap-2 items-center border-b py-2';
+            
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.className = 'w-5 h-5';
+            
+            const batchIdSpan = document.createElement('span');
+            batchIdSpan.innerText = batch.batch_id;
+            
+            const stockSpan = document.createElement('span');
+            stockSpan.innerText = batch.remaining_quantity;
+            
+            const priceSpan = document.createElement('span');
+            priceSpan.innerText = `₵${batch.selling_price.toFixed(2)}`;
+            
+            const costSpan = document.createElement('span');
+            costSpan.innerText = `₵${batch.cost_price.toFixed(2)}`;
+            
+            const qtyInput = document.createElement('input');
+            qtyInput.type = 'number';
+            qtyInput.className = 'border rounded px-1 py-1 w-20';
+            qtyInput.value = '0';
+            qtyInput.disabled = true;
+            
+            row.appendChild(cb);
+            row.appendChild(batchIdSpan);
+            row.appendChild(stockSpan);
+            row.appendChild(priceSpan);
+            row.appendChild(costSpan);
+            row.appendChild(qtyInput);
+            
+            container.appendChild(row);
+            
+            // Store selection data
+            batchSelection.push({
+                batch: batch,
+                checkbox: cb,
+                qtyInput: qtyInput,
+                batchId: batch.batch_id
+            });
+            
+            // Toggle qtyInput enabled when checkbox checked
+            cb.addEventListener('change', () => {
+                qtyInput.disabled = !cb.checked;
+                if (cb.checked && qtyInput.value === '0') {
+                    qtyInput.value = '1';
+                } else if (!cb.checked) {
+                    qtyInput.value = '0';
+                }
+                updateBatchTotals();
+            });
+            qtyInput.addEventListener('input', updateBatchTotals);
+        }
+        
+        // Update totals function
+        function updateBatchTotals() {
+            let assigned = 0;
+            batchSelection.forEach(sel => {
+                if (sel.checkbox.checked) {
+                    let val = parseInt(sel.qtyInput.value) || 0;
+                    const maxStock = sel.batch.remaining_quantity;
+                    if (val > maxStock) {
+                        sel.qtyInput.value = maxStock;
+                        val = maxStock;
+                    }
+                    assigned += val;
+                }
+            });
+            document.getElementById('assignedQty').innerText = `Assigned: ${assigned}`;
+            const remaining = neededQty - assigned;
+            document.getElementById('remainingQty').innerText = `Remaining: ${remaining}`;
+            const remainingSpan = document.getElementById('remainingQty');
+            if (remaining < 0) remainingSpan.classList.add('text-red-600');
+            else remainingSpan.classList.remove('text-red-600');
+            if (remaining === 0) remainingSpan.classList.add('text-green-600');
+            else remainingSpan.classList.remove('text-green-600');
+        }
+        
+        document.getElementById('batchModalTitle').innerHTML = `Select batches for ${product.name} (need ${qty} units)`;
+        document.getElementById('assignedQty').innerText = 'Assigned: 0';
+        document.getElementById('remainingQty').innerText = `Remaining: ${neededQty}`;
+        document.getElementById('batchModal').classList.remove('hidden');
+        return true;
+    }
+    
+    function selectAllBatches() {
+        batchSelection.forEach(sel => {
+            sel.checkbox.checked = true;
+            sel.qtyInput.disabled = false;
+            if (sel.qtyInput.value === '0') sel.qtyInput.value = '1';
+        });
+        updateBatchTotals();
+    }
+    function deselectAllBatches() {
+        batchSelection.forEach(sel => {
+            sel.checkbox.checked = false;
+            sel.qtyInput.disabled = true;
+            sel.qtyInput.value = '0';
+        });
+        updateBatchTotals();
+    }
+    function updateBatchTotals() {
+        let assigned = 0;
+        batchSelection.forEach(sel => {
+            if (sel.checkbox.checked) {
+                let val = parseInt(sel.qtyInput.value) || 0;
+                const maxStock = sel.batch.remaining_quantity;
+                if (val > maxStock) {
+                    sel.qtyInput.value = maxStock;
+                    val = maxStock;
+                }
+                assigned += val;
+            }
+        });
+        document.getElementById('assignedQty').innerText = `Assigned: ${assigned}`;
+        const remaining = neededQty - assigned;
+        document.getElementById('remainingQty').innerText = `Remaining: ${remaining}`;
+        const remainingSpan = document.getElementById('remainingQty');
+        if (remaining < 0) remainingSpan.classList.add('text-red-600');
+        else remainingSpan.classList.remove('text-red-600');
+        if (remaining === 0) remainingSpan.classList.add('text-green-600');
+        else remainingSpan.classList.remove('text-green-600');
+    }
+    window.selectAllBatches = selectAllBatches;
+    window.deselectAllBatches = deselectAllBatches;
+    
+    function closeBatchModal() {
+        document.getElementById('batchModal').classList.add('hidden');
+        currentProductForBatch = null;
+        neededQty = 0;
+    }
+    window.closeBatchModal = closeBatchModal;
+    
+    function confirmBatchSelection() {
+        // Validate total assigned equals needed quantity
+        let assigned = 0;
+        let selected = [];
+        for (const sel of batchSelection) {
+            if (sel.checkbox.checked) {
+                let qty = parseInt(sel.qtyInput.value) || 0;
+                if (qty > 0) {
+                    assigned += qty;
+                    selected.push({
+                        batch_id: sel.batchId,
+                        qty: qty,
+                        batch: sel.batch
+                    });
+                }
+            }
+        }
+        if (assigned !== neededQty) {
+            alert(`Please assign exactly ${neededQty} units. Currently assigned: ${assigned}`);
+            return;
+        }
+        if (selected.length === 0) {
+            alert('Please select at least one batch.');
+            return;
+        }
+        // Add to cart
+        const discount = parseFloat(document.getElementById('discount').value) || 0;
+        let subtotal = 0;
+        for (const s of selected) {
+            subtotal += s.qty * s.batch.selling_price;
+        }
+        const finalTotal = Math.max(subtotal - discount, 0);
+        cart.push({
+            product: currentProductForBatch,
+            qty: neededQty,
+            discount: discount,
+            selectedBatches: selected,
+            subtotal: subtotal,
+            final: finalTotal
+        });
+        updateCart();
+        closeBatchModal();
+        // Clear quantity and discount
+        document.getElementById('quantity').value = '';
+        document.getElementById('discount').value = '';
+    }
+    window.confirmBatchSelection = confirmBatchSelection;
+    
+    // ---------- Cart Management ----------
+    function updateCart() {
+        const container = document.getElementById('cartItems');
+        if (!cart.length) {
+            container.innerHTML = '<div class="text-gray-400 p-4 text-center">Cart is empty</div>';
+            document.getElementById('grandTotal').innerText = formatMoney(0);
+            return;
+        }
+        let grandTotal = 0;
+        container.innerHTML = '';
+        cart.forEach((item, idx) => {
+            grandTotal += item.final;
+            const card = document.createElement('div');
+            card.className = 'border rounded-lg p-3 bg-gray-50';
+            card.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <strong>${item.product.name} (${item.product.brand})</strong>
+                        <div class="text-sm text-gray-600">Qty: ${item.qty} | Discount: ${formatMoney(item.discount)}</div>
+                        <div class="text-xs text-gray-500">Batches:</div>
+                        <div class="text-xs">
+                            ${item.selectedBatches.map(b => `Batch #${b.batch_id}: ${b.qty} @ ${formatMoney(b.batch.selling_price)}`).join('<br>')}
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="font-bold">${formatMoney(item.final)}</div>
+                        <button onclick="removeCartItem(${idx})" class="text-red-500 text-sm">Remove</button>
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+        document.getElementById('grandTotal').innerText = formatMoney(grandTotal);
+    }
+    
+    window.removeCartItem = function(index) {
+        cart.splice(index, 1);
+        updateCart();
+    };
+    
+    // ---------- Add to Cart (opens batch selector) ----------
+    document.getElementById('addToCartBtn').addEventListener('click', async () => {
+        if (!currentProduct) {
+            alert('Please select a product first.');
+            return;
+        }
+        const qty = parseInt(document.getElementById('quantity').value);
+        if (isNaN(qty) || qty <= 0) {
+            alert('Please enter a valid quantity.');
+            return;
+        }
+        // Check product stock
+        if (qty > currentProduct.stock) {
+            alert(`Only ${currentProduct.stock} units available in stock.`);
+            return;
+        }
+        await openBatchSelector(currentProduct, qty);
+    });
+    
+    // ---------- Complete Sale ----------
+    document.getElementById('completeSaleBtn').addEventListener('click', async () => {
+        if (cart.length === 0) {
+            alert('Cart is empty.');
+            return;
+        }
+        // Build sale data
+        const cartItems = cart.map(item => ({
+            product: item.product,
+            qty: item.qty,
+            discount: item.discount
+        }));
+        const selectedBatches = [];
+        cart.forEach(item => {
+            item.selectedBatches.forEach(b => {
+                selectedBatches.push({
+                    batch_id: b.batch_id,
+                    qty: b.qty,
+                    product_id: item.product.id  // needed to match in create_multi_sale? Actually create_multi_sale expects batch_id and qty; it gets product from batch.
+                });
+            });
+        });
+        // Get custom datetime
+        let saleDatetime = null;
+        const dateVal = document.getElementById('saleDate').value;
+        const timeVal = document.getElementById('saleTime').value;
+        if (dateVal && timeVal) {
+            // Convert time to 24-hour format
+            let time24 = timeVal;
+            try {
+                if (timeVal.toLowerCase().includes('am') || timeVal.toLowerCase().includes('pm')) {
+                    // parse as 12-hour
+                    const parsed = new Date(`2000-01-01 ${timeVal}`);
+                    if (!isNaN(parsed)) {
+                        time24 = parsed.toLocaleTimeString('en-GB', { hour12: false });
+                    }
+                } else {
+                    // assume 24-hour already
+                    time24 = timeVal;
+                }
+                saleDatetime = `${dateVal} ${time24}`;
+            } catch(e) { console.error(e); }
+        }
+        const payload = {
+            cart_items: cartItems,
+            sale_datetime: saleDatetime,
+            selected_batches: selectedBatches
+        };
+        const res = await fetch('/api/sales/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+            lastSale = data;
+            // Display receipt preview
+            document.getElementById('receiptPreview').innerHTML = `<pre class="whitespace-pre-wrap">${data.receipt_text}</pre>`;
+            document.getElementById('printReceiptBtn').disabled = false;
+            // Clear cart
+            cart = [];
+            updateCart();
+            // Optionally reload products to reflect stock changes
+            loadProducts();
+            alert(`Sale completed! Total: ${formatMoney(data.total)}`);
+        } else {
+            alert('Error: ' + data.error);
+        }
+    });
+    
+    // ---------- Print Receipt ----------
+    document.getElementById('printReceiptBtn').addEventListener('click', () => {
+        if (!lastSale) return;
+        // Open print dialog with receipt text
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+            <head><title>Receipt</title>
+            <style>body { font-family: monospace; padding: 20px; } pre { white-space: pre-wrap; }</style>
+            </head>
+            <body><pre>${lastSale.receipt_text}</pre>
+            <script>window.print();<\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    });
+    
+    // Set default sale date/time to now
+    function setDefaultDateTime() {
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        document.getElementById('saleDate').value = dateStr;
+        let hours = now.getHours();
+        const minutes = now.getMinutes();
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12 || 12;
+        const timeStr = `${hours}:${minutes.toString().padStart(2,'0')} ${ampm}`;
+        document.getElementById('saleTime').value = timeStr;
+    }
+    setDefaultDateTime();
+    
+    // Initial load
+    loadProducts();
+</script>
+{% endblock %}

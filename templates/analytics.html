@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header & Period Filter -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-indigo-600">📊 Analytics Dashboard</h1>
+        <div class="flex gap-2">
+            <button data-period="daily" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg">Today</button>
+            <button data-period="weekly" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg">Week</button>
+            <button data-period="monthly" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg">Month</button>
+            <button data-period="yearly" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg">Year</button>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <p class="text-gray-500 text-sm">📦 Items Sold</p>
+            <p id="itemsSold" class="text-2xl font-bold text-indigo-600">0</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <p class="text-gray-500 text-sm">💰 Revenue</p>
+            <p id="revenue" class="text-2xl font-bold text-green-600">₵0</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <p class="text-gray-500 text-sm">📈 Profit</p>
+            <p id="profit" class="text-2xl font-bold text-blue-600">₵0</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <p class="text-gray-500 text-sm">🏷 Discount</p>
+            <p id="discount" class="text-2xl font-bold text-red-600">₵0</p>
+        </div>
+    </div>
+
+    <!-- Trend Chart -->
+    <div class="bg-white rounded-xl shadow-md p-4 mb-8">
+        <h2 class="text-xl font-semibold mb-4">📈 Sales & Profit Trend</h2>
+        <canvas id="trendChart" height="100"></canvas>
+    </div>
+
+    <!-- Top Products -->
+    <div class="bg-white rounded-xl shadow-md p-4">
+        <h2 class="text-xl font-semibold mb-4">🏆 Top Products</h2>
+        <div id="topProductsList" class="space-y-2 max-h-80 overflow-y-auto">
+            <!-- dynamic list -->
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let currentPeriod = 'daily';
+    let trendChart = null;
+
+    // Helper: format currency
+    function formatMoney(amount) {
+        return '₵' + amount.toFixed(2);
+    }
+
+    // Load summary data
+    async function loadSummary() {
+        const res = await fetch(`/api/analytics/summary?period=${currentPeriod}`);
+        const data = await res.json();
+        document.getElementById('itemsSold').innerText = data.items_sold;
+        document.getElementById('revenue').innerText = formatMoney(data.total);
+        document.getElementById('profit').innerText = formatMoney(data.profit);
+        document.getElementById('discount').innerText = formatMoney(data.discount);
+    }
+
+    // Load trend data and update chart
+    async function loadTrend() {
+        const res = await fetch(`/api/analytics/trend?period=${currentPeriod}`);
+        const data = await res.json();
+        const labels = data.map(item => item.label);
+        const sales = data.map(item => item.sales);
+        const profits = data.map(item => item.profit);
+
+        if (trendChart) {
+            trendChart.destroy();
+        }
+        const ctx = document.getElementById('trendChart').getContext('2d');
+        trendChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Sales',
+                        data: sales,
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    },
+                    {
+                        label: 'Profit',
+                        data: profits,
+                        borderColor: 'rgb(34, 197, 94)',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.3,
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.dataset.label}: ₵${context.raw.toFixed(2)}`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Load top products
+    async function loadTopProducts() {
+        const res = await fetch(`/api/analytics/top_products?period=${currentPeriod}&limit=10`);
+        const products = await res.json();
+        const container = document.getElementById('topProductsList');
+        if (products.length === 0) {
+            container.innerHTML = '<div class="text-gray-400 text-center py-4">No product data available.</div>';
+            return;
+        }
+        container.innerHTML = '';
+        products.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'border-b pb-2';
+            div.innerHTML = `<span class="font-medium">• ${p.name} (${p.brand} | ${p.category})</span> — <span class="font-bold">${p.quantity} sold</span>`;
+            container.appendChild(div);
+        });
+    }
+
+    // Reload all analytics data
+    async function reloadAnalytics() {
+        await loadSummary();
+        await loadTrend();
+        await loadTopProducts();
+    }
+
+    // Period button event handlers
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentPeriod = btn.getAttribute('data-period');
+            reloadAnalytics();
+        });
+    });
+
+    // Initial load
+    reloadAnalytics();
+</script>
+{% endblock %}

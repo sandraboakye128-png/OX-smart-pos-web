@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-indigo-600">📊 Sales Overview</h1>
+        <button id="refreshBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg">🔄 Refresh</button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="mb-4">
+        <input type="text" id="searchInput" placeholder="🔍 Search product or brand..." 
+               class="w-full border border-gray-300 rounded-lg px-4 py-2">
+        <p class="text-xs text-gray-500 mt-1">🔎 Type to filter sales records by product or brand</p>
+    </div>
+
+    <!-- Period Filter Buttons -->
+    <div class="flex flex-wrap gap-2 mb-4">
+        <button data-period="daily" class="period-btn bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg">Today</button>
+        <button data-period="weekly" class="period-btn bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg">Week</button>
+        <button data-period="monthly" class="period-btn bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg">Month</button>
+        <button data-period="yearly" class="period-btn bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-lg">Year</button>
+    </div>
+
+    <!-- Date Range Filter -->
+    <div class="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-wrap items-end gap-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">From Date</label>
+            <input type="date" id="startDate" class="border rounded-lg px-3 py-2">
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">To Date</label>
+            <input type="date" id="endDate" class="border rounded-lg px-3 py-2">
+        </div>
+        <button id="applyDateBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg">Apply Filter</button>
+        <button id="pdfBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg ml-auto">🖨️ Print / Save PDF</button>
+    </div>
+
+    <!-- Sales List (cards) -->
+    <div id="salesList" class="space-y-4">
+        <!-- dynamic content -->
+    </div>
+
+    <!-- Summary Bar (fixed at bottom of scroll) -->
+    <div id="summaryBar" class="sticky bottom-0 mt-4 bg-gray-900 text-teal-400 rounded-lg p-3 text-center font-bold">
+        <!-- totals will appear here -->
+    </div>
+</div>
+
+<script>
+    let currentSalesData = [];
+    let currentPeriod = 'daily';
+    let currentStartDate = null;
+    let currentEndDate = null;
+
+    // Helper: format currency
+    function formatMoney(amount) {
+        return '₵' + amount.toFixed(2);
+    }
+
+    // Helper: escape HTML
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // Fetch sales data from API
+    async function loadSalesData() {
+        let url = '/api/today_sales?period=' + currentPeriod;
+        if (currentStartDate && currentEndDate) {
+            url = `/api/today_sales?start_date=${currentStartDate}&end_date=${currentEndDate}`;
+        }
+        const res = await fetch(url);
+        const data = await res.json();
+        currentSalesData = data;
+        applySearchAndRender();
+    }
+
+    // Filter by search term and render
+    function applySearchAndRender() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        let filtered = currentSalesData;
+        if (searchTerm) {
+            filtered = currentSalesData.filter(sale => 
+                sale.name.toLowerCase().includes(searchTerm) || 
+                sale.brand.toLowerCase().includes(searchTerm)
+            );
+        }
+        renderSales(filtered);
+    }
+
+    // Reverse a sale
+    async function reverseSale(saleId) {
+        if (!confirm(`Are you sure you want to reverse sale #${saleId}?\n\nThis will restore all stock and cannot be undone.`)) {
+            return;
+        }
+        try {
+            const response = await fetch(`/api/sales/reverse/${saleId}`, { method: 'POST' });
+            const data = await response.json();
+            if (data.success) {
+                alert(`Sale #${saleId} reversed successfully. Stock restored.`);
+                loadSalesData(); // refresh the list
+            } else {
+                alert('Error: ' + data.error);
+            }
+        } catch (err) {
+            alert('Network error: ' + err.message);
+        }
+    }
+
+    // Render sales as cards
+    function renderSales(sales) {
+        const container = document.getElementById('salesList');
+        if (!sales.length) {
+            container.innerHTML = '<div class="text-center text-gray-400 py-8">No sales recorded.</div>';
+            updateSummary([]);
+            return;
+        }
+
+        // Group items by sale_id to avoid duplicate discount/total per sale
+        const saleMap = new Map();
+        for (const sale of sales) {
+            if (!saleMap.has(sale.sale_id)) {
+                saleMap.set(sale.sale_id, {
+                    discount: sale.discount,
+                    total: sale.total,
+                    date: sale.sale_date,
+                    items: []
+                });
+            }
+            saleMap.get(sale.sale_id).items.push(sale);
+        }
+
+        let html = '';
+        for (const [saleId, saleGroup] of saleMap) {
+            const itemsHtml = saleGroup.items.map(item => {
+                const statusText = item.is_deleted_batch ? '⚠️ (Batch Deleted - History Only)' : '';
+                return `
+                    <div class="border-b pb-2 mb-2 last:border-0">
+                        <div class="font-semibold text-indigo-700">${escapeHtml(item.name)} (${escapeHtml(item.brand)}) ${statusText}</div>
+                        <div class="text-sm grid grid-cols-2 gap-1">
+                            <div>Qty: ${item.quantity}</div>
+                            <div>Selling: ${formatMoney(item.selling_price)}</div>
+                            <div>Batch: ${item.batch_id === -1 ? 'DELETED' : '#' + item.batch_id}</div>
+                            <div>Cost: ${formatMoney(item.cost_price)}</div>
+                            <div>Subtotal: ${formatMoney(item.subtotal)}</div>
+                            <div>Profit: ${formatMoney(item.profit)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            html += `
+                <div class="bg-white rounded-xl shadow-md p-4 border" data-sale-id="${saleId}">
+                    <div class="text-sm text-gray-500 mb-2">Sale #${saleId} | ${saleGroup.date}</div>
+                    ${itemsHtml}
+                    <div class="mt-2 pt-2 border-t flex justify-between items-center">
+                        <button class="reverse-sale-btn bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm" data-sale-id="${saleId}">↺ Reverse Sale</button>
+                        <div>
+                            <span class="text-sm">Discount: ${formatMoney(saleGroup.discount)}</span>
+                            <span class="text-lg font-bold ml-4">Total: ${formatMoney(saleGroup.total)}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+        updateSummary(sales);
+    }
+
+    function updateSummary(sales) {
+        const seenSales = new Set();
+        let totalSales = 0, totalDiscount = 0, totalProfit = 0, totalItems = 0;
+        for (const sale of sales) {
+            if (!seenSales.has(sale.sale_id)) {
+                totalSales += sale.total;
+                totalDiscount += sale.discount;
+                seenSales.add(sale.sale_id);
+            }
+            totalProfit += sale.profit;
+            totalItems += sale.quantity;
+        }
+        let periodText = '';
+        if (currentStartDate && currentEndDate) {
+            periodText = `📅 ${currentStartDate} to ${currentEndDate}`;
+        } else {
+            switch(currentPeriod) {
+                case 'daily': periodText = '📅 Today'; break;
+                case 'weekly': periodText = '📅 Last 7 Days'; break;
+                case 'monthly': periodText = '📅 This Month'; break;
+                case 'yearly': periodText = '📅 This Year'; break;
+            }
+        }
+        document.getElementById('summaryBar').innerHTML = 
+            `${periodText}  |  🧾 Items: ${totalItems}  |  💰 Sales: ${formatMoney(totalSales)}  |  📉 Discount: ${formatMoney(totalDiscount)}  |  📈 Profit: ${formatMoney(totalProfit)}`;
+    }
+
+    // PDF Export
+    async function exportPDF() {
+        if (!currentSalesData.length) {
+            alert('No data to export.');
+            return;
+        }
+        let periodText = '';
+        if (currentStartDate && currentEndDate) {
+            periodText = `Period: ${currentStartDate} to ${currentEndDate}`;
+        } else {
+            periodText = `Period: ${currentPeriod.charAt(0).toUpperCase() + currentPeriod.slice(1)}`;
+        }
+        const response = await fetch('/api/today_sales/pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                sales_data: currentSalesData,
+                period_text: periodText
+            })
+        });
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `SalesReport_${new Date().toISOString().slice(0,19)}.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        } else {
+            alert('Failed to generate PDF');
+        }
+    }
+
+    // Event listeners
+    document.getElementById('refreshBtn').addEventListener('click', () => loadSalesData());
+    document.getElementById('searchInput').addEventListener('input', () => applySearchAndRender());
+    document.getElementById('applyDateBtn').addEventListener('click', () => {
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+        if (start && end) {
+            currentStartDate = start;
+            currentEndDate = end;
+            currentPeriod = null;
+            loadSalesData();
+        } else {
+            alert('Please select both start and end dates.');
+        }
+    });
+    document.getElementById('pdfBtn').addEventListener('click', exportPDF);
+
+    // Period buttons
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentPeriod = btn.getAttribute('data-period');
+            currentStartDate = null;
+            currentEndDate = null;
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            loadSalesData();
+        });
+    });
+
+    // Event delegation for reverse sale buttons (since they are dynamically added)
+    document.getElementById('salesList').addEventListener('click', (e) => {
+        const btn = e.target.closest('.reverse-sale-btn');
+        if (btn) {
+            const saleId = btn.getAttribute('data-sale-id');
+            if (saleId) reverseSale(saleId);
+        }
+    });
+
+    // Set default date range to today's date in the date pickers (optional)
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('startDate').value = today;
+    document.getElementById('endDate').value = today;
+
+    // Initial load
+    loadSalesData();
+</script>
+{% endblock %}

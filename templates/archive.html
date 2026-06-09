@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header & Filter -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-indigo-600">📁 Product Archive</h1>
+        <div class="flex items-center gap-3">
+            <label class="text-gray-700">Filter by status:</label>
+            <select id="statusFilter" class="border border-gray-300 rounded-lg px-3 py-2 bg-white">
+                <option value="ALL">ALL</option>
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="UPDATED">UPDATED</option>
+                <option value="DELETED">DELETED</option>
+                <option value="PRODUCT DELETED">PRODUCT DELETED</option>
+                <option value="BATCH DELETED">BATCH DELETED</option>
+                <option value="PERMANENTLY DELETED">PERMANENTLY DELETED</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Archive List -->
+    <div id="archiveList" class="space-y-4">
+        <!-- dynamic cards -->
+    </div>
+</div>
+
+<!-- Modal: View Batches -->
+<div id="batchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-2xl max-h-[80vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
+            <h3 class="text-xl font-bold" id="batchModalTitle">Batches</h3>
+            <button onclick="closeBatchModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        </div>
+        <div id="batchList" class="p-4 space-y-3"></div>
+        <div class="sticky bottom-0 bg-white p-4 border-t text-right">
+            <button onclick="closeBatchModal()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentArchiveData = [];
+
+    // Helper: format currency
+    function formatMoney(amount) {
+        return '₵' + amount.toFixed(2);
+    }
+
+    // Helper: escape HTML
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // Get status color
+    function getStatusColor(action) {
+        const colors = {
+            'ACTIVE': '#22C55E',
+            'UPDATED': '#F59E0B',
+            'DELETED': '#EF4444',
+            'PRODUCT DELETED': '#EF4444',
+            'BATCH DELETED': '#F87171',
+            'PERMANENTLY DELETED': '#6B7280'
+        };
+        return colors[action] || '#999';
+    }
+
+    // Format date for display
+    function formatDate(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const d = new Date(dateStr);
+            return d.toLocaleString();
+        } catch(e) {
+            return dateStr;
+        }
+    }
+
+    // Load archive data from API
+    async function loadArchive() {
+        const status = document.getElementById('statusFilter').value;
+        const res = await fetch(`/api/archive?status=${status}`);
+        const data = await res.json();
+        currentArchiveData = data;
+        renderArchive(data);
+    }
+
+    // Render cards
+    function renderArchive(items) {
+        const container = document.getElementById('archiveList');
+        if (!items.length) {
+            container.innerHTML = '<div class="text-center text-gray-400 py-8">No archive data available.</div>';
+            return;
+        }
+
+        container.innerHTML = '';
+        for (const item of items) {
+            const card = document.createElement('div');
+            card.className = 'bg-white rounded-xl shadow-md border p-4';
+
+            // Header row
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'flex justify-between items-start mb-2';
+            headerDiv.innerHTML = `
+                <div>
+                    <span class="font-bold text-lg text-indigo-700">${escapeHtml(item.name)} (${escapeHtml(item.brand)})</span>
+                </div>
+                <div>
+                    <span class="text-sm font-semibold" style="color: ${getStatusColor(item.action)}">● ${item.action}</span>
+                </div>
+            `;
+            card.appendChild(headerDiv);
+
+            // Details
+            const detailsDiv = document.createElement('div');
+            detailsDiv.className = 'text-gray-700 text-sm mb-3';
+            if (item.action === 'ACTIVE') {
+                detailsDiv.innerHTML = `
+                    📦 Stock: ${item.stock} | ₵${item.cost.toFixed(2)} | ₵${item.price.toFixed(2)} | 💰 Disc: ₵${item.discount.toFixed(2)} | 📂 ${escapeHtml(item.category)}
+                `;
+            } else {
+                let details = `
+                    Category: ${escapeHtml(item.category)} | Stock: ${item.stock}<br>
+                    Cost: ${formatMoney(item.cost)} | Selling: ${formatMoney(item.price)} | Discount: ${formatMoney(item.discount)}<br>
+                    Date: ${formatDate(item.date)}
+                `;
+                if (item.action === 'BATCH DELETED' && item.batch_id) {
+                    details += `<br>Batch #${item.batch_id} | Original Qty: ${item.batch_quantity} | Remaining at deletion: ${item.batch_remaining}`;
+                }
+                if (item.action === 'PRODUCT DELETED' && item.product_id) {
+                    details += `<br>Product ID: #${item.product_id} | All batches archived`;
+                }
+                detailsDiv.innerHTML = details;
+            }
+            card.appendChild(detailsDiv);
+
+            // Buttons
+            const btnDiv = document.createElement('div');
+            btnDiv.className = 'flex justify-end gap-2';
+            
+            if (item.action === 'ACTIVE') {
+                const viewBtn = document.createElement('button');
+                viewBtn.textContent = '📋 View Batches';
+                viewBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm';
+                viewBtn.onclick = () => viewBatches(item.name, item.brand);
+                btnDiv.appendChild(viewBtn);
+            }
+            
+            if (['DELETED', 'UPDATED', 'BATCH DELETED', 'PRODUCT DELETED'].includes(item.action) && item.id && !item.is_permanent) {
+                const restoreBtn = document.createElement('button');
+                restoreBtn.textContent = '↻ Restore';
+                restoreBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm';
+                restoreBtn.onclick = () => restoreItem(item.id);
+                btnDiv.appendChild(restoreBtn);
+            } else if (item.action === 'PERMANENTLY DELETED') {
+                const disabledBtn = document.createElement('button');
+                disabledBtn.textContent = '❌ Cannot Restore';
+                disabledBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-sm cursor-not-allowed';
+                disabledBtn.disabled = true;
+                btnDiv.appendChild(disabledBtn);
+            }
+            
+            card.appendChild(btnDiv);
+            container.appendChild(card);
+        }
+    }
+
+    // View batches modal
+    async function viewBatches(name, brand) {
+        const res = await fetch(`/api/archive/batches?name=${encodeURIComponent(name)}&brand=${encodeURIComponent(brand)}`);
+        const batches = await res.json();
+        const modalTitle = document.getElementById('batchModalTitle');
+        modalTitle.innerText = `Batches – ${name} (${brand})`;
+        const container = document.getElementById('batchList');
+        if (!batches.length) {
+            container.innerHTML = '<div class="text-gray-400 text-center">No batches found.</div>';
+        } else {
+            container.innerHTML = '';
+            batches.forEach(b => {
+                const div = document.createElement('div');
+                div.className = 'border rounded p-2 mb-2';
+                div.innerHTML = `
+                    <strong>Batch #${b.batch_id}</strong><br>
+                    Qty: ${b.quantity} | Remaining: ${b.remaining_quantity}<br>
+                    Cost: ${formatMoney(b.cost_price)} | Selling: ${formatMoney(b.selling_price)} | Disc: ${formatMoney(b.discount)}<br>
+                    Date: ${formatDate(b.date)}
+                `;
+                container.appendChild(div);
+            });
+        }
+        document.getElementById('batchModal').classList.remove('hidden');
+    }
+
+    function closeBatchModal() {
+        document.getElementById('batchModal').classList.add('hidden');
+    }
+
+    // Restore item
+    async function restoreItem(archiveId) {
+        if (!confirm('Are you sure you want to restore this item?\n\n• Product will be added back to inventory\n• Batches will be restored\n• Stock levels will be recalculated')) {
+            return;
+        }
+        try {
+            const res = await fetch('/api/archive/restore', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ archive_id: archiveId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('Item restored successfully!\n\nIt has been added back to your inventory.');
+                loadArchive(); // refresh list
+            } else {
+                alert('Restore failed: ' + data.error);
+            }
+        } catch (err) {
+            alert('Error: ' + err.message);
+        }
+    }
+
+    // Event listeners
+    document.getElementById('statusFilter').addEventListener('change', () => loadArchive());
+
+    // Initial load
+    loadArchive();
+</script>
+{% endblock %}

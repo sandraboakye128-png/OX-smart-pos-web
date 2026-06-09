@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="p-6">
+    <!-- Header with date picker and real-time clock -->
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
+        <div class="flex items-center gap-4">
+            <input type="date" id="datePicker" class="border border-gray-300 rounded-lg px-3 py-2">
+            <span id="clock" class="text-gray-500 font-mono"></span>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <p class="text-gray-500 text-sm">Today's Sales</p>
+            <p id="salesValue" class="text-2xl font-bold text-indigo-600">₵0</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <p class="text-gray-500 text-sm">Today's Profit</p>
+            <p id="profitValue" class="text-2xl font-bold text-green-600">₵0</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <p class="text-gray-500 text-sm">Total Products</p>
+            <p id="productsValue" class="text-2xl font-bold text-blue-600">0</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <p class="text-gray-500 text-sm">Low Stock Items</p>
+            <p id="lowStockValue" class="text-2xl font-bold text-red-600">0</p>
+        </div>
+    </div>
+
+    <!-- Top Products & Low Stock Lists (side by side, each scrollable) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Top Products -->
+        <div class="bg-white rounded-xl shadow-md p-4 flex flex-col">
+            <h2 class="text-xl font-semibold mb-3">Top Products</h2>
+            <div id="topProductsList" class="flex-1 max-h-80 overflow-y-auto space-y-2 pr-2">
+                <!-- dynamic content -->
+            </div>
+        </div>
+        <!-- Low Stock Items -->
+        <div class="bg-white rounded-xl shadow-md p-4 flex flex-col">
+            <h2 class="text-xl font-semibold mb-3">Low Stock Items</h2>
+            <div id="lowStockList" class="flex-1 max-h-80 overflow-y-auto space-y-2 pr-2">
+                <!-- dynamic content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar & Pie Chart (side by side) -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Calendar (simple date picker + label) -->
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <h2 class="text-xl font-semibold mb-3">Select Date</h2>
+            <input type="date" id="calendarDate" class="border border-gray-300 rounded-lg px-3 py-2 w-full">
+            <p class="text-gray-500 text-sm mt-2">Choose a date to view dashboard data for that day.</p>
+        </div>
+        <!-- Pie Chart: Product Distribution -->
+        <div class="bg-white rounded-xl shadow-md p-4">
+            <h2 class="text-xl font-semibold mb-3">Product Distribution</h2>
+            <canvas id="pieChart" width="400" height="300" class="mx-auto"></canvas>
+        </div>
+    </div>
+
+    <!-- Sales History (scrollable) -->
+    <div class="bg-white rounded-xl shadow-md p-4 flex flex-col">
+        <h2 class="text-xl font-semibold mb-3">Sales History</h2>
+        <div id="salesHistoryList" class="max-h-80 overflow-y-auto space-y-2 pr-2">
+            <!-- dynamic content -->
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let pieChart = null;
+    let lowStockShown = false;  // to show alert only once per load
+
+    // Helper: format currency
+    function formatMoney(amount) {
+        return '₵' + amount.toFixed(2);
+    }
+
+    // Update clock every second
+    function updateClock() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById('clock').innerText = timeStr;
+        setTimeout(updateClock, 1000);
+    }
+    updateClock();
+
+    // Fetch all dashboard data based on selected date
+    async function loadDashboard(selectedDate) {
+        try {
+            // Build query string
+            let url = '/api/dashboard/summary';
+            if (selectedDate) url += `?date=${selectedDate}`;
+            const summaryRes = await fetch(url);
+            const summary = await summaryRes.json();
+
+            // Update cards
+            document.getElementById('salesValue').innerText = formatMoney(summary.sales);
+            document.getElementById('profitValue').innerText = formatMoney(summary.profit);
+            document.getElementById('productsValue').innerText = summary.total_products;
+            document.getElementById('lowStockValue').innerText = summary.low_stock_count;
+
+            // Update low stock list (reuse the list sent from backend)
+            const lowStockContainer = document.getElementById('lowStockList');
+            lowStockContainer.innerHTML = '';
+            if (summary.low_stock_products && summary.low_stock_products.length > 0) {
+                summary.low_stock_products.forEach(item => {
+                    // item is (name, brand, category, stock) tuple as list
+                    const [name, brand, category, stock] = item;
+                    const div = document.createElement('div');
+                    div.className = 'text-red-600 border-b pb-1';
+                    div.innerText = `${name} (${brand} | ${category}) — ${stock} left`;
+                    lowStockContainer.appendChild(div);
+                });
+            } else {
+                lowStockContainer.innerHTML = '<div class="text-gray-400">No low stock items.</div>';
+            }
+
+            // Low stock alert (only once per page load, if any)
+            if (!lowStockShown && summary.low_stock_count > 0) {
+                let productList = summary.low_stock_products.map(item => `• ${item[0]} (${item[1]}) - ${item[3]} left`).join('\n');
+                if (summary.low_stock_products.length > 10) {
+                    productList += `\n\n... and ${summary.low_stock_products.length - 10} more items`;
+                }
+                alert(`⚠️ LOW STOCK ALERT ⚠️\n\n${summary.low_stock_count} product(s) are running low:\n\n${productList}\n\nPlease restock soon!`);
+                lowStockShown = true;
+            }
+
+            // Fetch top products
+            let topUrl = '/api/dashboard/top_products';
+            if (selectedDate) topUrl += `?date=${selectedDate}`;
+            const topRes = await fetch(topUrl);
+            const topProducts = await topRes.json();
+            const topContainer = document.getElementById('topProductsList');
+            topContainer.innerHTML = '';
+            if (topProducts.length) {
+                topProducts.forEach(p => {
+                    const div = document.createElement('div');
+                    div.className = 'border-b pb-1';
+                    div.innerText = `${p.name} (${p.brand} | ${p.category}) — ${p.qty} sold`;
+                    topContainer.appendChild(div);
+                });
+            } else {
+                topContainer.innerHTML = '<div class="text-gray-400">No sales data for this period.</div>';
+            }
+
+            // Update pie chart using top products (or dummy if empty)
+            if (pieChart) pieChart.destroy();
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            if (topProducts.length) {
+                let labels = topProducts.map(p => `${p.name} (${p.brand})`);
+                let values = topProducts.map(p => p.qty);
+                // group small values if more than 8
+                if (values.length > 8) {
+                    const top8Values = values.slice(0,8);
+                    const top8Labels = labels.slice(0,8);
+                    const othersSum = values.slice(8).reduce((a,b) => a+b, 0);
+                    top8Values.push(othersSum);
+                    top8Labels.push('Others');
+                    pieChart = new Chart(ctx, {
+                        type: 'pie',
+                        data: { labels: top8Labels, datasets: [{ data: top8Values, backgroundColor: generateColors(top8Labels.length) }] }
+                    });
+                } else {
+                    pieChart = new Chart(ctx, {
+                        type: 'pie',
+                        data: { labels: labels, datasets: [{ data: values, backgroundColor: generateColors(labels.length) }] }
+                    });
+                }
+            } else {
+                pieChart = new Chart(ctx, { type: 'pie', data: { labels: ['No Data'], datasets: [{ data: [1], backgroundColor: ['#ccc'] }] } });
+            }
+
+            // Fetch sales history
+            let historyUrl = '/api/dashboard/sales_history';
+            if (selectedDate) historyUrl += `?date=${selectedDate}`;
+            const historyRes = await fetch(historyUrl);
+            const history = await historyRes.json();
+            const historyContainer = document.getElementById('salesHistoryList');
+            historyContainer.innerHTML = '';
+            if (history.length) {
+                history.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'border-b pb-1';
+                    div.innerText = `${item.date} | Sales ${formatMoney(item.total_sales)} | Profit ${formatMoney(item.profit)} | Discount ${formatMoney(item.discount)}`;
+                    historyContainer.appendChild(div);
+                });
+            } else {
+                historyContainer.innerHTML = '<div class="text-gray-400">No sales history found.</div>';
+            }
+        } catch (err) {
+            console.error('Error loading dashboard:', err);
+        }
+    }
+
+    // Helper to generate random colors for pie chart
+    function generateColors(n) {
+        const colors = [];
+        for (let i = 0; i < n; i++) {
+            const hue = (i * 360 / n) % 360;
+            colors.push(`hsl(${hue}, 70%, 60%)`);
+        }
+        return colors;
+    }
+
+    // Date picker event
+    const datePicker = document.getElementById('datePicker');
+    const calendarDate = document.getElementById('calendarDate');
+    
+    function updateFromDatePicker() {
+        const selectedDate = datePicker.value;
+        loadDashboard(selectedDate);
+        // Also update calendarDate input for consistency
+        if (calendarDate) calendarDate.value = selectedDate;
+    }
+    
+    function updateFromCalendar() {
+        const selectedDate = calendarDate.value;
+        loadDashboard(selectedDate);
+        if (datePicker) datePicker.value = selectedDate;
+    }
+    
+    datePicker.addEventListener('change', updateFromDatePicker);
+    if (calendarDate) calendarDate.addEventListener('change', updateFromCalendar);
+    
+    // Set today's date as default
+    const today = new Date().toISOString().split('T')[0];
+    datePicker.value = today;
+    if (calendarDate) calendarDate.value = today;
+    
+    // Initial load
+    loadDashboard(today);
+</script>
+{% endblock %}
