@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="p-6">
-    <!-- Two-column layout (unchanged) -->
+    <!-- Two-column layout -->
     <div class="flex flex-wrap -mx-4">
         <!-- LEFT PANEL: Products & Form -->
         <div class="w-full lg:w-1/2 px-4 mb-6">
@@ -64,7 +64,7 @@
     </div>
 </div>
 
-<!-- Batch Selection Modal (unchanged) -->
+<!-- Batch Selection Modal -->
 <div id="batchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
     <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
         <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
@@ -87,6 +87,35 @@
     </div>
 </div>
 
+<!-- ========== PAYMENT TYPE MODAL ========== -->
+<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-xl shadow-xl w-96 p-6">
+        <h3 class="text-xl font-bold mb-4">Select Payment Method</h3>
+        <div class="space-y-3">
+            <button onclick="selectPayment('cash', event)" class="payment-option w-full text-left px-4 py-3 border rounded-lg hover:bg-gray-50 transition">
+                <span class="font-bold text-green-600">💵 Cash</span>
+                <span class="text-sm text-gray-500 block">Pay with cash</span>
+            </button>
+            <button onclick="selectPayment('momo', event)" class="payment-option w-full text-left px-4 py-3 border rounded-lg hover:bg-gray-50 transition">
+                <span class="font-bold text-blue-600">📱 Mobile Money</span>
+                <span class="text-sm text-gray-500 block">Pay with MoMo (MTN, Vodafone, AirtelTigo)</span>
+            </button>
+            <button onclick="showChequeInput(event)" class="payment-option w-full text-left px-4 py-3 border rounded-lg hover:bg-gray-50 transition">
+                <span class="font-bold text-purple-600">📝 Cheque</span>
+                <span class="text-sm text-gray-500 block">Pay with cheque</span>
+            </button>
+        </div>
+        <div id="chequeInputContainer" class="hidden mt-4">
+            <label class="block text-sm font-medium text-gray-700">Cheque Number</label>
+            <input type="text" id="chequeNumber" placeholder="Enter cheque number" class="w-full border rounded-lg px-3 py-2 mt-1">
+        </div>
+        <div class="flex justify-end gap-3 mt-6">
+            <button id="cancelPaymentBtn" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
+            <button id="confirmPaymentBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Confirm Sale</button>
+        </div>
+    </div>
+</div>
+
 <!-- ========== LICENSE MODAL (Trial / Activation) ========== -->
 <div id="licenseModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
     <div class="bg-white rounded-xl shadow-xl w-96 p-6">
@@ -102,7 +131,7 @@
 </div>
 
 <script>
-    // ---------- Existing Sales JS (keep everything) ----------
+    // ---------- Sales JS ----------
     let products = [];
     let currentProduct = null;
     let cart = [];
@@ -111,6 +140,11 @@
     let currentProductForBatch = null;
     let neededQty = 0;
     let batchSelection = [];
+
+    // Payment handling variables
+    let selectedPaymentMethod = null;
+    let selectedChequeNumber = null;
+    let pendingSaleCallback = null;
 
     // Helper: format currency
     function formatMoney(amount) {
@@ -139,7 +173,7 @@
         }
     }
 
-    // Show license modal (similar to desktop popup)
+    // Show license modal
     function showLicenseModal(allowCancel = true) {
         return new Promise(async (resolve) => {
             const modal = document.getElementById('licenseModal');
@@ -149,24 +183,20 @@
             const cancelBtn = document.getElementById('licenseCancelBtn');
             const okBtn = document.getElementById('licenseOkBtn');
 
-            // Clear previous timer
             if (licenseTimerInterval) clearInterval(licenseTimerInterval);
-
-            // Update status from server (fresh)
             await loadLicenseStatus();
 
-            // Build message
             let message = '';
             let showTimer = false;
             let remaining = licenseRemainingSeconds;
+            let isTrialActive = licenseTrialActive;
 
             if (licenseLicensed) {
-                // Already licensed – should not happen, but resolve true
                 resolve(true);
                 return;
             }
 
-            if (licenseTrialActive && remaining > 0) {
+            if (isTrialActive && remaining > 0) {
                 const days = Math.floor(remaining / 86400);
                 const hours = Math.floor((remaining % 86400) / 3600);
                 const minutes = Math.floor((remaining % 3600) / 60);
@@ -190,7 +220,6 @@
             if (!allowCancel) cancelBtn.style.display = 'none';
             else cancelBtn.style.display = 'inline-block';
 
-            // Timer update
             if (showTimer && remaining > 0) {
                 let currentRemaining = remaining;
                 licenseTimerInterval = setInterval(async () => {
@@ -207,10 +236,8 @@
                 }, 1000);
             }
 
-            // Show modal
             modal.classList.remove('hidden');
 
-            // Resolve promise when user action completes
             const handleOk = async () => {
                 const key = keyInput.value.trim();
                 const actRes = await fetch('/api/license/activate', {
@@ -230,12 +257,12 @@
             };
 
             const handleCancel = () => {
-                if (allowCancel) {
-                    modal.classList.add('hidden');
-                    cleanup();
-                    resolve(false);
+                modal.classList.add('hidden');
+                cleanup();
+                if (isTrialActive && remaining > 0) {
+                    resolve(true);
                 } else {
-                    // If cancel not allowed, do nothing (modal must be activated)
+                    resolve(false);
                 }
             };
 
@@ -258,6 +285,115 @@
         if (days > 0) return `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
         if (hours > 0) return `${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
         return `${minutes.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+    }
+
+    // ---------- Payment Modal Functions ----------
+    function selectPayment(method, event) {
+        console.log("✅ Payment method selected:", method);
+        selectedPaymentMethod = method;
+        selectedChequeNumber = null;
+        document.getElementById('chequeInputContainer').classList.add('hidden');
+        
+        document.querySelectorAll('.payment-option').forEach(btn => {
+            btn.classList.remove('bg-indigo-50', 'border-indigo-500');
+        });
+        if (event && event.target) {
+            const clickedBtn = event.target.closest('.payment-option');
+            if (clickedBtn) clickedBtn.classList.add('bg-indigo-50', 'border-indigo-500');
+        }
+    }
+
+    function showChequeInput(event) {
+        console.log("✅ Cheque payment selected");
+        selectedPaymentMethod = 'cheque';
+        document.getElementById('chequeInputContainer').classList.remove('hidden');
+        
+        document.querySelectorAll('.payment-option').forEach(btn => {
+            btn.classList.remove('bg-indigo-50', 'border-indigo-500');
+        });
+        if (event && event.target) {
+            const clickedBtn = event.target.closest('.payment-option');
+            if (clickedBtn) clickedBtn.classList.add('bg-indigo-50', 'border-indigo-500');
+        }
+    }
+
+    function closePaymentModal() {
+        document.getElementById('paymentModal').classList.add('hidden');
+        document.getElementById('chequeNumber').value = '';
+        document.querySelectorAll('.payment-option').forEach(btn => {
+            btn.classList.remove('bg-indigo-50', 'border-indigo-500');
+        });
+    }
+
+    function getSaleDateTime() {
+        const dateVal = document.getElementById('saleDate').value;
+        const timeVal = document.getElementById('saleTime').value;
+        if (dateVal && timeVal) {
+            let time24 = timeVal;
+            try {
+                if (timeVal.toLowerCase().includes('am') || timeVal.toLowerCase().includes('pm')) {
+                    const parsed = new Date(`2000-01-01 ${timeVal}`);
+                    if (!isNaN(parsed)) time24 = parsed.toLocaleTimeString('en-GB', { hour12: false });
+                } else time24 = timeVal;
+                return `${dateVal} ${time24}`;
+            } catch(e) { console.error(e); }
+        }
+        return null;
+    }
+
+    async function executeSaleWithPayment(paymentMethod, chequeNum) {
+        if (!pendingSaleCallback) return;
+        
+        console.log("🚀 Executing sale with payment method:", paymentMethod);
+        console.log("🚀 Cheque number:", chequeNum);
+        
+        const cartItems = pendingSaleCallback.cart.map(item => ({ 
+            product: item.product, 
+            qty: item.qty, 
+            discount: item.discount 
+        }));
+        
+        const selectedBatches = [];
+        pendingSaleCallback.cart.forEach(item => {
+            item.selectedBatches.forEach(b => {
+                selectedBatches.push({ batch_id: b.batch_id, qty: b.qty, product_id: item.product.id });
+            });
+        });
+        
+        const payload = { 
+            cart_items: cartItems, 
+            sale_datetime: pendingSaleCallback.saleDatetime, 
+            selected_batches: selectedBatches,
+            payment_method: paymentMethod,
+            cheque_number: chequeNum
+        };
+        
+        console.log("📦 Sending payload:", JSON.stringify(payload, null, 2));
+        
+        const res = await fetch('/api/sales/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        const data = await res.json();
+        console.log("📥 Response data:", data);
+        
+        if (data.success) {
+            lastSale = data;
+            document.getElementById('receiptPreview').innerHTML = `<pre class="whitespace-pre-wrap">${data.receipt_text}</pre>`;
+            document.getElementById('printReceiptBtn').disabled = false;
+            cart = [];
+            updateCart();
+            loadProducts();
+            alert(`Sale completed! Total: ${formatMoney(data.total)}\nPayment: ${data.payment_method || paymentMethod}${data.cheque_number ? ' #' + data.cheque_number : ''}`);
+        } else {
+            alert('Error: ' + data.error);
+        }
+        
+        pendingSaleCallback = null;
+        selectedPaymentMethod = null;
+        selectedChequeNumber = null;
     }
 
     // ---------- Original Sales Page Functions ----------
@@ -382,6 +518,7 @@
         });
         updateBatchTotals();
     }
+    
     function deselectAllBatches() {
         batchSelection.forEach(sel => {
             sel.checkbox.checked = false;
@@ -390,6 +527,7 @@
         });
         updateBatchTotals();
     }
+    
     function updateBatchTotals() {
         let assigned = 0;
         batchSelection.forEach(sel => {
@@ -409,6 +547,7 @@
         if (remaining === 0) remSpan.classList.add('text-green-600');
         else remSpan.classList.remove('text-green-600');
     }
+    
     window.selectAllBatches = selectAllBatches;
     window.deselectAllBatches = deselectAllBatches;
 
@@ -489,6 +628,7 @@
         });
         document.getElementById('grandTotal').innerText = formatMoney(grandTotal);
     }
+    
     window.removeCartItem = function(index) {
         cart.splice(index, 1);
         updateCart();
@@ -502,79 +642,95 @@
         await openBatchSelector(currentProduct, qty);
     });
 
-    // ---------- MODIFIED: Complete Sale with License Check ----------
+    // Complete Sale Button - Show Payment Modal First
     document.getElementById('completeSaleBtn').addEventListener('click', async () => {
         if (cart.length === 0) {
             alert('Cart is empty.');
             return;
         }
+        
+        // Store cart data for later
+        pendingSaleCallback = {
+            cart: [...cart],
+            saleDatetime: getSaleDateTime()
+        };
+        
+        // Reset payment selection
+        selectedPaymentMethod = null;
+        selectedChequeNumber = null;
+        document.getElementById('chequeNumber').value = '';
+        document.getElementById('chequeInputContainer').classList.add('hidden');
+        
+        // Remove highlighting from payment options
+        document.querySelectorAll('.payment-option').forEach(btn => {
+            btn.classList.remove('bg-indigo-50', 'border-indigo-500');
+        });
+        
+        // Show payment modal
+        document.getElementById('paymentModal').classList.remove('hidden');
+    });
 
-        // 1. Check license status
+    // Confirm Payment Button - Fixed to preserve payment method
+    document.getElementById('confirmPaymentBtn').addEventListener('click', async () => {
+        console.log("🔘 Confirm button clicked. Current payment method:", selectedPaymentMethod);
+        
+        if (!selectedPaymentMethod) {
+            alert('Please select a payment method.');
+            return;
+        }
+        
+        if (selectedPaymentMethod === 'cheque') {
+            const chequeNumber = document.getElementById('chequeNumber').value.trim();
+            console.log("💰 Cheque number entered:", chequeNumber);
+            if (!chequeNumber) {
+                alert('Please enter cheque number.');
+                return;
+            }
+            selectedChequeNumber = chequeNumber;
+        }
+        
+        // Store payment data before closing modal
+        const paymentMethodToUse = selectedPaymentMethod;
+        const chequeNumberToUse = selectedChequeNumber;
+        
+        console.log("✅ Final payment data - Method:", paymentMethodToUse, "Cheque:", chequeNumberToUse);
+        
+        // Close payment modal
+        closePaymentModal();
+        
+        // Check license and proceed
         const licenseData = await loadLicenseStatus();
-        console.log("License data before sale:", licenseData);
         let canProceed = false;
 
         if (licenseData.licensed) {
-            console.log("Licensed – proceeding");
             canProceed = true;
-        } else if (licenseData.trial_active) {
-            console.log("Trial active – showing modal with cancel option");
-            const userChoseProceed = await showLicenseModal(true);
-            // If user activated, they will have become licensed; if they cancelled, we still allow (trial active)
+        } else if (licenseData.trial_active && licenseData.remaining_seconds > 0) {
+            // Trial is active - show modal but allow sale even if user cancels
+            const userChoice = await showLicenseModal(true);
+            // During trial, always allow sale regardless of user choice
             canProceed = true;
         } else {
-            console.log("Trial expired – showing modal without cancel");
+            // Trial expired - must activate (no cancel option)
             const activated = await showLicenseModal(false);
             canProceed = activated;
         }
 
-        if (!canProceed) {
-            console.log("License check failed, sale not allowed");
-            return;
-        }
-
-        // 2. Proceed with sale
-        const cartItems = cart.map(item => ({ product: item.product, qty: item.qty, discount: item.discount }));
-        const selectedBatches = [];
-        cart.forEach(item => {
-            item.selectedBatches.forEach(b => {
-                selectedBatches.push({ batch_id: b.batch_id, qty: b.qty, product_id: item.product.id });
-            });
-        });
-        let saleDatetime = null;
-        const dateVal = document.getElementById('saleDate').value;
-        const timeVal = document.getElementById('saleTime').value;
-        if (dateVal && timeVal) {
-            let time24 = timeVal;
-            try {
-                if (timeVal.toLowerCase().includes('am') || timeVal.toLowerCase().includes('pm')) {
-                    const parsed = new Date(`2000-01-01 ${timeVal}`);
-                    if (!isNaN(parsed)) time24 = parsed.toLocaleTimeString('en-GB', { hour12: false });
-                } else time24 = timeVal;
-                saleDatetime = `${dateVal} ${time24}`;
-            } catch(e) { console.error(e); }
-        }
-        const payload = { cart_items: cartItems, sale_datetime: saleDatetime, selected_batches: selectedBatches };
-        const res = await fetch('/api/sales/complete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        const data = await res.json();
-        if (data.success) {
-            lastSale = data;
-            document.getElementById('receiptPreview').innerHTML = `<pre class="whitespace-pre-wrap">${data.receipt_text}</pre>`;
-            document.getElementById('printReceiptBtn').disabled = false;
-            cart = [];
-            updateCart();
-            loadProducts();
-            alert(`Sale completed! Total: ${formatMoney(data.total)}`);
+        if (canProceed) {
+            // Use stored payment data, not the possibly reset variables
+            await executeSaleWithPayment(paymentMethodToUse, chequeNumberToUse);
         } else {
-            alert('Error: ' + data.error);
+            pendingSaleCallback = null;
+            alert('Sale cancelled. License required to complete sale.');
         }
     });
 
-    // Print receipt (unchanged)
+    document.getElementById('cancelPaymentBtn').addEventListener('click', () => {
+        console.log("❌ Payment cancelled");
+        closePaymentModal();
+        pendingSaleCallback = null;
+    });
+
+    // Print receipt
     document.getElementById('printReceiptBtn').addEventListener('click', () => {
         if (!lastSale) return;
         const printWindow = window.open('', '_blank');
