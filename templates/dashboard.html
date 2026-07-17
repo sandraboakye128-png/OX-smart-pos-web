@@ -1,526 +1,392 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="p-6">
-    <!-- Offline banner (hidden by default) -->
-    <div id="offlineBanner" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded hidden">
-        ⚠️ You are offline – showing cached data. Data will update when you reconnect.
+<div class="p-4 md:p-6 space-y-6">
+
+    <!-- Offline banner -->
+    <div id="offlineBanner" class="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-xl hidden">
+        <i class="fas fa-exclamation-triangle mr-2"></i> You are offline – showing cached data. Data will update when you reconnect.
     </div>
 
-    <!-- Header with date range, time range and real-time clock -->
-    <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <h1 class="text-3xl font-bold text-gray-800">Dashboard</h1>
-        <div class="flex flex-wrap items-center gap-4">
-            <!-- Date Range Picker -->
-            <div class="flex items-center gap-2">
-                <input type="date" id="startDate" class="border border-gray-300 rounded-lg px-3 py-2" placeholder="Start Date">
-                <span class="text-gray-500">to</span>
-                <input type="date" id="endDate" class="border border-gray-300 rounded-lg px-3 py-2" placeholder="End Date">
+    <!-- ===== HEADER with date/time filters ===== -->
+    <div class="flex flex-wrap justify-between items-center gap-4 bg-white p-4 rounded-3xl shadow-sm border border-gray-100/80">
+        <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            <i class="fas fa-chart-pie text-teal-500"></i> Dashboard
+        </h1>
+        <div class="flex flex-wrap items-center gap-3 text-sm">
+            <!-- Date Range -->
+            <div class="flex items-center gap-1">
+                <input type="date" id="startDate" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+                <span class="text-gray-400 text-xs">→</span>
+                <input type="date" id="endDate" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
             </div>
-            <!-- Time Range Picker -->
-            <div class="flex items-center gap-2">
-                <input type="time" id="startTime" class="border border-gray-300 rounded-lg px-3 py-2" step="60">
-                <span class="text-gray-500">to</span>
-                <input type="time" id="endTime" class="border border-gray-300 rounded-lg px-3 py-2" step="60">
+            <!-- Time Range -->
+            <div class="flex items-center gap-1">
+                <input type="time" id="startTime" class="border border-gray-200 rounded-xl px-2 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none" step="60">
+                <span class="text-gray-400 text-xs">→</span>
+                <input type="time" id="endTime" class="border border-gray-200 rounded-xl px-2 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none" step="60">
             </div>
-            <button id="applyFilterBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg">Apply Filter</button>
-            <span id="clock" class="text-gray-500 font-mono"></span>
+            <button id="applyFilterBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">
+                <i class="fas fa-filter mr-1"></i> Apply
+            </button>
+            <span id="clock" class="text-gray-400 font-mono text-sm bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-100"></span>
         </div>
     </div>
 
-    <!-- KPI Cards – 5 columns -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
-        <div class="bg-white rounded-xl shadow-md p-4">
-            <p class="text-gray-500 text-sm">Total Sales</p>
-            <p id="salesValue" class="text-2xl font-bold text-indigo-600">₵0</p>
+    <!-- ===== KPI CARDS – 5 columns ===== -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div class="bg-white rounded-2xl shadow-sm p-4 border border-gray-100/80 hover:shadow-md transition">
+            <p class="text-gray-400 text-xs uppercase tracking-wider">Total Sales</p>
+            <p id="salesValue" class="text-2xl font-bold text-indigo-600 mt-1">₵0</p>
+            <span class="text-xs text-gray-300">₵</span>
         </div>
-        <div class="bg-white rounded-xl shadow-md p-4">
-            <p class="text-gray-500 text-sm">Total Profit</p>
-            <p id="profitValue" class="text-2xl font-bold text-green-600">₵0</p>
+        <div class="bg-white rounded-2xl shadow-sm p-4 border border-gray-100/80 hover:shadow-md transition">
+            <p class="text-gray-400 text-xs uppercase tracking-wider">Total Profit</p>
+            <p id="profitValue" class="text-2xl font-bold text-emerald-600 mt-1">₵0</p>
         </div>
-        <div class="bg-white rounded-xl shadow-md p-4">
-            <p class="text-gray-500 text-sm">Total Products</p>
-            <p id="productsValue" class="text-2xl font-bold text-blue-600">0</p>
+        <div class="bg-white rounded-2xl shadow-sm p-4 border border-gray-100/80 hover:shadow-md transition">
+            <p class="text-gray-400 text-xs uppercase tracking-wider">Products</p>
+            <p id="productsValue" class="text-2xl font-bold text-blue-600 mt-1">0</p>
         </div>
-        <div class="bg-white rounded-xl shadow-md p-4">
-            <p class="text-gray-500 text-sm">Total Batches</p>
-            <p id="batchesValue" class="text-2xl font-bold text-purple-600">0</p>
+        <div class="bg-white rounded-2xl shadow-sm p-4 border border-gray-100/80 hover:shadow-md transition">
+            <p class="text-gray-400 text-xs uppercase tracking-wider">Batches</p>
+            <p id="batchesValue" class="text-2xl font-bold text-purple-600 mt-1">0</p>
         </div>
-        <div class="bg-white rounded-xl shadow-md p-4">
-            <p class="text-gray-500 text-sm">Low Stock Items</p>
-            <p id="lowStockValue" class="text-2xl font-bold text-red-600">0</p>
+        <div class="bg-white rounded-2xl shadow-sm p-4 border border-gray-100/80 hover:shadow-md transition">
+            <p class="text-gray-400 text-xs uppercase tracking-wider">Low Stock</p>
+            <p id="lowStockValue" class="text-2xl font-bold text-red-500 mt-1">0</p>
         </div>
     </div>
 
-    <!-- Top Products & Low Stock Lists -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div class="bg-white rounded-xl shadow-md p-4 flex flex-col">
-            <h2 class="text-xl font-semibold mb-3">🏆 Top Products</h2>
-            <div id="topProductsList" class="flex-1 max-h-80 overflow-y-auto space-y-2 pr-2"></div>
-            <p class="text-xs text-gray-400 mt-2">* Based on total quantity sold for selected period</p>
+    <!-- ===== TOP PRODUCTS + LOW STOCK ===== -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Top Products -->
+        <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-100/80">
+            <h2 class="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <i class="fas fa-crown text-amber-400"></i> Top Products
+            </h2>
+            <div id="topProductsList" class="max-h-72 overflow-y-auto space-y-1 pr-1"></div>
+            <p class="text-[0.6rem] text-gray-400 mt-2">* Based on total quantity sold for selected period</p>
         </div>
-        <div class="bg-white rounded-xl shadow-md p-4 flex flex-col">
-            <h2 class="text-xl font-semibold mb-3">⚠️ Low Stock Items</h2>
-            <!-- Search bar for low stock -->
+
+        <!-- Low Stock -->
+        <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-100/80">
+            <h2 class="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle text-red-400"></i> Low Stock Items
+            </h2>
             <div class="mb-3">
-                <input type="text" id="lowStockSearch" placeholder="🔍 Search by name, brand, category, or batch #..." 
-                       class="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm">
+                <input type="text" id="lowStockSearch" placeholder="🔍 Search by name, brand, category, or batch #..."
+                       class="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
             </div>
-            <div id="lowStockList" class="flex-1 max-h-80 overflow-y-auto space-y-2 pr-2"></div>
+            <div id="lowStockList" class="max-h-64 overflow-y-auto space-y-1 pr-1"></div>
         </div>
     </div>
 
-    <!-- Pie Chart & Sales History (with Calendar) -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- ===== PIE CHART + SALES HISTORY (with calendar) ===== -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Pie Chart -->
-        <div class="bg-white rounded-xl shadow-md p-4">
-            <h2 class="text-xl font-semibold mb-3">🥧 Product Distribution</h2>
-            <div id="pieChartContainer">
-                <canvas id="pieChart" width="400" height="300" class="mx-auto"></canvas>
+        <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-100/80">
+            <h2 class="text-lg font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <i class="fas fa-chart-pie text-teal-500"></i> Product Distribution
+            </h2>
+            <div id="pieChartContainer" class="relative">
+                <canvas id="pieChart" width="400" height="280" class="mx-auto"></canvas>
             </div>
-            <div id="pieChartOfflineMsg" class="text-gray-500 text-center hidden">Offline – pie chart unavailable</div>
+            <div id="pieChartOfflineMsg" class="text-gray-400 text-center py-6 hidden">
+                <i class="fas fa-wifi-slash text-2xl block mb-2"></i> Offline – pie chart unavailable
+            </div>
         </div>
-        <!-- Sales History with Calendar -->
-        <div class="bg-white rounded-xl shadow-md p-4 flex flex-col">
+
+        <!-- Sales History + Calendar -->
+        <div class="bg-white rounded-2xl shadow-sm p-5 border border-gray-100/80">
             <div class="flex justify-between items-center mb-3">
-                <h2 class="text-xl font-semibold">📊 Sales History</h2>
-                <div class="flex items-center gap-2">
-                    <button id="todayHistoryBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-3 py-1 rounded-lg text-sm">Today</button>
-                </div>
+                <h2 class="text-lg font-semibold text-gray-700 flex items-center gap-2">
+                    <i class="fas fa-calendar-day text-indigo-400"></i> Sales History
+                </h2>
+                <button id="todayHistoryBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-3 py-1 rounded-xl text-sm transition">
+                    <i class="fas fa-calendar-check mr-1"></i> Today
+                </button>
             </div>
+
             <!-- Calendar -->
             <div id="calendarContainer" class="mb-4">
                 <div class="flex justify-between items-center mb-2">
-                    <button id="prevMonthBtn" class="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded text-sm">&larr;</button>
-                    <span id="calendarMonthYear" class="font-semibold"></span>
-                    <button id="nextMonthBtn" class="bg-gray-200 hover:bg-gray-300 px-3 py-1 rounded text-sm">&rarr;</button>
+                    <button id="prevMonthBtn" class="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-xl text-sm transition">&larr;</button>
+                    <span id="calendarMonthYear" class="font-semibold text-gray-700"></span>
+                    <button id="nextMonthBtn" class="bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-xl text-sm transition">&rarr;</button>
                 </div>
-                <table class="w-full text-center border-collapse">
+                <table class="w-full text-center border-collapse text-sm">
                     <thead>
-                        <tr>
-                            <th class="text-xs text-gray-500 py-1">Su</th>
-                            <th class="text-xs text-gray-500 py-1">Mo</th>
-                            <th class="text-xs text-gray-500 py-1">Tu</th>
-                            <th class="text-xs text-gray-500 py-1">We</th>
-                            <th class="text-xs text-gray-500 py-1">Th</th>
-                            <th class="text-xs text-gray-500 py-1">Fr</th>
-                            <th class="text-xs text-gray-500 py-1">Sa</th>
+                        <tr class="text-gray-400 text-[0.65rem] uppercase">
+                            <th class="py-1">Su</th><th class="py-1">Mo</th><th class="py-1">Tu</th>
+                            <th class="py-1">We</th><th class="py-1">Th</th><th class="py-1">Fr</th><th class="py-1">Sa</th>
                         </tr>
                     </thead>
                     <tbody id="calendarBody"></tbody>
                 </table>
             </div>
-            <div id="salesHistoryList" class="flex-1 max-h-72 overflow-y-auto space-y-2 pr-2">
-                <!-- dynamic content -->
-            </div>
+
+            <!-- History list -->
+            <div id="salesHistoryList" class="max-h-52 overflow-y-auto space-y-1 pr-1"></div>
         </div>
     </div>
+
 </div>
 
+<!-- ===== SCRIPTS ===== -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     let pieChart = null;
     let lowStockShown = false;
-    let startDate = null;
-    let endDate = null;
-    let startTime = null;
-    let endTime = null;
-    let selectedDate = null;          // date from calendar (YYYY-MM-DD)
-    let lowStockProducts = [];        // store low stock products for search
-
-    // ----- Calendar state -----
+    let startDate = null, endDate = null, startTime = null, endTime = null;
+    let selectedDate = null;
+    let lowStockProducts = [];
     let calendarYear = new Date().getFullYear();
-    let calendarMonth = new Date().getMonth(); // 0‑based
+    let calendarMonth = new Date().getMonth();
 
-    // Helper: format currency
+    // ===== UTILITY =====
     function formatMoney(amount) {
         return '₵' + (parseFloat(amount) || 0).toFixed(2);
     }
-
-    // Helper: escape HTML
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;' }[m] || m));
     }
 
-    // ----- Navigate to product page and open batches -----
+    // Navigate to product page
     function navigateToProduct(productName, category) {
-        // Determine which product page to go to based on category
         let page = '/products';
-        if (category && category.toLowerCase() === 'screen') {
-            page = '/products/screens';
-        }
-        
-        // Store the product name in sessionStorage so the product page can auto-open batches
+        if (category && category.toLowerCase() === 'screen') page = '/products/screens';
         sessionStorage.setItem('autoOpenProduct', productName);
         sessionStorage.setItem('autoOpenBatches', 'true');
-        
-        // Navigate to the product page
         window.location.href = page;
     }
 
-    // Update clock every second
+    // Clock
     function updateClock() {
         const now = new Date();
-        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        document.getElementById('clock').innerText = timeStr;
+        document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
         setTimeout(updateClock, 1000);
     }
     updateClock();
 
-    // Get formatted datetime range for API
-    function getDateTimeRange() {
-        let startDateTime = null;
-        let endDateTime = null;
-        
-        if (startDate) {
-            if (startTime) {
-                startDateTime = `${startDate} ${startTime}:00`;
-            } else {
-                startDateTime = `${startDate} 00:00:00`;
-            }
-        }
-        
-        if (endDate) {
-            if (endTime) {
-                endDateTime = `${endDate} ${endTime}:00`;
-            } else {
-                endDateTime = `${endDate} 23:59:59`;
-            }
-        }
-        
-        console.log('📅 Date range:', { start_datetime: startDateTime, end_datetime: endDateTime });
-        return { start_datetime: startDateTime, end_datetime: endDateTime };
-    }
-
-    // Update offline banner visibility
+    // Offline banner
     function updateOfflineBanner() {
-        const banner = document.getElementById('offlineBanner');
-        if (!navigator.onLine) {
-            banner.classList.remove('hidden');
-        } else {
-            banner.classList.add('hidden');
-        }
+        document.getElementById('offlineBanner').classList.toggle('hidden', navigator.onLine);
     }
     window.addEventListener('online', updateOfflineBanner);
     window.addEventListener('offline', updateOfflineBanner);
 
-    // Cache keys
+    // ===== CACHE =====
     const CACHE_KEY_SUMMARY = 'dashboard_summary';
     const CACHE_KEY_TOP = 'dashboard_top_products';
     const CACHE_KEY_HISTORY = 'dashboard_sales_history';
     const CACHE_KEY_TIMESTAMP = 'dashboard_last_fetch';
 
     function cacheData(key, data) {
-        try {
-            localStorage.setItem(key, JSON.stringify(data));
-            localStorage.setItem(CACHE_KEY_TIMESTAMP, Date.now().toString());
-        } catch (e) {}
+        try { localStorage.setItem(key, JSON.stringify(data)); localStorage.setItem(CACHE_KEY_TIMESTAMP, Date.now().toString()); } catch(e) {}
     }
-
     function loadCache(key, maxAgeMinutes = 60) {
         try {
             const raw = localStorage.getItem(key);
             if (!raw) return null;
             const ts = parseInt(localStorage.getItem(CACHE_KEY_TIMESTAMP) || '0');
-            const ageMinutes = (Date.now() - ts) / (1000 * 60);
-            if (ageMinutes > maxAgeMinutes) return null;
+            if ((Date.now() - ts) / 60000 > maxAgeMinutes) return null;
             return JSON.parse(raw);
-        } catch (e) { return null; }
+        } catch(e) { return null; }
     }
 
-    // ----- Render low stock list (with click navigation) -----
+    function getDateTimeRange() {
+        let startDateTime = null, endDateTime = null;
+        if (startDate) {
+            startDateTime = startDate + (startTime ? ` ${startTime}:00` : ' 00:00:00');
+        }
+        if (endDate) {
+            endDateTime = endDate + (endTime ? ` ${endTime}:00` : ' 23:59:59');
+        }
+        return { start_datetime: startDateTime, end_datetime: endDateTime };
+    }
+
+    // ===== RENDER LOW STOCK =====
     function renderLowStockList(products) {
         const container = document.getElementById('lowStockList');
         container.innerHTML = '';
-        if (products && products.length > 0) {
-            products.forEach(item => {
-                // Handle both array format and object format
-                let name, brand, category, stock, batchIds;
-                
-                if (Array.isArray(item)) {
-                    name = item[0] || '';
-                    brand = item[1] || '';
-                    category = item[2] || '';
-                    stock = item[3] || 0;
-                    // item[4] is the batch_ids array
-                    batchIds = item[4] || [];
-                } else {
-                    name = item.name || '';
-                    brand = item.brand || '';
-                    category = item.category || '';
-                    stock = item.stock || 0;
-                    batchIds = item.batch_ids || [];
-                }
-                
-                // Debug: log what we're getting
-                console.log(`📦 ${name}: stock=${stock}, batchIds=`, batchIds);
-                
-                // Format batch numbers for display with status
-                let batchDisplay = '';
-                let statusClass = '';
-                let categoryBadge = '';
-                
-                // Add category badge
-                if (category && category.toLowerCase() === 'screen') {
-                    categoryBadge = `<span class="bg-purple-100 text-purple-800 text-xs px-1.5 py-0.5 rounded ml-1">Screen</span>`;
-                } else if (category && category.toLowerCase() === 'accessory') {
-                    categoryBadge = `<span class="bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded ml-1">Accessory</span>`;
-                }
-                
-                if (batchIds && batchIds.length > 0) {
-                    // Product has batches
-                    const batchList = batchIds.slice(0, 5).join(', #');
-                    const more = batchIds.length > 5 ? ` +${batchIds.length - 5} more` : '';
-                    batchDisplay = ` | Batch${batchIds.length > 1 ? 'es' : ''}: #${batchList}${more}`;
-                    statusClass = 'text-green-600';
-                } else if (stock === 0) {
-                    batchDisplay = ' | ⚠️ DEPLETED - No active batches';
-                    statusClass = 'text-orange-500';
-                } else if (stock > 0) {
-                    batchDisplay = ' | ⚠️ WARNING: Stock without batches!';
-                    statusClass = 'text-red-500';
-                } else {
-                    batchDisplay = ' | No batches';
-                    statusClass = 'text-gray-400';
-                }
-                
-                const div = document.createElement('div');
-                const stockClass = stock === 0 ? 'text-red-600 font-bold' : 'text-red-600';
-                
-                // Make the entire div clickable
-                div.className = 'border-b pb-1 flex justify-between items-center hover:bg-blue-50 p-2 rounded transition-colors cursor-pointer';
-                div.style.cursor = 'pointer';
-                div.title = `Click to view ${name} in products page`;
-                
-                // Store product info for click handler
-                div.dataset.productName = name;
-                div.dataset.productCategory = category || 'Accessory';
-                
-                // Click handler to navigate to product page
-                div.addEventListener('click', function(e) {
-                    const productName = this.dataset.productName;
-                    const productCategory = this.dataset.productCategory || 'Accessory';
-                    navigateToProduct(productName, productCategory);
-                });
-                
-                div.innerHTML = `
-                    <span>
-                        <strong class="text-indigo-700">${escapeHtml(name)}</strong>
-                        <span class="text-gray-600"> (${escapeHtml(brand)} | ${escapeHtml(category)})</span>
-                        ${categoryBadge}
-                        <span class="text-xs ${statusClass} block">${batchDisplay}</span>
-                    </span>
-                    <span class="${stockClass}">${stock} left</span>
-                `;
-                container.appendChild(div);
-            });
-        } else {
-            container.innerHTML = '<div class="text-gray-400 text-center py-4">✅ No low stock items found.</div>';
+        if (!products || !products.length) {
+            container.innerHTML = '<div class="text-gray-400 text-center py-4 text-sm">✅ No low stock items found.</div>';
+            return;
         }
+        products.forEach(item => {
+            let name, brand, category, stock, batchIds;
+            if (Array.isArray(item)) {
+                name = item[0] || ''; brand = item[1] || ''; category = item[2] || ''; stock = item[3] || 0; batchIds = item[4] || [];
+            } else {
+                name = item.name || ''; brand = item.brand || ''; category = item.category || ''; stock = item.stock || 0; batchIds = item.batch_ids || [];
+            }
+            
+            let categoryBadge = '';
+            if (category && category.toLowerCase() === 'screen') {
+                categoryBadge = `<span class="bg-purple-100 text-purple-800 text-xs px-1.5 py-0.5 rounded ml-1">Screen</span>`;
+            } else if (category && category.toLowerCase() === 'accessory') {
+                categoryBadge = `<span class="bg-green-100 text-green-800 text-xs px-1.5 py-0.5 rounded ml-1">Accessory</span>`;
+            }
+            
+            const batchDisplay = batchIds && batchIds.length
+                ? ` | Batch${batchIds.length>1?'es':''}: #${batchIds.slice(0,3).join(', #')}${batchIds.length>3 ? '...' : ''}`
+                : (stock === 0 ? ' | ⚠️ DEPLETED' : ' | No batches');
+            const div = document.createElement('div');
+            div.className = 'border-b border-gray-100 pb-1 flex justify-between items-center hover:bg-teal-50/40 p-2 rounded-xl cursor-pointer transition';
+            div.dataset.productName = name;
+            div.dataset.productCategory = category || 'Accessory';
+            div.addEventListener('click', () => navigateToProduct(name, category));
+            div.innerHTML = `
+                <span class="text-sm">
+                    <strong class="text-indigo-700">${escapeHtml(name)}</strong>
+                    <span class="text-gray-500 text-xs"> (${escapeHtml(brand)} | ${escapeHtml(category)})</span>
+                    ${categoryBadge}
+                    <span class="text-xs text-gray-400 block">${batchDisplay}</span>
+                </span>
+                <span class="text-sm font-bold ${stock===0?'text-red-500':'text-red-400'}">${stock} left</span>
+            `;
+            container.appendChild(div);
+        });
     }
 
-    // ----- Calendar rendering -----
+    // ===== CALENDAR =====
     function renderCalendar(year, month) {
-        const monthNames = ['January','February','March','April','May','June',
-                            'July','August','September','October','November','December'];
+        const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
         document.getElementById('calendarMonthYear').innerText = `${monthNames[month]} ${year}`;
 
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-
         let html = '<tr>';
-        for (let i = 0; i < firstDay; i++) {
-            html += '<td></td>';
-        }
+        for (let i = 0; i < firstDay; i++) html += '<td></td>';
         for (let d = 1; d <= daysInMonth; d++) {
-            const dateObj = new Date(year, month, d);
-            const dateStr = dateObj.toISOString().split('T')[0];
+            const dateStr = new Date(year, month, d).toISOString().split('T')[0];
             const isSelected = (selectedDate === dateStr);
             const isToday = (dateStr === new Date().toISOString().split('T')[0]);
-            let cls = 'p-1 rounded cursor-pointer hover:bg-blue-100 ';
-            if (isSelected) cls += 'bg-blue-500 text-white hover:bg-blue-600 ';
-            else if (isToday) cls += 'bg-gray-200 font-bold ';
+            let cls = 'p-1 rounded-full cursor-pointer hover:bg-teal-100 transition text-sm ';
+            if (isSelected) cls += 'bg-teal-500 text-white hover:bg-teal-600 ';
+            else if (isToday) cls += 'bg-gray-200 font-semibold ';
             html += `<td class="${cls}" data-date="${dateStr}">${d}</td>`;
-            if ((firstDay + d) % 7 === 0) {
-                html += '</tr><tr>';
-            }
+            if ((firstDay + d) % 7 === 0 && d < daysInMonth) html += '</tr><tr>';
         }
         html += '</tr>';
         document.getElementById('calendarBody').innerHTML = html;
 
         document.querySelectorAll('#calendarBody td[data-date]').forEach(td => {
             td.addEventListener('click', function() {
-                const newDate = this.dataset.date;
-                console.log('📅 Calendar date selected:', newDate);
-                
-                startDate = newDate;
-                endDate = newDate;
-                startTime = '';
-                endTime = '';
-                selectedDate = newDate;
-                
-                document.getElementById('startDate').value = newDate;
-                document.getElementById('endDate').value = newDate;
+                selectedDate = this.dataset.date;
+                startDate = selectedDate; endDate = selectedDate;
+                startTime = ''; endTime = '';
+                document.getElementById('startDate').value = selectedDate;
+                document.getElementById('endDate').value = selectedDate;
                 document.getElementById('startTime').value = '';
                 document.getElementById('endTime').value = '';
-                
-                loadDashboard();
                 renderCalendar(calendarYear, calendarMonth);
+                loadDashboard();
             });
         });
     }
 
-    // Navigation for calendar
-    function prevMonth() {
-        if (calendarMonth === 0) {
-            calendarMonth = 11;
-            calendarYear--;
-        } else {
-            calendarMonth--;
-        }
+    document.getElementById('prevMonthBtn').addEventListener('click', () => {
+        if (calendarMonth === 0) { calendarMonth = 11; calendarYear--; } else { calendarMonth--; }
         renderCalendar(calendarYear, calendarMonth);
-    }
-    function nextMonth() {
-        if (calendarMonth === 11) {
-            calendarMonth = 0;
-            calendarYear++;
-        } else {
-            calendarMonth++;
-        }
+    });
+    document.getElementById('nextMonthBtn').addEventListener('click', () => {
+        if (calendarMonth === 11) { calendarMonth = 0; calendarYear++; } else { calendarMonth++; }
         renderCalendar(calendarYear, calendarMonth);
-    }
-    document.getElementById('prevMonthBtn').addEventListener('click', prevMonth);
-    document.getElementById('nextMonthBtn').addEventListener('click', nextMonth);
+    });
 
-    // "Today" button for history
-    document.getElementById('todayHistoryBtn').addEventListener('click', function() {
+    document.getElementById('todayHistoryBtn').addEventListener('click', () => {
         const today = new Date().toISOString().split('T')[0];
-        startDate = today;
-        endDate = today;
-        startTime = '';
-        endTime = '';
-        selectedDate = today;
+        startDate = endDate = selectedDate = today;
+        startTime = endTime = '';
         document.getElementById('startDate').value = today;
         document.getElementById('endDate').value = today;
         document.getElementById('startTime').value = '';
         document.getElementById('endTime').value = '';
         const now = new Date();
-        calendarYear = now.getFullYear();
-        calendarMonth = now.getMonth();
+        calendarYear = now.getFullYear(); calendarMonth = now.getMonth();
         renderCalendar(calendarYear, calendarMonth);
         loadDashboard();
     });
 
-    // ----- Main dashboard load -----
+    // ===== MAIN LOAD =====
     async function loadDashboard() {
         try {
             updateOfflineBanner();
-
             const range = getDateTimeRange();
-            let summaryUrl = '/api/dashboard/summary';
             const params = [];
             if (range.start_datetime) params.push(`start_datetime=${encodeURIComponent(range.start_datetime)}`);
             if (range.end_datetime) params.push(`end_datetime=${encodeURIComponent(range.end_datetime)}`);
-            if (params.length > 0) {
-                summaryUrl += '?' + params.join('&');
-            }
+            const qs = params.length ? '?' + params.join('&') : '';
 
+            // Summary
             let summary = null;
             let summaryError = false;
             try {
-                const summaryRes = await fetch(summaryUrl);
-                if (!summaryRes.ok) throw new Error('Network error');
-                summary = await summaryRes.json();
+                const res = await fetch('/api/dashboard/summary' + qs);
+                if (!res.ok) throw new Error();
+                summary = await res.json();
                 cacheData(CACHE_KEY_SUMMARY, summary);
-            } catch (err) {
-                console.warn('Offline – using cached summary');
+            } catch {
                 summaryError = true;
-                summary = loadCache(CACHE_KEY_SUMMARY);
-                if (!summary) {
-                    summary = { sales: 0, profit: 0, total_products: 0, total_batches: 0, low_stock_count: 0, low_stock_products: [] };
-                }
+                summary = loadCache(CACHE_KEY_SUMMARY) || { sales:0, profit:0, total_products:0, total_batches:0, low_stock_count:0, low_stock_products:[] };
             }
 
-            // Update KPIs
             document.getElementById('salesValue').innerText = formatMoney(summary.sales);
             document.getElementById('profitValue').innerText = formatMoney(summary.profit);
             document.getElementById('productsValue').innerText = summary.total_products || 0;
             document.getElementById('batchesValue').innerText = summary.total_batches || 0;
             document.getElementById('lowStockValue').innerText = summary.low_stock_count || 0;
 
-            // Store low stock products
             lowStockProducts = summary.low_stock_products || [];
-            
-            // Render low stock list
-            if (lowStockProducts.length > 0) {
-                renderLowStockList(lowStockProducts);
-            } else {
-                document.getElementById('lowStockList').innerHTML = '<div class="text-gray-400 text-center py-4">✅ No low stock items found.</div>';
-            }
+            renderLowStockList(lowStockProducts);
 
             // Low stock alert
-            if (!summaryError && !lowStockShown && summary.low_stock_count > 0) {
-                let productList = lowStockProducts.slice(0, 10).map(item => {
+            if (!lowStockShown && !summaryError && summary.low_stock_count > 0) {
+                let list = lowStockProducts.slice(0,10).map(item => {
                     const name = Array.isArray(item) ? item[0] : item.name;
                     const brand = Array.isArray(item) ? item[1] : item.brand;
                     const stock = Array.isArray(item) ? item[3] : item.stock;
-                    const batchIds = Array.isArray(item) ? item[4] : (item.batch_ids || []);
-                    const batchInfo = batchIds && batchIds.length > 0 ? ` (Batch: #${batchIds.slice(0,3).join(', #')}${batchIds.length > 3 ? '...' : ''})` : ' (No batches)';
-                    return `• ${name} (${brand}) - ${stock} left${batchInfo}`;
+                    return `• ${name} (${brand}) – ${stock} left`;
                 }).join('\n');
-                if (lowStockProducts.length > 10) {
-                    productList += `\n\n... and ${lowStockProducts.length - 10} more items`;
-                }
-                alert(`⚠️ LOW STOCK ALERT ⚠️\n\n${summary.low_stock_count} product(s) are running low:\n\n${productList}\n\nPlease restock soon!`);
+                if (lowStockProducts.length > 10) list += `\n... and ${lowStockProducts.length - 10} more`;
+                alert(`⚠️ LOW STOCK ALERT\n\n${summary.low_stock_count} product(s) running low:\n\n${list}`);
                 lowStockShown = true;
             }
 
-            // Top products
-            let topUrl = '/api/dashboard/top_products';
-            if (params.length > 0) {
-                topUrl += '?' + params.join('&');
-            }
+            // Top Products
             let topProducts = [];
             let topError = false;
             try {
-                const topRes = await fetch(topUrl);
-                if (!topRes.ok) throw new Error();
-                topProducts = await topRes.json();
+                const res = await fetch('/api/dashboard/top_products' + qs);
+                if (!res.ok) throw new Error();
+                topProducts = await res.json();
                 cacheData(CACHE_KEY_TOP, topProducts);
-            } catch (err) {
-                console.warn('Offline – using cached top products');
+            } catch {
                 topError = true;
-                const cached = loadCache(CACHE_KEY_TOP);
-                if (cached) topProducts = cached;
+                topProducts = loadCache(CACHE_KEY_TOP) || [];
             }
 
             const topContainer = document.getElementById('topProductsList');
             topContainer.innerHTML = '';
             if (topProducts.length) {
-                topProducts.forEach((p, index) => {
+                topProducts.forEach((p, i) => {
+                    const medal = ['🥇','🥈','🥉'][i] || `${i+1}.`;
                     const div = document.createElement('div');
-                    div.className = 'border-b pb-1 flex justify-between items-center hover:bg-gray-50 p-1 rounded transition-colors';
-                    let medal = '';
-                    if (index === 0) medal = '🥇 ';
-                    else if (index === 1) medal = '🥈 ';
-                    else if (index === 2) medal = '🥉 ';
+                    div.className = 'border-b border-gray-100 pb-1 flex justify-between items-center hover:bg-gray-50/60 p-1 rounded';
                     div.innerHTML = `
-                        <span>${medal}<strong class="text-indigo-700">${escapeHtml(p.name)}</strong> <span class="text-gray-600">(${escapeHtml(p.brand)} | ${escapeHtml(p.category)})</span></span>
-                        <span class="font-bold text-indigo-600">${p.qty} sold</span>
+                        <span class="text-sm"><span class="mr-1">${medal}</span><strong class="text-indigo-700">${escapeHtml(p.name)}</strong> <span class="text-gray-400 text-xs">(${escapeHtml(p.brand)} | ${escapeHtml(p.category)})</span></span>
+                        <span class="text-sm font-medium text-indigo-600">${p.qty} sold</span>
                     `;
                     topContainer.appendChild(div);
                 });
             } else {
-                topContainer.innerHTML = '<div class="text-gray-400 text-center py-4">📊 No sales data for this period.</div>';
+                topContainer.innerHTML = '<div class="text-gray-400 text-center py-4 text-sm">📊 No sales data for this period.</div>';
             }
 
-            // Pie chart
+            // Pie Chart
             if (pieChart) pieChart.destroy();
             const ctx = document.getElementById('pieChart');
             const container = document.getElementById('pieChartContainer');
@@ -528,197 +394,140 @@
             if (topProducts.length > 0 && !topError) {
                 container.classList.remove('hidden');
                 offlineMsg.classList.add('hidden');
-                let labels = topProducts.map(p => `${p.name.substring(0, 15)}${p.name.length > 15 ? '...' : ''}`);
+                let labels = topProducts.map(p => p.name.length > 12 ? p.name.slice(0,12)+'…' : p.name);
                 let values = topProducts.map(p => p.qty);
                 if (values.length > 8) {
-                    const top8Values = values.slice(0,8);
-                    const top8Labels = labels.slice(0,8);
-                    const othersSum = values.slice(8).reduce((a,b) => a+b, 0);
-                    top8Values.push(othersSum);
-                    top8Labels.push('Others');
-                    pieChart = new Chart(ctx, {
-                        type: 'pie',
-                        data: { labels: top8Labels, datasets: [{ data: top8Values, backgroundColor: generateColors(top8Labels.length) }] },
-                        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-                    });
-                } else {
-                    pieChart = new Chart(ctx, {
-                        type: 'pie',
-                        data: { labels: labels, datasets: [{ data: values, backgroundColor: generateColors(labels.length) }] },
-                        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom' } } }
-                    });
+                    const top8 = values.slice(0,8);
+                    const sumRest = values.slice(8).reduce((a,b) => a+b, 0);
+                    top8.push(sumRest);
+                    labels = labels.slice(0,8);
+                    labels.push('Others');
+                    values = top8;
                 }
+                pieChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: { labels, datasets: [{ data: values, backgroundColor: generateColors(labels.length) }] },
+                    options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
+                });
             } else {
                 container.classList.add('hidden');
                 offlineMsg.classList.remove('hidden');
             }
 
+            // Sales History
             await loadSalesHistory(range);
 
         } catch (err) {
-            console.error('Error loading dashboard:', err);
+            console.error('Dashboard load error:', err);
         }
     }
 
-    // Load sales history with the provided date range
     async function loadSalesHistory(range) {
         try {
-            let url = '/api/dashboard/sales_history';
             const params = [];
-            if (range.start_datetime) {
-                params.push(`start_datetime=${encodeURIComponent(range.start_datetime)}`);
-            }
-            if (range.end_datetime) {
-                params.push(`end_datetime=${encodeURIComponent(range.end_datetime)}`);
-            }
-            if (params.length === 0 && selectedDate) {
-                params.push(`date=${selectedDate}`);
-            }
-            if (params.length > 0) {
-                url += '?' + params.join('&');
-            }
+            if (range.start_datetime) params.push(`start_datetime=${encodeURIComponent(range.start_datetime)}`);
+            if (range.end_datetime) params.push(`end_datetime=${encodeURIComponent(range.end_datetime)}`);
+            if (!params.length && selectedDate) params.push(`date=${selectedDate}`);
+            const qs = params.length ? '?' + params.join('&') : '';
 
             let history = [];
             let historyError = false;
             try {
-                const historyRes = await fetch(url);
-                if (!historyRes.ok) throw new Error();
-                history = await historyRes.json();
+                const res = await fetch('/api/dashboard/sales_history' + qs);
+                if (!res.ok) throw new Error();
+                history = await res.json();
                 cacheData(CACHE_KEY_HISTORY, history);
-            } catch (err) {
-                console.warn('Offline – using cached sales history');
+            } catch {
                 historyError = true;
-                const cached = loadCache(CACHE_KEY_HISTORY);
-                if (cached) history = cached;
+                history = loadCache(CACHE_KEY_HISTORY) || [];
             }
 
-            const historyContainer = document.getElementById('salesHistoryList');
-            historyContainer.innerHTML = '';
-            
-            if (history && history.length > 0) {
+            const container = document.getElementById('salesHistoryList');
+            container.innerHTML = '';
+            if (history.length) {
                 history.forEach(item => {
                     const div = document.createElement('div');
-                    div.className = 'border-b pb-2 mb-1 hover:bg-gray-50 p-1 rounded transition-colors';
+                    div.className = 'border-b border-gray-100 pb-1 mb-1 hover:bg-gray-50/50 p-1 rounded';
                     div.innerHTML = `
                         <div class="flex justify-between items-center">
-                            <span class="font-medium text-gray-700">${item.date}</span>
-                            <span class="font-bold text-green-600">${formatMoney(item.total_sales)}</span>
+                            <span class="text-sm font-medium text-gray-700">${item.date}</span>
+                            <span class="text-sm font-bold text-emerald-600">${formatMoney(item.total_sales)}</span>
                         </div>
-                        <div class="text-sm text-gray-500 flex justify-between">
+                        <div class="text-xs text-gray-400 flex justify-between">
                             <span>Profit: ${formatMoney(item.profit)}</span>
                             <span>Discount: ${formatMoney(item.discount)}</span>
                         </div>
                     `;
-                    historyContainer.appendChild(div);
+                    container.appendChild(div);
                 });
                 if (historyError) {
                     const note = document.createElement('div');
                     note.className = 'text-xs text-amber-500 mt-2 text-center';
                     note.innerText = '⚠️ Data may be outdated (offline mode)';
-                    historyContainer.appendChild(note);
+                    container.appendChild(note);
                 }
             } else {
-                historyContainer.innerHTML = '<div class="text-gray-400 text-center py-4">📅 No sales history found for this period.</div>';
+                container.innerHTML = '<div class="text-gray-400 text-center py-4 text-sm">📅 No sales history found.</div>';
             }
         } catch (err) {
-            console.error('Error loading sales history:', err);
-            document.getElementById('salesHistoryList').innerHTML = '<div class="text-red-400 text-center py-4">❌ Error loading sales history.</div>';
+            console.error('Sales history error:', err);
+            document.getElementById('salesHistoryList').innerHTML = '<div class="text-red-400 text-center py-4 text-sm">❌ Error loading history.</div>';
         }
     }
 
-    // Helper to generate colors for pie chart
     function generateColors(n) {
         const colors = [];
         for (let i = 0; i < n; i++) {
-            const hue = (i * 360 / n) % 360;
-            colors.push(`hsl(${hue}, 70%, 60%)`);
+            colors.push(`hsl(${(i * 360 / n) % 360}, 70%, 60%)`);
         }
         return colors;
     }
 
-    // Apply filter from date/time pickers
-    function applyFilter() {
-        const start = document.getElementById('startDate').value;
-        const end = document.getElementById('endDate').value;
-        const st = document.getElementById('startTime').value;
-        const et = document.getElementById('endTime').value;
-        
-        if (!start && !end) {
-            alert('Please select at least a start date or end date');
-            return;
-        }
-        startDate = start || null;
-        endDate = end || null;
-        startTime = st || null;
-        endTime = et || null;
-        if (startDate && startDate === endDate) {
-            selectedDate = startDate;
-        } else {
-            selectedDate = null;
-        }
+    // ===== APPLY FILTER =====
+    document.getElementById('applyFilterBtn').addEventListener('click', () => {
+        const s = document.getElementById('startDate').value;
+        const e = document.getElementById('endDate').value;
+        if (!s && !e) { alert('Please select at least a start or end date.'); return; }
+        startDate = s || null; endDate = e || null;
+        startTime = document.getElementById('startTime').value || null;
+        endTime = document.getElementById('endTime').value || null;
+        if (startDate && startDate === endDate) selectedDate = startDate;
+        else selectedDate = null;
         if (startDate) {
             const d = new Date(startDate);
-            calendarYear = d.getFullYear();
-            calendarMonth = d.getMonth();
+            calendarYear = d.getFullYear(); calendarMonth = d.getMonth();
             renderCalendar(calendarYear, calendarMonth);
         }
         loadDashboard();
-    }
+    });
 
-    // Event listeners
-    document.getElementById('applyFilterBtn').addEventListener('click', applyFilter);
-
-    // Low stock search event listener - searches name, brand, category, and batch numbers
+    // Low stock search
     document.getElementById('lowStockSearch').addEventListener('input', function() {
-        const keyword = this.value.toLowerCase().trim();
-        if (!keyword) {
-            renderLowStockList(lowStockProducts);
-            return;
-        }
-        
+        const kw = this.value.toLowerCase().trim();
+        if (!kw) { renderLowStockList(lowStockProducts); return; }
         const filtered = lowStockProducts.filter(item => {
             let name, brand, category, batchIds;
-            
-            if (Array.isArray(item)) {
-                name = item[0] || '';
-                brand = item[1] || '';
-                category = item[2] || '';
-                batchIds = item[4] || [];
-            } else {
-                name = item.name || '';
-                brand = item.brand || '';
-                category = item.category || '';
-                batchIds = item.batch_ids || [];
-            }
-            
-            // Check if keyword matches name, brand, category, or any batch number
-            return name.toLowerCase().includes(keyword) ||
-                   brand.toLowerCase().includes(keyword) ||
-                   category.toLowerCase().includes(keyword) ||
-                   batchIds.some(b => b.toString().includes(keyword));
+            if (Array.isArray(item)) { name=item[0]||''; brand=item[1]||''; category=item[2]||''; batchIds=item[4]||[]; }
+            else { name=item.name||''; brand=item.brand||''; category=item.category||''; batchIds=item.batch_ids||[]; }
+            return name.toLowerCase().includes(kw) || brand.toLowerCase().includes(kw) ||
+                   category.toLowerCase().includes(kw) || batchIds.some(b => b.toString().includes(kw));
         });
         renderLowStockList(filtered);
     });
 
-    // Set default date range to today (full day)
+    // ===== INIT =====
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('startDate').value = today;
     document.getElementById('endDate').value = today;
     document.getElementById('startTime').value = '00:00';
     document.getElementById('endTime').value = '23:59';
-    startDate = today;
-    endDate = today;
-    startTime = '00:00';
-    endTime = '23:59';
-    selectedDate = today;
-    
-    // Initialize calendar to current month
+    startDate = endDate = selectedDate = today;
+    startTime = '00:00'; endTime = '23:59';
+
     const now = new Date();
     calendarYear = now.getFullYear();
     calendarMonth = now.getMonth();
     renderCalendar(calendarYear, calendarMonth);
-
-    // Initial load
     loadDashboard();
 </script>
 {% endblock %}

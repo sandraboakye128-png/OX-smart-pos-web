@@ -1,152 +1,215 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="p-6">
+<div class="p-4 md:p-6 space-y-6">
+
     <!-- Offline banner -->
-    <div id="offlineBanner" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded hidden">
-        ⚠️ You are offline – showing cached accessories. Sales will be saved and synced when you reconnect.
+    <div id="offlineBanner" class="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-xl hidden">
+        <i class="fas fa-exclamation-triangle mr-2"></i> You are offline – showing cached accessories. Sales will be saved and synced when you reconnect.
     </div>
 
-    <!-- No accessories banner -->
-    <div id="noProductsBanner" class="mb-4 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded hidden">
-        <strong>⚠️ No accessories found.</strong><br>
+    <!-- No products banner -->
+    <div id="noProductsBanner" class="mb-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 px-4 py-3 rounded-xl hidden">
+        <i class="fas fa-exclamation-circle mr-2"></i>
+        <strong>No accessories found.</strong><br>
         Please ensure your inventory imports are correctly categorised as <strong>Accessories</strong> (not Screens).
-        <br><br>
-        <a href="/inventory/import" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded inline-block">
-            📥 Go to Import Page
-        </a>
-        <button onclick="refreshProducts()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded ml-2">
-            🔄 Refresh
-        </button>
+        <div class="mt-3 flex flex-wrap gap-2">
+            <a href="/inventory/import" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition inline-flex items-center gap-2">
+                <i class="fas fa-file-import"></i> Go to Import
+            </a>
+            <button onclick="refreshProducts()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition inline-flex items-center gap-2">
+                <i class="fas fa-sync"></i> Refresh
+            </button>
+        </div>
     </div>
 
-    <!-- Two-column layout -->
-    <div class="flex flex-wrap -mx-4">
-        <!-- LEFT PANEL: Products & Form -->
-        <div class="w-full lg:w-1/2 px-4 mb-6">
-            <div class="bg-white rounded-xl shadow-md p-4">
-                <div class="flex items-center gap-2 mb-2">
-                    <h2 class="text-xl font-bold text-indigo-600">🛒 Sales Terminal</h2>
-                    <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Accessories</span>
-                </div>
-                
-                <input type="text" id="searchProduct" placeholder="🔍 Search accessory..." 
-                       class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3">
-                
-                <div id="productList" class="max-h-80 overflow-y-auto border rounded-lg p-2 mb-4"></div>
-                
-                <div id="selectedProductInfo" class="text-gray-600 text-sm mb-2">No accessory selected</div>
-                
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <input type="number" id="quantity" placeholder="Quantity" class="border rounded-lg px-3 py-2">
-                    <input type="number" step="0.01" id="discount" placeholder="Discount (₵)" class="border rounded-lg px-3 py-2">
-                </div>
-                
-                <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700">Sale Date</label>
-                    <input type="date" id="saleDate" class="border rounded-lg px-3 py-2 w-full">
-                </div>
-                <div class="mb-3">
-                    <label class="block text-sm font-medium text-gray-700">Sale Time (HH:MM with AM/PM or 24h)</label>
-                    <input type="text" id="saleTime" placeholder="e.g. 2:30 PM or 14:30" 
-                           class="border rounded-lg px-3 py-2 w-full">
-                </div>
-                
-                <button id="addToCartBtn" class="w-full bg-teal-500 hover:bg-teal-600 text-white py-2 rounded-lg">
-                    ➕ Add to Cart
-                </button>
+    <!-- ===== HEADER ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
+        <div class="flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-cash-register text-teal-500"></i> Sales Terminal
+                </h2>
+                <span class="bg-teal-100 text-teal-700 text-xs font-semibold px-3 py-1 rounded-full">General</span>
+            </div>
+            <div class="flex items-center gap-2 text-sm text-gray-400">
+                <i class="fas fa-store"></i>
+                <span>Accessories &amp; General Products</span>
             </div>
         </div>
-        
-        <!-- RIGHT PANEL: Cart & Receipt -->
-        <div class="w-full lg:w-1/2 px-4">
-            <div class="bg-white rounded-xl shadow-md p-4">
-                <h2 class="text-xl font-bold text-indigo-600 mb-3">🧾 Cart</h2>
-                <div id="cartItems" class="max-h-96 overflow-y-auto border rounded-lg p-2 mb-4 space-y-3"></div>
-                <div class="mb-3 text-right">
-                    <span class="text-lg font-bold">Grand Total: </span>
-                    <span id="grandTotal" class="text-2xl font-bold text-green-600">₵0.00</span>
+    </div>
+
+    <!-- ===== TWO-COLUMN LAYOUT ===== -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+        <!-- ===== LEFT: Products & Form ===== -->
+        <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
+            <div class="mb-4">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input type="text" id="searchProduct" placeholder="Search accessory by name or brand..." 
+                           class="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
                 </div>
-                <button id="completeSaleBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg mb-3">
-                    💳 Complete Sale
-                </button>
-                <button id="printReceiptBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 rounded-lg mb-3" disabled>
-                    🖨 Print Receipt
-                </button>
-                <div id="receiptPreview" class="border rounded-lg p-3 bg-gray-50 font-mono text-sm max-h-60 overflow-y-auto"></div>
+            </div>
+
+            <div id="productList" class="max-h-72 overflow-y-auto border border-gray-100 rounded-xl p-1 mb-4"></div>
+
+            <div id="selectedProductInfo" class="text-sm text-gray-500 mb-3 p-2 bg-gray-50 rounded-xl">
+                <i class="fas fa-info-circle mr-1"></i> No accessory selected
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Quantity</label>
+                    <input type="number" id="quantity" placeholder="0" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Discount (₵)</label>
+                    <input type="number" step="0.01" id="discount" placeholder="0.00" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Sale Date</label>
+                    <input type="date" id="saleDate" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Time</label>
+                    <input type="text" id="saleTime" placeholder="2:30 PM" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+                </div>
+            </div>
+
+            <button id="addToCartBtn" class="w-full bg-teal-500 hover:bg-teal-600 text-white py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2">
+                <i class="fas fa-cart-plus"></i> Add to Cart
+            </button>
+        </div>
+
+        <!-- ===== RIGHT: Cart & Receipt ===== -->
+        <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
+            <h3 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+                <i class="fas fa-shopping-cart text-blue-500"></i> Cart
+                <span class="text-xs text-gray-400 font-normal ml-auto" id="cartCount">0 items</span>
+            </h3>
+
+            <div id="cartItems" class="max-h-80 overflow-y-auto border border-gray-100 rounded-xl p-2 mb-4 space-y-2 min-h-[100px]">
+                <div class="text-gray-400 text-center py-6 text-sm">
+                    <i class="fas fa-empty-set text-2xl block mb-2"></i>
+                    Cart is empty
+                </div>
+            </div>
+
+            <div class="flex justify-between items-center mb-4 p-3 bg-gray-50 rounded-xl">
+                <span class="text-sm font-medium text-gray-600">Grand Total:</span>
+                <span id="grandTotal" class="text-2xl font-bold text-teal-600">₵0.00</span>
+            </div>
+
+            <button id="completeSaleBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 mb-2">
+                <i class="fas fa-check-circle"></i> Complete Sale
+            </button>
+
+            <button id="printReceiptBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i class="fas fa-print"></i> Print Receipt
+            </button>
+
+            <div id="receiptPreview" class="mt-3 border border-gray-100 rounded-xl p-3 bg-gray-50 font-mono text-xs max-h-48 overflow-y-auto hidden">
+                <!-- Receipt will appear here -->
             </div>
         </div>
     </div>
 </div>
 
-<!-- Batch Selection Modal -->
-<div id="batchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
+<!-- ===== MODAL: Batch Selection ===== -->
+<div id="batchModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-2xl w-11/12 max-w-4xl max-h-[90vh] overflow-hidden">
         <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-            <h3 class="text-xl font-bold" id="batchModalTitle">Select Batches</h3>
-            <button onclick="closeBatchModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            <h3 class="text-xl font-bold text-gray-700" id="batchModalTitle">
+                <i class="fas fa-layer-group text-blue-500 mr-2"></i> Select Batches
+            </h3>
+            <button onclick="closeBatchModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
         </div>
-        <div id="batchList" class="p-4 space-y-3"></div>
-        <div class="sticky bottom-0 bg-white p-4 border-t flex justify-between">
-            <div>
-                <button onclick="selectAllBatches()" class="bg-blue-500 text-white px-3 py-1 rounded mr-2">Select All</button>
-                <button onclick="deselectAllBatches()" class="bg-orange-500 text-white px-3 py-1 rounded">Deselect All</button>
+        <div id="batchList" class="p-4 space-y-2 overflow-y-auto max-h-[55vh]"></div>
+        <div class="sticky bottom-0 bg-white p-4 border-t flex flex-wrap justify-between items-center gap-3">
+            <div class="flex flex-wrap gap-2">
+                <button onclick="selectAllBatches()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-sm transition">
+                    <i class="fas fa-check-double mr-1"></i> Select All
+                </button>
+                <button onclick="deselectAllBatches()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-xl text-sm transition">
+                    <i class="fas fa-times mr-1"></i> Deselect All
+                </button>
             </div>
-            <div>
-                <span id="assignedQty" class="mr-4 text-sm font-bold">Assigned: 0</span>
-                <span id="remainingQty" class="mr-4 text-sm font-bold">Remaining: 0</span>
-                <button onclick="confirmBatchSelection()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">✓ Confirm</button>
-                <button onclick="closeBatchModal()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded ml-2">Cancel</button>
+            <div class="flex flex-wrap items-center gap-3">
+                <span id="assignedQty" class="text-sm font-medium text-green-600">Assigned: 0</span>
+                <span id="remainingQty" class="text-sm font-medium text-red-500">Remaining: 0</span>
+                <button onclick="confirmBatchSelection()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">
+                    <i class="fas fa-check mr-1"></i> Confirm
+                </button>
+                <button onclick="closeBatchModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-1.5 rounded-xl text-sm font-medium transition">Cancel</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Payment Modal -->
-<div id="paymentModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-xl w-96 p-6">
-        <h3 class="text-xl font-bold mb-4">Select Payment Method</h3>
-        <div class="space-y-3">
-            <button onclick="selectPayment('cash', event)" class="payment-option w-full text-left px-4 py-3 border rounded-lg hover:bg-gray-50 transition">
-                <span class="font-bold text-green-600">💵 Cash</span>
-                <span class="text-sm text-gray-500 block">Pay with cash</span>
+<!-- ===== MODAL: Payment ===== -->
+<div id="paymentModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-2xl w-96 p-6">
+        <h3 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
+            <i class="fas fa-credit-card text-teal-500"></i> Payment Method
+        </h3>
+        <div class="space-y-2">
+            <button onclick="selectPayment('cash', event)" class="payment-option w-full text-left px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-3">
+                <span class="text-2xl">💵</span>
+                <div>
+                    <span class="font-bold text-green-600">Cash</span>
+                    <span class="text-xs text-gray-500 block">Pay with cash</span>
+                </div>
             </button>
-            <button onclick="selectPayment('momo', event)" class="payment-option w-full text-left px-4 py-3 border rounded-lg hover:bg-gray-50 transition">
-                <span class="font-bold text-blue-600">📱 Mobile Money</span>
-                <span class="text-sm text-gray-500 block">Pay with MoMo (MTN, Vodafone, AirtelTigo)</span>
+            <button onclick="selectPayment('momo', event)" class="payment-option w-full text-left px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-3">
+                <span class="text-2xl">📱</span>
+                <div>
+                    <span class="font-bold text-blue-600">Mobile Money</span>
+                    <span class="text-xs text-gray-500 block">MTN, Vodafone, AirtelTigo</span>
+                </div>
             </button>
-            <button onclick="showChequeInput(event)" class="payment-option w-full text-left px-4 py-3 border rounded-lg hover:bg-gray-50 transition">
-                <span class="font-bold text-purple-600">📝 Cheque</span>
-                <span class="text-sm text-gray-500 block">Pay with cheque</span>
+            <button onclick="showChequeInput(event)" class="payment-option w-full text-left px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-3">
+                <span class="text-2xl">📝</span>
+                <div>
+                    <span class="font-bold text-purple-600">Cheque</span>
+                    <span class="text-xs text-gray-500 block">Pay with cheque</span>
+                </div>
             </button>
         </div>
         <div id="chequeInputContainer" class="hidden mt-4">
-            <label class="block text-sm font-medium text-gray-700">Cheque Number</label>
-            <input type="text" id="chequeNumber" placeholder="Enter cheque number" class="w-full border rounded-lg px-3 py-2 mt-1">
+            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Cheque Number</label>
+            <input type="text" id="chequeNumber" placeholder="Enter cheque number" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
         </div>
         <div class="flex justify-end gap-3 mt-6">
-            <button id="cancelPaymentBtn" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
-            <button id="confirmPaymentBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">Confirm Sale</button>
+            <button id="cancelPaymentBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition">Cancel</button>
+            <button id="confirmPaymentBtn" class="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+                <i class="fas fa-check mr-1"></i> Confirm Sale
+            </button>
         </div>
     </div>
 </div>
 
-<!-- License Modal -->
-<div id="licenseModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-xl w-96 p-6">
-        <h3 class="text-xl font-bold mb-2" id="licenseModalTitle">Trial Version</h3>
-        <div id="licenseModalMessage" class="text-gray-700 text-sm mb-4"></div>
-        <input type="text" id="licenseKeyInput" placeholder="Enter license key" class="w-full border rounded-lg px-3 py-2 mb-4">
+<!-- ===== MODAL: License ===== -->
+<div id="licenseModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-2xl w-96 p-6">
+        <h3 class="text-xl font-bold text-gray-700 mb-2" id="licenseModalTitle">
+            <i class="fas fa-key text-yellow-500 mr-2"></i> Trial Version
+        </h3>
+        <div id="licenseModalMessage" class="text-gray-600 text-sm mb-4 whitespace-pre-line"></div>
+        <input type="text" id="licenseKeyInput" placeholder="Enter license key" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none mb-4">
         <div class="flex justify-end gap-3">
-            <button id="licenseCancelBtn" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">Cancel</button>
-            <button id="licenseOkBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">Activate</button>
+            <button id="licenseCancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition">Cancel</button>
+            <button id="licenseOkBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">Activate</button>
         </div>
         <div id="licenseTimer" class="text-xs text-center text-gray-500 mt-3"></div>
     </div>
 </div>
 
 <script>
-    // ---------- Sales JS (Accessories – excludes Screen) ----------
+    // ===== SALES JS =====
     let products = [];
     let currentProduct = null;
     let cart = [];
@@ -165,28 +228,31 @@
     let licenseTrialActive = false;
     let licenseTimerInterval = null;
 
+    // ===== HELPERS =====
     function formatMoney(amount) {
-        return '₵' + amount.toFixed(2);
+        return '₵' + (parseFloat(amount) || 0).toFixed(2);
     }
 
-    // ---------- Offline banner ----------
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
+    }
+
+    // ===== OFFLINE BANNER =====
     function updateOfflineBanner() {
         const banner = document.getElementById('offlineBanner');
-        if (!navigator.onLine) {
-            banner.classList.remove('hidden');
-        } else {
-            banner.classList.add('hidden');
-        }
+        banner.classList.toggle('hidden', navigator.onLine);
     }
     window.addEventListener('online', updateOfflineBanner);
     window.addEventListener('offline', updateOfflineBanner);
 
-    // ---------- Caching helpers ----------
+    // ===== CACHING =====
     function cacheData(key, data) {
         try {
             localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
         } catch(e) {}
     }
+
     function getCachedData(key, maxAgeMinutes = 60) {
         try {
             const raw = localStorage.getItem(key);
@@ -201,38 +267,7 @@
     const PRODUCTS_CACHE_KEY = 'sales_products_cache_accessories';
     const LICENSE_CACHE_KEY = 'sales_license_cache';
 
-    // ---------- Clear Offline Data ----------
-    function clearOfflineData() {
-        const keys = [
-            'pending_sales',
-            'offline_sales', 
-            'sales_products_cache_accessories',
-            'sales_license_cache',
-            PRODUCTS_CACHE_KEY,
-            LICENSE_CACHE_KEY
-        ];
-        keys.forEach(key => {
-            try {
-                localStorage.removeItem(key);
-                console.log('🗑️ Cleared:', key);
-            } catch(e) {}
-        });
-        // Also clear any batch caches
-        const allKeys = Object.keys(localStorage);
-        allKeys.forEach(key => {
-            if (key.startsWith('batches_')) {
-                localStorage.removeItem(key);
-                console.log('🗑️ Cleared batch cache:', key);
-            }
-        });
-        document.getElementById('receiptPreview').innerHTML = '';
-        document.getElementById('printReceiptBtn').disabled = true;
-        alert('✅ Offline data cleared. Please refresh the page.');
-        location.reload();
-    }
-    window.clearOfflineData = clearOfflineData;
-
-    // ---------- Load License Status ----------
+    // ===== LICENSE =====
     async function loadLicenseStatus() {
         try {
             const res = await fetch('/api/license/status');
@@ -242,7 +277,6 @@
             licenseTrialActive = data.trial_active;
             licenseRemainingSeconds = data.remaining_seconds;
             cacheData(LICENSE_CACHE_KEY, data);
-            console.log("License status:", data);
             return data;
         } catch (err) {
             console.warn('Offline – using cached license');
@@ -260,7 +294,16 @@
         }
     }
 
-    // ---------- License Modal ----------
+    function formatTime(seconds) {
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = seconds % 60;
+        if (days > 0) return `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
+        if (hours > 0) return `${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
+        return `${minutes.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
+    }
+
     function showLicenseModal(allowCancel = true) {
         return new Promise(async (resolve) => {
             const modal = document.getElementById('licenseModal');
@@ -284,15 +327,7 @@
             }
 
             if (isTrialActive && remaining > 0) {
-                const days = Math.floor(remaining / 86400);
-                const hours = Math.floor((remaining % 86400) / 3600);
-                const minutes = Math.floor((remaining % 3600) / 60);
-                const seconds = remaining % 60;
-                let timeStr = '';
-                if (days > 0) timeStr = `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`;
-                else if (hours > 0) timeStr = `${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${seconds.toString().padStart(2,'0')}s`;
-                else timeStr = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
-                message = `Trial version – ${timeStr} remaining.\n\nEnter license key to unlock permanently.\n\nIf you do not have a key, you can still use the trial until it expires.`;
+                message = `Trial version – ${formatTime(remaining)} remaining.\n\nEnter license key to unlock permanently.\n\nIf you do not have a key, you can still use the trial until it expires.`;
                 showTimer = true;
                 allowCancel = true;
             } else {
@@ -314,7 +349,7 @@
                         clearInterval(licenseTimerInterval);
                         await loadLicenseStatus();
                         timerDiv.innerText = 'Expired';
-                        messageDiv.innerText = `Trial period has expired.\n\nYou must enter a valid license key to continue.`;
+                        messageDiv.innerText = 'Trial period has expired.\n\nYou must enter a valid license key to continue.';
                         cancelBtn.style.display = 'none';
                         return;
                     }
@@ -364,17 +399,7 @@
         });
     }
 
-    function formatTime(seconds) {
-        const days = Math.floor(seconds / 86400);
-        const hours = Math.floor((seconds % 86400) / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-        if (days > 0) return `${days}d ${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
-        if (hours > 0) return `${hours.toString().padStart(2,'0')}h ${minutes.toString().padStart(2,'0')}m ${secs.toString().padStart(2,'0')}s`;
-        return `${minutes.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
-    }
-
-    // ---------- Load Products (exclude Screen) ----------
+    // ===== LOAD PRODUCTS =====
     async function loadProducts() {
         updateOfflineBanner();
         const noProductsBanner = document.getElementById('noProductsBanner');
@@ -410,132 +435,112 @@
                 grouped[key].batches = grouped[key].batches.concat(p.batches);
             }
         });
-        
+
         products = Object.values(grouped);
-        
+
         if (products.length === 0) {
             document.getElementById('productList').innerHTML = '';
             noProductsBanner.classList.remove('hidden');
             if (fromCache) {
-                document.getElementById('productList').innerHTML = 
-                    '<div class="text-gray-500 p-2">No cached accessories – connect to refresh</div>';
+                document.getElementById('productList').innerHTML =
+                    '<div class="text-gray-500 p-3 text-center text-sm">No cached accessories – connect to refresh</div>';
             }
         } else {
             renderProductList(products);
         }
     }
 
-    // ✅ Renders grouped products with batch count
     function renderProductList(prods) {
         const container = document.getElementById('productList');
         if (!prods.length) {
-            container.innerHTML = '<div class="text-gray-400 p-2">No accessories available</div>';
+            container.innerHTML = '<div class="text-gray-400 p-3 text-center text-sm">No accessories available</div>';
             return;
         }
         container.innerHTML = '';
         prods.forEach(p => {
             const btn = document.createElement('button');
-            btn.className = 'w-full text-left px-3 py-2 hover:bg-gray-100 rounded-lg border-b';
             const batchCount = p.batches ? p.batches.length : 0;
-            const batchLabel = batchCount > 0 ? ` (${batchCount} batches)` : '';
-            btn.innerText = `${p.name} (${p.brand}) - Stock: ${p.stock}${batchLabel}`;
-            btn.title = `Click to select ${p.name}`;
+            const stockClass = p.stock > 0 ? 'text-gray-700' : 'text-red-400';
+            btn.className = `w-full text-left px-3 py-2 hover:bg-teal-50 rounded-xl transition border-b border-gray-50 flex justify-between items-center`;
+            btn.innerHTML = `
+                <div>
+                    <span class="font-medium text-gray-800">${escapeHtml(p.name)}</span>
+                    <span class="text-xs text-gray-400">(${escapeHtml(p.brand)})</span>
+                </div>
+                <div class="text-xs ${stockClass}">
+                    <i class="fas fa-box mr-1"></i> ${p.stock}
+                    ${batchCount > 0 ? `<span class="ml-1 text-blue-400"><i class="fas fa-layer-group"></i> ${batchCount}</span>` : ''}
+                </div>
+            `;
+            btn.title = `Select ${p.name} - ${p.stock} in stock`;
             btn.onclick = () => selectProduct(p);
             container.appendChild(btn);
         });
     }
 
-    function refreshProducts() {
-        loadProducts();
-    }
-    window.refreshProducts = refreshProducts;
+    window.refreshProducts = function() { loadProducts(); };
 
-    // ✅ Shows batch count in selection info
     function selectProduct(product) {
         currentProduct = product;
         const batchCount = product.batches ? product.batches.length : 0;
-        document.getElementById('selectedProductInfo').innerHTML = 
-            `<strong>Selected:</strong> ${product.name} (${product.brand}) - ₵${product.selling_price.toFixed(2)} - Stock: ${product.stock} (${batchCount} batches)`;
+        document.getElementById('selectedProductInfo').innerHTML = `
+            <strong class="text-gray-800">${escapeHtml(product.name)}</strong>
+            <span class="text-gray-500">(${escapeHtml(product.brand)})</span>
+            <span class="text-teal-600 font-medium ml-2">₵${product.selling_price.toFixed(2)}</span>
+            <span class="text-xs text-gray-400 ml-2">Stock: ${product.stock} (${batchCount} batches)</span>
+        `;
         document.getElementById('quantity').value = '';
         document.getElementById('discount').value = '';
     }
 
-    // ---------- Search ----------
+    // ===== SEARCH =====
     document.getElementById('searchProduct').addEventListener('input', function(e) {
         const keyword = e.target.value.toLowerCase();
-        const filtered = products.filter(p => 
-            p.name.toLowerCase().includes(keyword) || 
+        const filtered = products.filter(p =>
+            p.name.toLowerCase().includes(keyword) ||
             p.brand.toLowerCase().includes(keyword)
         );
         renderProductList(filtered);
     });
 
-    // ========== 🆕 UPDATED BATCH SELECTOR WITH FALLBACKS ==========
+    // ===== BATCH SELECTOR =====
     async function openBatchSelector(product, qty) {
         currentProductForBatch = product;
         neededQty = qty;
         let batches = [];
 
         console.log('🔍 Opening batch selector for:', product.name);
-        console.log('📦 Product stock:', product.stock);
-        console.log('📦 Product has batches?', product.batches ? product.batches.length : 0);
 
-        // Create a cache key based on product name and brand
         const cacheKey = `batches_${product.name}_${product.brand}`;
 
-        // ✅ FIRST: Try using batches already in product object
         if (product.batches && product.batches.length > 0) {
-            console.log('📦 Using batches from product object:', product.batches.length);
             batches = product.batches;
         } else {
-            // ✅ SECOND: Try fetching by name
             try {
                 const url = `/api/sales/batches/by_name?name=${encodeURIComponent(product.name)}&brand=${encodeURIComponent(product.brand)}`;
-                console.log('🔍 Fetching from:', url);
                 const res = await fetch(url);
                 if (res.ok) {
                     batches = await res.json();
-                    console.log('📦 Fetched batches:', batches.length);
-                    if (batches.length > 0) {
-                        cacheData(cacheKey, batches);
-                    }
-                } else {
-                    console.warn('⚠️ API returned error:', res.status);
+                    if (batches.length > 0) cacheData(cacheKey, batches);
                 }
-            } catch (err) {
-                console.warn('⚠️ Error fetching batches:', err);
-            }
-            
-            // ✅ THIRD: Try by product ID (fallback)
+            } catch (err) { console.warn('Error fetching batches:', err); }
+
             if (batches.length === 0 && product.id) {
                 try {
                     const res = await fetch(`/api/sales/batches/${product.id}`);
-                    if (res.ok) {
-                        batches = await res.json();
-                        console.log('📦 Fetched by product ID:', batches.length);
-                    }
-                } catch (err) {
-                    console.warn('⚠️ Error fetching by ID:', err);
-                }
+                    if (res.ok) batches = await res.json();
+                } catch (err) { console.warn('Error fetching by ID:', err); }
             }
-            
-            // ✅ FOURTH: Try from local cache
+
             if (batches.length === 0) {
                 const cached = getCachedData(cacheKey);
-                if (cached && cached.length > 0) {
-                    console.log('📦 Using cached batches:', cached.length);
-                    batches = cached;
-                }
+                if (cached && cached.length > 0) batches = cached;
             }
         }
 
-        // Filter only batches with remaining stock
         let filteredBatches = batches.filter(b => b.remaining_quantity > 0);
-        console.log(`📊 ${filteredBatches.length} batches with stock available`);
 
-        // ✅ FIFTH: If no batches but product has stock, create a fallback batch
         if (filteredBatches.length === 0 && product.stock > 0) {
-            console.warn('⚠️ No batches found, creating fallback batch from product stock');
             filteredBatches = [{
                 batch_id: product.id || 'fallback',
                 remaining_quantity: product.stock,
@@ -553,58 +558,53 @@
             return false;
         }
 
-        // Build the batch selection UI
         const container = document.getElementById('batchList');
         container.innerHTML = '';
         batchSelection = [];
-        
-        // Header row
+
         const header = document.createElement('div');
-        header.className = 'grid grid-cols-6 gap-2 bg-gray-100 p-2 font-bold sticky top-0 border-b-2 border-gray-300';
-        header.innerHTML = `<div>Select</div><div>Batch ID</div><div>Stock</div><div>Selling Price</div><div>Cost Price</div><div>Qty to Sell</div>`;
+        header.className = 'grid grid-cols-6 gap-2 bg-gray-50 p-2 rounded-xl font-semibold text-xs text-gray-500 uppercase tracking-wider sticky top-0 border-b';
+        header.innerHTML = `<div>Select</div><div>Batch</div><div>Stock</div><div>Price</div><div>Cost</div><div>Qty</div>`;
         container.appendChild(header);
-        
+
         let totalAvailableStock = 0;
         let isFallback = false;
-        
+
         for (const batch of currentBatches) {
             totalAvailableStock += batch.remaining_quantity;
             if (batch.is_fallback) isFallback = true;
-            
+
             const row = document.createElement('div');
-            row.className = 'grid grid-cols-6 gap-2 items-center border-b py-2 hover:bg-gray-50';
-            
+            row.className = 'grid grid-cols-6 gap-2 items-center border-b py-2 hover:bg-gray-50/60 transition';
+
             const cb = document.createElement('input');
             cb.type = 'checkbox';
-            cb.className = 'w-5 h-5 cursor-pointer';
-            
+            cb.className = 'w-4 h-4 text-teal-500 rounded focus:ring-teal-400';
+
             const batchIdSpan = document.createElement('span');
             batchIdSpan.innerText = batch.is_fallback ? '⚠️ FALLBACK' : batch.batch_id;
-            batchIdSpan.className = 'text-sm';
-            if (batch.is_fallback) {
-                batchIdSpan.classList.add('text-orange-600', 'font-bold');
-            }
-            
+            batchIdSpan.className = `text-sm ${batch.is_fallback ? 'text-orange-600 font-bold' : ''}`;
+
             const stockSpan = document.createElement('span');
             stockSpan.innerText = batch.remaining_quantity;
             stockSpan.className = 'font-medium';
-            
+
             const priceSpan = document.createElement('span');
             priceSpan.innerText = `₵${batch.selling_price.toFixed(2)}`;
             priceSpan.className = 'text-green-600';
-            
+
             const costSpan = document.createElement('span');
             costSpan.innerText = `₵${batch.cost_price.toFixed(2)}`;
-            costSpan.className = 'text-gray-500 text-sm';
-            
+            costSpan.className = 'text-gray-400 text-sm';
+
             const qtyInput = document.createElement('input');
             qtyInput.type = 'number';
-            qtyInput.className = 'border rounded px-1 py-1 w-20 text-center';
+            qtyInput.className = 'border border-gray-200 rounded-xl px-1 py-1 w-16 text-center text-sm focus:ring-2 focus:ring-teal-300 outline-none';
             qtyInput.value = '0';
             qtyInput.min = 0;
             qtyInput.max = batch.remaining_quantity;
             qtyInput.disabled = true;
-            
+
             row.appendChild(cb);
             row.appendChild(batchIdSpan);
             row.appendChild(stockSpan);
@@ -612,87 +612,61 @@
             row.appendChild(costSpan);
             row.appendChild(qtyInput);
             container.appendChild(row);
-            
-            batchSelection.push({ 
-                batch, 
-                checkbox: cb, 
-                qtyInput, 
-                batchId: batch.batch_id 
-            });
-            
+
+            batchSelection.push({ batch, checkbox: cb, qtyInput, batchId: batch.batch_id });
+
             cb.addEventListener('change', () => {
                 qtyInput.disabled = !cb.checked;
-                if (cb.checked && qtyInput.value === '0') {
-                    qtyInput.value = '1';
-                } else if (!cb.checked) {
-                    qtyInput.value = '0';
-                }
+                if (cb.checked && qtyInput.value === '0') qtyInput.value = '1';
+                else if (!cb.checked) qtyInput.value = '0';
                 updateBatchTotals();
             });
-            
+
             qtyInput.addEventListener('input', updateBatchTotals);
             qtyInput.addEventListener('blur', function() {
                 let val = parseInt(this.value) || 0;
                 const maxStock = parseInt(this.max) || 0;
-                if (val > maxStock) {
-                    this.value = maxStock;
-                    val = maxStock;
-                } else if (val < 0) {
-                    this.value = 0;
-                }
+                if (val > maxStock) { this.value = maxStock; val = maxStock; }
+                else if (val < 0) this.value = 0;
                 updateBatchTotals();
             });
         }
-        
-        // Show total available stock info with warning if fallback
+
         const infoRow = document.createElement('div');
-        infoRow.className = `grid grid-cols-6 gap-2 ${isFallback ? 'bg-orange-50' : 'bg-blue-50'} p-2 mt-2 rounded`;
+        infoRow.className = `col-span-6 text-sm ${isFallback ? 'bg-orange-50 text-orange-700' : 'bg-blue-50 text-blue-700'} p-2 rounded-xl mt-2`;
         infoRow.innerHTML = `
-            <div class="col-span-6 text-sm ${isFallback ? 'text-orange-700' : 'text-blue-700'}">
-                ${isFallback ? '⚠️ ' : '📦 '}
-                Total available stock: <strong>${totalAvailableStock}</strong> units across ${currentBatches.length} batches
-                ${neededQty > totalAvailableStock ? `<span class="text-red-600 ml-2">⚠️ Needed ${neededQty} units, only ${totalAvailableStock} available</span>` : ''}
-                ${isFallback ? `<br><span class="text-xs text-orange-500">⚠️ FALLBACK BATCH: This product has stock but no specific batch. Selling from this will not deduct from a real batch.</span>` : ''}
-            </div>
+            ${isFallback ? '⚠️ ' : '📦 '}
+            Total available: <strong>${totalAvailableStock}</strong> units across ${currentBatches.length} batches
+            ${neededQty > totalAvailableStock ? `<span class="text-red-600 ml-2">⚠️ Need ${neededQty}, only ${totalAvailableStock} available</span>` : ''}
+            ${isFallback ? `<br><span class="text-xs text-orange-500">⚠️ FALLBACK BATCH: Stock will not be deducted from real inventory.</span>` : ''}
         `;
         container.appendChild(infoRow);
-        
+
         function updateBatchTotals() {
             let assigned = 0;
             batchSelection.forEach(sel => {
                 if (sel.checkbox.checked) {
                     let val = parseInt(sel.qtyInput.value) || 0;
                     const maxStock = sel.batch.remaining_quantity;
-                    if (val > maxStock) { 
-                        sel.qtyInput.value = maxStock; 
-                        val = maxStock; 
-                    }
+                    if (val > maxStock) { sel.qtyInput.value = maxStock; val = maxStock; }
                     assigned += val;
                 }
             });
             document.getElementById('assignedQty').innerText = `Assigned: ${assigned}`;
             const remaining = neededQty - assigned;
-            document.getElementById('remainingQty').innerText = `Remaining: ${remaining}`;
             const remSpan = document.getElementById('remainingQty');
-            if (remaining < 0) {
-                remSpan.classList.add('text-red-600');
-                remSpan.classList.remove('text-green-600');
-            } else {
-                remSpan.classList.remove('text-red-600');
-                if (remaining === 0) {
-                    remSpan.classList.add('text-green-600');
-                } else {
-                    remSpan.classList.remove('text-green-600');
-                }
-            }
+            remSpan.innerText = `Remaining: ${remaining}`;
+            remSpan.className = `text-sm font-medium ${remaining < 0 ? 'text-red-500' : remaining === 0 ? 'text-green-600' : 'text-gray-500'}`;
         }
-        
-        document.getElementById('batchModalTitle').innerHTML = 
-            `Select batches for <strong>${product.name}</strong> (need ${qty} units, ${totalAvailableStock} available)`;
+
+        document.getElementById('batchModalTitle').innerHTML = `
+            <i class="fas fa-layer-group text-blue-500 mr-2"></i> Select batches for <strong>${escapeHtml(product.name)}</strong>
+            <span class="text-sm font-normal text-gray-400 ml-2">(need ${qty} units, ${totalAvailableStock} available)</span>
+        `;
         document.getElementById('assignedQty').innerText = 'Assigned: 0';
         document.getElementById('remainingQty').innerText = `Remaining: ${neededQty}`;
         document.getElementById('batchModal').classList.remove('hidden');
-        
+
         return true;
     }
 
@@ -714,7 +688,7 @@
         });
         updateBatchTotals();
     };
-    
+
     window.deselectAllBatches = function() {
         batchSelection.forEach(sel => {
             sel.checkbox.checked = false;
@@ -730,28 +704,15 @@
             if (sel.checkbox.checked) {
                 let val = parseInt(sel.qtyInput.value) || 0;
                 const maxStock = sel.batch.remaining_quantity;
-                if (val > maxStock) { 
-                    sel.qtyInput.value = maxStock; 
-                    val = maxStock; 
-                }
+                if (val > maxStock) { sel.qtyInput.value = maxStock; val = maxStock; }
                 assigned += val;
             }
         });
         document.getElementById('assignedQty').innerText = `Assigned: ${assigned}`;
         const remaining = neededQty - assigned;
-        document.getElementById('remainingQty').innerText = `Remaining: ${remaining}`;
         const remSpan = document.getElementById('remainingQty');
-        if (remaining < 0) {
-            remSpan.classList.add('text-red-600');
-            remSpan.classList.remove('text-green-600');
-        } else {
-            remSpan.classList.remove('text-red-600');
-            if (remaining === 0) {
-                remSpan.classList.add('text-green-600');
-            } else {
-                remSpan.classList.remove('text-green-600');
-            }
-        }
+        remSpan.innerText = `Remaining: ${remaining}`;
+        remSpan.className = `text-sm font-medium ${remaining < 0 ? 'text-red-500' : remaining === 0 ? 'text-green-600' : 'text-gray-500'}`;
     }
 
     window.closeBatchModal = function() {
@@ -760,7 +721,6 @@
         neededQty = 0;
     };
 
-    // ========== 🔧 FIXED: confirmBatchSelection with correct cost calculation ==========
     window.confirmBatchSelection = function() {
         let assigned = 0;
         let selected = [];
@@ -769,12 +729,7 @@
                 let qty = parseInt(sel.qtyInput.value) || 0;
                 if (qty > 0) {
                     assigned += qty;
-                    selected.push({ 
-                        batch_id: sel.batchId, 
-                        qty: qty, 
-                        batch: sel.batch,
-                        is_fallback: sel.batch.is_fallback || false
-                    });
+                    selected.push({ batch_id: sel.batchId, qty: qty, batch: sel.batch, is_fallback: sel.batch.is_fallback || false });
                 }
             }
         }
@@ -786,15 +741,14 @@
             alert('Please select at least one batch.');
             return;
         }
-        
-        // Check if using fallback batch
+
         const hasFallback = selected.some(s => s.is_fallback);
         if (hasFallback) {
             if (!confirm('⚠️ This product has stock but no specific batch. Selling from fallback will NOT deduct from real inventory. Continue?')) {
                 return;
             }
         }
-        
+
         const discount = parseFloat(document.getElementById('discount').value) || 0;
         let subtotal = 0;
         let totalCost = 0;
@@ -803,15 +757,14 @@
             totalCost += s.qty * (s.batch.cost_price || 0);
         }
         const finalTotal = Math.max(subtotal - discount, 0);
-        
-        // ✅ CRITICAL FIX: Create a product copy with the CORRECT cost price from batches
+
         const productWithCorrectCost = {
             ...currentProductForBatch,
-            cost_price: totalCost / neededQty  // Average cost per unit from batches
+            cost_price: totalCost / neededQty
         };
-        
+
         cart.push({
-            product: productWithCorrectCost,  // ✅ Use corrected product
+            product: productWithCorrectCost,
             qty: neededQty,
             discount,
             selectedBatches: selected,
@@ -826,34 +779,47 @@
         document.getElementById('discount').value = '';
     };
 
-    // ---------- Cart management ----------
+    // ===== CART =====
     function updateCart() {
         const container = document.getElementById('cartItems');
+        const countSpan = document.getElementById('cartCount');
+        countSpan.textContent = `${cart.length} items`;
+
         if (!cart.length) {
-            container.innerHTML = '<div class="text-gray-400 p-4 text-center">Cart is empty</div>';
+            container.innerHTML = `
+                <div class="text-gray-400 text-center py-6 text-sm">
+                    <i class="fas fa-shopping-cart text-3xl block mb-2 opacity-30"></i>
+                    Cart is empty
+                </div>
+            `;
             document.getElementById('grandTotal').innerText = formatMoney(0);
             return;
         }
+
         let grandTotal = 0;
         container.innerHTML = '';
         cart.forEach((item, idx) => {
             grandTotal += item.final;
             const card = document.createElement('div');
-            card.className = 'border rounded-lg p-3 bg-gray-50';
-            const fallbackWarning = item.isFallback ? 
+            card.className = 'border border-gray-100 rounded-xl p-3 bg-gray-50/60 hover:bg-gray-50 transition';
+            const fallbackWarning = item.isFallback ?
                 '<span class="text-orange-500 text-xs font-bold ml-2">⚠️ FALLBACK</span>' : '';
             card.innerHTML = `
                 <div class="flex justify-between items-start">
-                    <div>
-                        <strong>${item.product.name} (${item.product.brand})</strong>
-                        ${fallbackWarning}
-                        <div class="text-sm text-gray-600">Qty: ${item.qty} | Discount: ${formatMoney(item.discount)}</div>
-                        <div class="text-xs text-gray-500">Batches:</div>
-                        <div class="text-xs">${item.selectedBatches.map(b => `Batch #${b.batch_id}: ${b.qty} @ ${formatMoney(b.batch.selling_price)}`).join('<br>')}</div>
+                    <div class="flex-1">
+                        <div class="flex items-center flex-wrap gap-1">
+                            <strong class="text-gray-800">${escapeHtml(item.product.name)}</strong>
+                            <span class="text-xs text-gray-400">(${escapeHtml(item.product.brand)})</span>
+                            ${fallbackWarning}
+                        </div>
+                        <div class="text-xs text-gray-500 mt-0.5">Qty: ${item.qty} | Discount: ${formatMoney(item.discount)}</div>
+                        <div class="text-xs text-gray-400 mt-0.5">${item.selectedBatches.map(b => `Batch #${b.batch_id}: ${b.qty}`).join(', ')}</div>
                     </div>
-                    <div class="text-right">
-                        <div class="font-bold">${formatMoney(item.final)}</div>
-                        <button onclick="removeCartItem(${idx})" class="text-red-500 text-sm">Remove</button>
+                    <div class="text-right flex flex-col items-end">
+                        <div class="font-bold text-teal-600">${formatMoney(item.final)}</div>
+                        <button onclick="removeCartItem(${idx})" class="text-red-400 hover:text-red-600 text-xs transition mt-1">
+                            <i class="fas fa-times"></i> Remove
+                        </button>
                     </div>
                 </div>
             `;
@@ -861,7 +827,7 @@
         });
         document.getElementById('grandTotal').innerText = formatMoney(grandTotal);
     }
-    
+
     window.removeCartItem = function(index) {
         cart.splice(index, 1);
         updateCart();
@@ -875,34 +841,32 @@
         await openBatchSelector(currentProduct, qty);
     });
 
-    // ---------- Payment Modal Functions ----------
+    // ===== PAYMENT MODAL =====
     function selectPayment(method, event) {
-        console.log("✅ Payment method selected:", method);
         selectedPaymentMethod = method;
         selectedChequeNumber = null;
         document.getElementById('chequeInputContainer').classList.add('hidden');
-        
+
         document.querySelectorAll('.payment-option').forEach(btn => {
-            btn.classList.remove('bg-indigo-50', 'border-indigo-500');
+            btn.classList.remove('border-teal-500', 'bg-teal-50');
         });
         if (event && event.target) {
             const clickedBtn = event.target.closest('.payment-option');
-            if (clickedBtn) clickedBtn.classList.add('bg-indigo-50', 'border-indigo-500');
+            if (clickedBtn) clickedBtn.classList.add('border-teal-500', 'bg-teal-50');
         }
     }
     window.selectPayment = selectPayment;
 
     function showChequeInput(event) {
-        console.log("✅ Cheque payment selected");
         selectedPaymentMethod = 'cheque';
         document.getElementById('chequeInputContainer').classList.remove('hidden');
-        
+
         document.querySelectorAll('.payment-option').forEach(btn => {
-            btn.classList.remove('bg-indigo-50', 'border-indigo-500');
+            btn.classList.remove('border-teal-500', 'bg-teal-50');
         });
         if (event && event.target) {
             const clickedBtn = event.target.closest('.payment-option');
-            if (clickedBtn) clickedBtn.classList.add('bg-indigo-50', 'border-indigo-500');
+            if (clickedBtn) clickedBtn.classList.add('border-teal-500', 'bg-teal-50');
         }
     }
     window.showChequeInput = showChequeInput;
@@ -911,7 +875,7 @@
         document.getElementById('paymentModal').classList.add('hidden');
         document.getElementById('chequeNumber').value = '';
         document.querySelectorAll('.payment-option').forEach(btn => {
-            btn.classList.remove('bg-indigo-50', 'border-indigo-500');
+            btn.classList.remove('border-teal-500', 'bg-teal-50');
         });
     }
 
@@ -931,79 +895,69 @@
         return null;
     }
 
-    // ---------- Execute Sale ----------
     async function executeSaleWithPayment(paymentMethod, chequeNum) {
         if (!pendingSaleCallback) return;
-        
-        console.log("🚀 Executing sale with payment method:", paymentMethod);
-        console.log("🚀 Cheque number:", chequeNum);
-        
-        const cartItems = pendingSaleCallback.cart.map(item => ({ 
-            product: item.product, 
-            qty: item.qty, 
-            discount: item.discount 
+
+        const cartItems = pendingSaleCallback.cart.map(item => ({
+            product: item.product,
+            qty: item.qty,
+            discount: item.discount
         }));
-        
+
         const selectedBatches = [];
         pendingSaleCallback.cart.forEach(item => {
             item.selectedBatches.forEach(b => {
                 selectedBatches.push({ batch_id: b.batch_id, qty: b.qty, product_id: item.product.id });
             });
         });
-        
-        const payload = { 
-            cart_items: cartItems, 
-            sale_datetime: pendingSaleCallback.saleDatetime, 
+
+        const payload = {
+            cart_items: cartItems,
+            sale_datetime: pendingSaleCallback.saleDatetime,
             selected_batches: selectedBatches,
             payment_method: paymentMethod,
             cheque_number: chequeNum
         };
-        
-        console.log("📦 Sending payload:", JSON.stringify(payload, null, 2));
-        
+
         try {
             const res = await fetch('/api/sales/complete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            
+
             if (!res.ok) {
                 const errorData = await res.json();
                 throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
             }
-            
+
             const data = await res.json();
-            console.log("📥 Response data:", data);
-            
+
             if (data.success) {
                 lastSale = data;
-                document.getElementById('receiptPreview').innerHTML = `<pre class="whitespace-pre-wrap">${data.receipt_text}</pre>`;
+                const receiptDiv = document.getElementById('receiptPreview');
+                receiptDiv.innerHTML = `<pre class="whitespace-pre-wrap text-xs">${data.receipt_text}</pre>`;
+                receiptDiv.classList.remove('hidden');
                 document.getElementById('printReceiptBtn').disabled = false;
                 cart = [];
                 updateCart();
                 loadProducts();
-                alert(`Sale completed! Total: ${formatMoney(data.total)}\nPayment: ${data.payment_method || paymentMethod}${data.cheque_number ? ' #' + data.cheque_number : ''}`);
+                alert(`✅ Sale completed! Total: ${formatMoney(data.total)}\nPayment: ${data.payment_method || paymentMethod}${data.cheque_number ? ' #' + data.cheque_number : ''}`);
             } else {
                 alert('Error: ' + data.error);
             }
         } catch (error) {
             console.warn('Network error, saving sale offline:', error);
-            
-            // Only save offline if actually offline
+
             if (!navigator.onLine) {
-                if (typeof savePendingSale === 'function') {
-                    savePendingSale(payload);
-                }
-                if (typeof updatePendingBadge === 'function') {
-                    updatePendingBadge();
-                }
-                
+                if (typeof savePendingSale === 'function') savePendingSale(payload);
+                if (typeof updatePendingBadge === 'function') updatePendingBadge();
+
                 cart = [];
                 updateCart();
-                
+
                 document.getElementById('receiptPreview').innerHTML = `
-                    <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 p-3 rounded">
+                    <div class="bg-yellow-50 border border-yellow-400 text-yellow-700 p-3 rounded-xl text-xs">
                         <strong>⚠️ Offline Sale Saved</strong><br>
                         This sale has been saved locally and will be synced when you reconnect.
                         <br><br>
@@ -1014,84 +968,78 @@
                         <span class="text-xs">Sale ID: pending (${new Date().toLocaleString()})</span>
                     </div>
                 `;
-                
+                document.getElementById('receiptPreview').classList.remove('hidden');
+
                 alert('You are offline. Sale saved locally and will be synced later.');
             } else {
-                // Online but error occurred
                 alert('❌ Sale failed: ' + error.message);
             }
         }
-        
+
         pendingSaleCallback = null;
         selectedPaymentMethod = null;
         selectedChequeNumber = null;
     }
 
-    // ---------- Complete Sale Button ----------
+    // ===== COMPLETE SALE =====
     document.getElementById('completeSaleBtn').addEventListener('click', async () => {
         if (cart.length === 0) {
             alert('Cart is empty.');
             return;
         }
-        
-        // Check if there are fallback batches in cart
+
         const hasFallback = cart.some(item => item.isFallback);
         if (hasFallback) {
-            if (!confirm('⚠️ One or more items in your cart are using FALLBACK batches (no real inventory batch exists).\n\nThis means the sale will be recorded but stock will NOT be deducted from inventory.\n\nContinue?')) {
+            if (!confirm('⚠️ One or more items are using FALLBACK batches (no real inventory).\n\nStock will NOT be deducted from inventory.\n\nContinue?')) {
                 return;
             }
         }
-        
+
         pendingSaleCallback = {
             cart: [...cart],
             saleDatetime: getSaleDateTime()
         };
-        
+
         selectedPaymentMethod = null;
         selectedChequeNumber = null;
         document.getElementById('chequeNumber').value = '';
         document.getElementById('chequeInputContainer').classList.add('hidden');
-        
+
         document.querySelectorAll('.payment-option').forEach(btn => {
-            btn.classList.remove('bg-indigo-50', 'border-indigo-500');
+            btn.classList.remove('border-teal-500', 'bg-teal-50');
         });
-        
+
         document.getElementById('paymentModal').classList.remove('hidden');
     });
 
-    // ---------- Confirm Payment Button ----------
+    // ===== CONFIRM PAYMENT =====
     document.getElementById('confirmPaymentBtn').addEventListener('click', async () => {
-        console.log("🔘 Confirm button clicked. Current payment method:", selectedPaymentMethod);
-        
         if (!selectedPaymentMethod) {
             alert('Please select a payment method.');
             return;
         }
-        
+
         if (selectedPaymentMethod === 'cheque') {
             const chequeNumber = document.getElementById('chequeNumber').value.trim();
-            console.log("💰 Cheque number entered:", chequeNumber);
             if (!chequeNumber) {
                 alert('Please enter cheque number.');
                 return;
             }
             selectedChequeNumber = chequeNumber;
         }
-        
+
         const paymentMethodToUse = selectedPaymentMethod;
         const chequeNumberToUse = selectedChequeNumber;
-        
-        console.log("✅ Final payment data - Method:", paymentMethodToUse, "Cheque:", chequeNumberToUse);
-        
+
         closePaymentModal();
-        
+
         const licenseData = await loadLicenseStatus();
         let canProceed = false;
 
         if (licenseData.licensed) {
             canProceed = true;
         } else if (licenseData.trial_active && licenseData.remaining_seconds > 0) {
-            const userChoice = await showLicenseModal(true);
+            await showLicenseModal(true);
             canProceed = true;
         } else {
             const activated = await showLicenseModal(false);
@@ -1107,12 +1055,11 @@
     });
 
     document.getElementById('cancelPaymentBtn').addEventListener('click', () => {
-        console.log("❌ Payment cancelled");
         closePaymentModal();
         pendingSaleCallback = null;
     });
 
-    // ---------- Print Receipt ----------
+    // ===== PRINT RECEIPT =====
     document.getElementById('printReceiptBtn').addEventListener('click', () => {
         if (!lastSale) return;
         const printWindow = window.open('', '_blank');
@@ -1129,7 +1076,7 @@
         printWindow.document.close();
     });
 
-    // ---------- Set default date/time ----------
+    // ===== SET DEFAULT DATE/TIME =====
     function setDefaultDateTime() {
         const now = new Date();
         document.getElementById('saleDate').value = now.toISOString().split('T')[0];
@@ -1137,38 +1084,20 @@
         const minutes = now.getMinutes();
         const ampm = hours >= 12 ? 'PM' : 'AM';
         hours = hours % 12 || 12;
-        document.getElementById('saleTime').value = `${hours}:${minutes.toString().padStart(2,'0')} ${ampm}`;
+        document.getElementById('saleTime').value = `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
     }
 
-    // ---------- Online/Offline refresh ----------
-    window.addEventListener('online', function() {
-        loadProducts();
-        loadLicenseStatus();
-        // Check for pending sales
-        const pendingSales = localStorage.getItem('pending_sales');
-        if (pendingSales) {
-            console.log('📤 Found pending sales to sync');
-            document.getElementById('receiptPreview').innerHTML = `
-                <div class="bg-blue-100 border border-blue-400 text-blue-700 p-3 rounded">
-                    <strong>🔄 Syncing pending sales...</strong><br>
-                    You have pending offline sales. They will be synced automatically.
-                </div>
-            `;
-        }
-    });
-
-    // ---------- Initialization ----------
+    // ===== INIT =====
     document.addEventListener('DOMContentLoaded', function() {
         loadProducts();
         loadLicenseStatus();
         if (typeof updatePendingBadge === 'function') updatePendingBadge();
         setDefaultDateTime();
-        
-        // Check for pending sales on load
-        const pendingSales = localStorage.getItem('pending_sales');
-        if (pendingSales) {
-            console.log('📤 Found pending sales on load');
-        }
+    });
+
+    window.addEventListener('online', function() {
+        loadProducts();
+        loadLicenseStatus();
     });
 </script>
 {% endblock %}

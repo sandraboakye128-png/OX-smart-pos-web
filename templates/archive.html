@@ -1,72 +1,85 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="p-6">
+<div class="p-4 md:p-6 space-y-6">
+
     <!-- Offline banner -->
-    <div id="offlineBanner" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded hidden">
-        ⚠️ You are offline – showing cached archive data. Changes will be synced when you reconnect.
+    <div id="offlineBanner" class="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-xl hidden">
+        <i class="fas fa-exclamation-triangle mr-2"></i> You are offline – showing cached archive data. Changes will be synced when you reconnect.
     </div>
 
-    <!-- Header & Filter + Search -->
-    <div class="flex flex-wrap justify-between items-center gap-4 mb-6">
-        <h1 class="text-3xl font-bold text-indigo-600">📁 Product Archive</h1>
-        <div class="flex flex-wrap items-center gap-3">
-            <div>
-                <input type="text" id="searchInput" placeholder="🔍 Search product/brand..." 
-                       class="border border-gray-300 rounded-lg px-3 py-2 w-48 md:w-64">
+    <!-- ===== HEADER ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-6 border border-gray-100/80">
+        <div class="flex flex-wrap justify-between items-center gap-3">
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-archive text-amber-500"></i> Product Archive
+            </h1>
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="relative">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <input type="text" id="searchInput" placeholder="Search product or brand..." 
+                           class="border border-gray-200 rounded-xl pl-9 pr-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none w-48 md:w-56">
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Filter:</label>
+                    <select id="statusFilter" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none bg-white">
+                        <option value="ALL">ALL</option>
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="UPDATED">UPDATED</option>
+                        <option value="DELETED">DELETED</option>
+                        <option value="PRODUCT DELETED">PRODUCT DELETED</option>
+                        <option value="BATCH DELETED">BATCH DELETED</option>
+                        <option value="PERMANENTLY DELETED">PERMANENTLY DELETED</option>
+                    </select>
+                </div>
             </div>
-            <label class="text-gray-700">Filter:</label>
-            <select id="statusFilter" class="border border-gray-300 rounded-lg px-3 py-2 bg-white">
-                <option value="ALL">ALL</option>
-                <option value="ACTIVE">ACTIVE</option>
-                <option value="UPDATED">UPDATED</option>
-                <option value="DELETED">DELETED</option>
-                <option value="PRODUCT DELETED">PRODUCT DELETED</option>
-                <option value="BATCH DELETED">BATCH DELETED</option>
-                <option value="PERMANENTLY DELETED">PERMANENTLY DELETED</option>
-            </select>
         </div>
+        <p class="text-gray-500 text-sm mt-1">View and manage archived products, batches, and deletion history</p>
     </div>
 
-    <!-- Archive List -->
-    <div id="archiveList" class="space-y-4">
-        <div class="text-center text-gray-400 py-8">Loading archive data...</div>
+    <!-- ===== ARCHIVE LIST ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
+        <div id="archiveList" class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
+            <div class="text-center text-gray-400 py-10">
+                <i class="fas fa-spinner fa-spin text-3xl block mb-3"></i>
+                <p>Loading archive data...</p>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Modal: View Batches -->
-<div id="batchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-2xl max-h-[80vh] overflow-y-auto">
+<!-- ===== MODAL: View Batches ===== -->
+<div id="batchModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-2xl w-11/12 max-w-2xl max-h-[80vh] overflow-hidden">
         <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-            <h3 class="text-xl font-bold" id="batchModalTitle">Batches</h3>
-            <button onclick="closeBatchModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            <h3 class="text-xl font-bold text-gray-700" id="batchModalTitle">
+                <i class="fas fa-layer-group text-blue-500 mr-2"></i> Batches
+            </h3>
+            <button onclick="closeBatchModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
         </div>
-        <div id="batchList" class="p-4 space-y-3"></div>
+        <div id="batchList" class="p-4 space-y-2 overflow-y-auto max-h-[60vh]"></div>
         <div class="sticky bottom-0 bg-white p-4 border-t text-right">
-            <button onclick="closeBatchModal()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">Close</button>
+            <button onclick="closeBatchModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition">Close</button>
         </div>
     </div>
 </div>
 
 <script>
-    // ---------- Offline banner ----------
+    // ===== OFFLINE BANNER =====
     function updateOfflineBanner() {
         const banner = document.getElementById('offlineBanner');
-        if (!navigator.onLine) {
-            banner.classList.remove('hidden');
-        } else {
-            banner.classList.add('hidden');
-        }
+        banner.classList.toggle('hidden', navigator.onLine);
     }
     window.addEventListener('online', updateOfflineBanner);
     window.addEventListener('offline', updateOfflineBanner);
 
-    // ---------- Caching helpers ----------
+    // ===== CACHING HELPERS =====
     function cacheData(key, data) {
         try {
             localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
         } catch(e) {}
     }
+
     function getCachedData(key, maxAgeMinutes = 60) {
         try {
             const raw = localStorage.getItem(key);
@@ -78,41 +91,21 @@
         } catch(e) { return null; }
     }
 
-    // ---------- Main ----------
+    // ===== MAIN VARIABLES =====
     let currentArchiveData = [];
     let currentStatus = 'ALL';
     let searchTerm = '';
 
-    // Helper: format currency
+    // ===== HELPERS =====
     function formatMoney(amount) {
         return '₵' + (parseFloat(amount) || 0).toFixed(2);
     }
 
-    // Helper: escape HTML
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
     }
 
-    // Get status color
-    function getStatusColor(action) {
-        const colors = {
-            'ACTIVE': '#22C55E',
-            'UPDATED': '#F59E0B',
-            'DELETED': '#EF4444',
-            'PRODUCT DELETED': '#EF4444',
-            'BATCH DELETED': '#F87171',
-            'PERMANENTLY DELETED': '#6B7280'
-        };
-        return colors[action] || '#999';
-    }
-
-    // Format date for display
     function formatDate(dateStr) {
         if (!dateStr) return '';
         try {
@@ -123,13 +116,42 @@
         }
     }
 
-    // Load archive data from API or cache
+    function getStatusColor(action) {
+        const colors = {
+            'ACTIVE': '#22C55E',
+            'UPDATED': '#F59E0B',
+            'DELETED': '#EF4444',
+            'PRODUCT DELETED': '#DC2626',
+            'BATCH DELETED': '#F87171',
+            'PERMANENTLY DELETED': '#6B7280'
+        };
+        return colors[action] || '#999';
+    }
+
+    function getStatusIcon(action) {
+        const icons = {
+            'ACTIVE': 'fa-check-circle',
+            'UPDATED': 'fa-pen',
+            'DELETED': 'fa-trash',
+            'PRODUCT DELETED': 'fa-trash-alt',
+            'BATCH DELETED': 'fa-layer-group',
+            'PERMANENTLY DELETED': 'fa-skull'
+        };
+        return icons[action] || 'fa-circle';
+    }
+
+    // ===== LOAD ARCHIVE =====
     async function loadArchive() {
         updateOfflineBanner();
         const status = document.getElementById('statusFilter').value;
         currentStatus = status;
         const container = document.getElementById('archiveList');
-        container.innerHTML = '<div class="text-center text-gray-400 py-8">Loading archive data...</div>';
+        container.innerHTML = `
+            <div class="text-center text-gray-400 py-10">
+                <i class="fas fa-spinner fa-spin text-3xl block mb-3"></i>
+                <p>Loading archive data...</p>
+            </div>
+        `;
         let data = [];
         let fromCache = false;
         const cacheKey = `archive_${status}`;
@@ -152,16 +174,16 @@
 
         currentArchiveData = data;
         applySearchAndRender();
-        if (fromCache) {
-            // Show a note at the bottom
+        
+        if (fromCache && data.length) {
             const note = document.createElement('div');
-            note.className = 'text-xs text-gray-400 text-center mt-2';
-            note.innerText = '⚠️ Data may be outdated (offline)';
+            note.className = 'text-xs text-yellow-500 text-center mt-2';
+            note.innerHTML = '<i class="fas fa-database mr-1"></i> Showing cached data (may be outdated)';
             container.appendChild(note);
         }
     }
 
-    // Search + render
+    // ===== SEARCH + RENDER =====
     function applySearchAndRender() {
         searchTerm = document.getElementById('searchInput').value.toLowerCase();
         let filtered = currentArchiveData;
@@ -174,50 +196,72 @@
         renderArchive(filtered);
     }
 
-    // Render cards
+    // ===== RENDER CARDS =====
     function renderArchive(items) {
         const container = document.getElementById('archiveList');
         if (!items || !items.length) {
-            container.innerHTML = '<div class="text-center text-gray-400 py-8">No archive data available.</div>';
+            container.innerHTML = `
+                <div class="text-center text-gray-400 py-10">
+                    <i class="fas fa-archive text-4xl block mb-3"></i>
+                    <p>No archive data available.</p>
+                </div>
+            `;
             return;
         }
 
         container.innerHTML = '';
-        for (const item of items) {
+        items.forEach(item => {
             const card = document.createElement('div');
-            card.className = 'bg-white rounded-xl shadow-md border p-4';
+            card.className = 'bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-md transition';
 
-            // Header row
+            // Header
             const headerDiv = document.createElement('div');
-            headerDiv.className = 'flex justify-between items-start mb-2';
+            headerDiv.className = 'flex flex-wrap justify-between items-start gap-2 mb-2';
+            const statusColor = getStatusColor(item.action);
+            const statusIcon = getStatusIcon(item.action);
             headerDiv.innerHTML = `
                 <div>
-                    <span class="font-bold text-lg text-indigo-700">${escapeHtml(item.name)} (${escapeHtml(item.brand)})</span>
+                    <span class="font-bold text-lg text-gray-800">${escapeHtml(item.name)}</span>
+                    <span class="text-gray-500 text-sm">(${escapeHtml(item.brand)})</span>
                 </div>
                 <div>
-                    <span class="text-sm font-semibold" style="color: ${getStatusColor(item.action)}">● ${item.action}</span>
+                    <span class="text-sm font-medium inline-flex items-center gap-1 px-2.5 py-1 rounded-full" style="color: ${statusColor}; background: ${statusColor}15;">
+                        <i class="fas ${statusIcon}"></i> ${item.action}
+                    </span>
                 </div>
             `;
             card.appendChild(headerDiv);
 
             // Details
             const detailsDiv = document.createElement('div');
-            detailsDiv.className = 'text-gray-700 text-sm mb-3';
+            detailsDiv.className = 'text-sm text-gray-600 mb-3 space-y-0.5';
+            
             if (item.action === 'ACTIVE') {
                 detailsDiv.innerHTML = `
-                    📦 Stock: ${item.stock} | ${formatMoney(item.cost)} | ${formatMoney(item.price)} | 💰 Disc: ${formatMoney(item.discount)} | 📂 ${escapeHtml(item.category)}
+                    <div class="flex flex-wrap gap-3">
+                        <span><i class="fas fa-box text-blue-400 mr-1"></i> Stock: <strong>${item.stock}</strong></span>
+                        <span><i class="fas fa-money-bill-wave text-green-400 mr-1"></i> Cost: ${formatMoney(item.cost)}</span>
+                        <span><i class="fas fa-tag text-purple-400 mr-1"></i> Selling: ${formatMoney(item.price)}</span>
+                        <span><i class="fas fa-percent text-red-400 mr-1"></i> Disc: ${formatMoney(item.discount)}</span>
+                        <span><i class="fas fa-folder text-amber-400 mr-1"></i> ${escapeHtml(item.category)}</span>
+                    </div>
                 `;
             } else {
                 let details = `
-                    Category: ${escapeHtml(item.category)} | Stock: ${item.stock}<br>
-                    Cost: ${formatMoney(item.cost)} | Selling: ${formatMoney(item.price)} | Discount: ${formatMoney(item.discount)}<br>
-                    Date: ${formatDate(item.date)}
+                    <div class="flex flex-wrap gap-3">
+                        <span><i class="fas fa-folder text-amber-400 mr-1"></i> ${escapeHtml(item.category)}</span>
+                        <span><i class="fas fa-box text-blue-400 mr-1"></i> Stock: ${item.stock}</span>
+                        <span><i class="fas fa-money-bill-wave text-green-400 mr-1"></i> Cost: ${formatMoney(item.cost)}</span>
+                        <span><i class="fas fa-tag text-purple-400 mr-1"></i> Selling: ${formatMoney(item.price)}</span>
+                        <span><i class="fas fa-percent text-red-400 mr-1"></i> Disc: ${formatMoney(item.discount)}</span>
+                    </div>
+                    <div class="text-xs text-gray-400 mt-1"><i class="far fa-calendar-alt mr-1"></i> ${formatDate(item.date)}</div>
                 `;
                 if (item.action === 'BATCH DELETED' && item.batch_id) {
-                    details += `<br>Batch #${item.batch_id} | Original Qty: ${item.batch_quantity} | Remaining at deletion: ${item.batch_remaining}`;
+                    details += `<div class="text-xs text-gray-500 mt-1"><i class="fas fa-hashtag mr-1"></i> Batch #${item.batch_id} | Original Qty: ${item.batch_quantity} | Remaining: ${item.batch_remaining}</div>`;
                 }
                 if (item.action === 'PRODUCT DELETED' && item.product_id) {
-                    details += `<br>Product ID: #${item.product_id} | All batches archived`;
+                    details += `<div class="text-xs text-gray-500 mt-1"><i class="fas fa-id-badge mr-1"></i> Product ID: #${item.product_id} | All batches archived</div>`;
                 }
                 detailsDiv.innerHTML = details;
             }
@@ -225,55 +269,57 @@
 
             // Buttons
             const btnDiv = document.createElement('div');
-            btnDiv.className = 'flex justify-end gap-2';
+            btnDiv.className = 'flex flex-wrap justify-end gap-2 mt-2 pt-2 border-t border-gray-100';
             
             // View Batches button for ACTIVE items
             if (item.action === 'ACTIVE') {
                 const viewBtn = document.createElement('button');
-                viewBtn.textContent = '📋 View Batches';
-                viewBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm';
+                viewBtn.innerHTML = '<i class="fas fa-layer-group mr-1"></i> View Batches';
+                viewBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-xl text-sm font-medium transition';
                 viewBtn.onclick = () => viewBatches(item.name, item.brand);
                 btnDiv.appendChild(viewBtn);
             }
             
-            // ✅ FIXED: Restore button logic
-            // Only show restore for DELETED, BATCH DELETED, PRODUCT DELETED
-            // EXCLUDE "UPDATED" records
+            // Restore button logic
             const canRestore = ['DELETED', 'BATCH DELETED', 'PRODUCT DELETED'].includes(item.action);
             const isPermanent = item.action === 'PERMANENTLY DELETED';
             
             if (isPermanent) {
                 const disabledBtn = document.createElement('button');
-                disabledBtn.textContent = '❌ Cannot Restore';
-                disabledBtn.className = 'bg-gray-400 text-white px-3 py-1 rounded text-sm cursor-not-allowed';
+                disabledBtn.innerHTML = '<i class="fas fa-times mr-1"></i> Cannot Restore';
+                disabledBtn.className = 'bg-gray-400 text-white px-3 py-1.5 rounded-xl text-sm font-medium cursor-not-allowed';
                 disabledBtn.disabled = true;
                 btnDiv.appendChild(disabledBtn);
             } else if (canRestore && item.id && !item.is_permanent) {
                 const restoreBtn = document.createElement('button');
-                restoreBtn.textContent = '↻ Restore';
-                restoreBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-sm';
+                restoreBtn.innerHTML = '<i class="fas fa-undo mr-1"></i> Restore';
+                restoreBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl text-sm font-medium transition';
                 restoreBtn.onclick = () => restoreItem(item.id);
                 btnDiv.appendChild(restoreBtn);
             } else if (item.action === 'UPDATED') {
-                // "UPDATED" records show this special message
                 const infoBtn = document.createElement('button');
-                infoBtn.textContent = 'ℹ️ Update History';
-                infoBtn.className = 'bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-sm';
+                infoBtn.innerHTML = '<i class="fas fa-info-circle mr-1"></i> Update History';
+                infoBtn.className = 'bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-xl text-sm font-medium transition';
                 infoBtn.onclick = () => alert('This is an update history record.\n\nIt tracks changes made to products and cannot be restored.\n\n✅ The actual product is still active in inventory.');
                 btnDiv.appendChild(infoBtn);
             }
             
             card.appendChild(btnDiv);
             container.appendChild(card);
-        }
+        });
     }
 
-    // View batches modal (uses fetch, with fallback to cache if needed)
+    // ===== VIEW BATCHES =====
     async function viewBatches(name, brand) {
         const modalTitle = document.getElementById('batchModalTitle');
         const container = document.getElementById('batchList');
-        container.innerHTML = '<div class="text-center text-gray-400 py-4">Loading batches...</div>';
-        modalTitle.innerText = `Batches – ${name} (${brand})`;
+        container.innerHTML = `
+            <div class="text-center text-gray-400 py-6">
+                <i class="fas fa-spinner fa-spin text-2xl block mb-2"></i>
+                <p>Loading batches...</p>
+            </div>
+        `;
+        modalTitle.innerHTML = `<i class="fas fa-layer-group text-blue-500 mr-2"></i> Batches – ${escapeHtml(name)} (${escapeHtml(brand)})`;
         document.getElementById('batchModal').classList.remove('hidden');
 
         const cacheKey = `batches_${name}_${brand}`;
@@ -289,18 +335,35 @@
             if (cached) batches = cached;
         }
 
-        if (!batches.length) {
-            container.innerHTML = '<div class="text-gray-400 text-center py-4">No batches found.</div>';
+        if (!batches || !batches.length) {
+            container.innerHTML = `
+                <div class="text-gray-400 text-center py-6">
+                    <i class="fas fa-inbox text-3xl block mb-2"></i>
+                    <p>No batches found.</p>
+                </div>
+            `;
         } else {
             container.innerHTML = '';
             batches.forEach(b => {
                 const div = document.createElement('div');
-                div.className = 'border rounded p-2 mb-2';
+                div.className = 'border border-gray-100 rounded-xl p-3 hover:bg-gray-50/50 transition';
                 div.innerHTML = `
-                    <strong>Batch #${b.batch_id}</strong><br>
-                    Qty: ${b.quantity} | Remaining: ${b.remaining_quantity}<br>
-                    Cost: ${formatMoney(b.cost_price)} | Selling: ${formatMoney(b.selling_price)} | Disc: ${formatMoney(b.discount)}<br>
-                    Date: ${formatDate(b.date)}
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <strong class="text-indigo-600">#${b.batch_id}</strong>
+                            <span class="text-xs text-gray-400 ml-2">${formatDate(b.date)}</span>
+                        </div>
+                        <span class="text-xs font-medium ${b.remaining_quantity > 0 ? 'text-green-600' : 'text-red-500'}">
+                            ${b.remaining_quantity > 0 ? '● In Stock' : '● Depleted'}
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1.5 text-xs text-gray-600">
+                        <span><i class="fas fa-box mr-1"></i> Qty: <strong>${b.quantity}</strong></span>
+                        <span><i class="fas fa-box-open mr-1"></i> Remaining: <strong>${b.remaining_quantity}</strong></span>
+                        <span><i class="fas fa-coins mr-1"></i> Cost: ${formatMoney(b.cost_price)}</span>
+                        <span><i class="fas fa-tag mr-1"></i> Selling: ${formatMoney(b.selling_price)}</span>
+                    </div>
+                    ${b.discount > 0 ? `<div class="text-xs text-red-400 mt-1"><i class="fas fa-percent mr-1"></i> Discount: ${formatMoney(b.discount)}</div>` : ''}
                 `;
                 container.appendChild(div);
             });
@@ -311,7 +374,7 @@
         document.getElementById('batchModal').classList.add('hidden');
     }
 
-    // Restore item (requires internet)
+    // ===== RESTORE ITEM =====
     async function restoreItem(archiveId) {
         if (!navigator.onLine) {
             alert('Restoring requires internet. Please connect and try again.');
@@ -328,26 +391,26 @@
             });
             const data = await res.json();
             if (data.success) {
-                alert('Item restored successfully!\n\nIt has been added back to your inventory.');
-                loadArchive(); // refresh list
+                alert('✅ Item restored successfully!\n\nIt has been added back to your inventory.');
+                loadArchive();
             } else {
-                alert('Restore failed: ' + data.error);
+                alert('❌ Restore failed: ' + data.error);
             }
         } catch (err) {
             alert('Error: ' + err.message);
         }
     }
 
-    // ---------- Event listeners ----------
+    // ===== EVENT LISTENERS =====
     document.getElementById('statusFilter').addEventListener('change', () => loadArchive());
     document.getElementById('searchInput').addEventListener('input', applySearchAndRender);
 
-    // Auto-refresh on reconnect
+    // ===== AUTO-REFRESH ON RECONNECT =====
     window.addEventListener('online', function() {
         loadArchive();
     });
 
-    // Initial load
+    // ===== INITIAL LOAD =====
     loadArchive();
 </script>
 {% endblock %}

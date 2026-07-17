@@ -1,127 +1,148 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="p-6">
+<div class="p-4 md:p-6 space-y-6">
+
     <!-- Offline banner -->
-    <div id="offlineBanner" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded hidden">
-        ⚠️ You are offline – showing cached screen purchases. New purchases will be saved and synced when you reconnect.
+    <div id="offlineBanner" class="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-xl hidden">
+        <i class="fas fa-exclamation-triangle mr-2"></i> You are offline – showing cached wine purchases. New purchases will be saved and synced when you reconnect.
     </div>
 
-    <!-- Cache banner (shows when using cached data while online) -->
-    <div id="cacheBanner" class="mb-4 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded hidden">
-        ⚠️ Showing cached data (last updated: <span id="cacheTimestamp"></span>). 
-        <button onclick="refreshData()" class="underline font-bold">Click here to refresh</button>
+    <!-- Cache banner -->
+    <div id="cacheBanner" class="mb-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 px-4 py-3 rounded-xl hidden">
+        <i class="fas fa-database mr-2"></i> Showing cached data (last updated: <span id="cacheTimestamp"></span>).
+        <button onclick="refreshData()" class="underline font-bold hover:text-yellow-800">Click here to refresh</button>
     </div>
 
-    <!-- ADD / EDIT FORM -->
-    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-        <div class="flex items-center gap-2 mb-4">
-            <h2 class="text-xl font-bold" id="formTitle">➕ Add Screen Purchase</h2>
-            <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">Screens Only</span>
+    <!-- ===== HEADER ===== -->
+    <div class="flex flex-wrap justify-between items-center gap-3 bg-white p-4 rounded-3xl shadow-sm border border-gray-100/80">
+        <div class="flex items-center gap-3">
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-wine-bottle text-purple-500"></i> Wine Purchases
+            </h1>
+            <span class="bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full">Wine Category</span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3">
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Product Name</label>
-                <input type="text" id="name" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2" autocomplete="off" placeholder="Screen name">
-                <div id="nameSuggestions" class="absolute z-10 bg-white border rounded-lg shadow-lg hidden"></div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Brand</label>
-                <input type="text" id="brand" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Category</label>
-                <input type="text" id="category" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2" autocomplete="off" value="Screen" readonly>
-                <div id="categorySuggestions" class="absolute z-10 bg-white border rounded-lg shadow-lg hidden"></div>
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Quantity</label>
-                <input type="number" id="quantity" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Cost Price (₵)</label>
-                <input type="number" step="0.01" id="cost_price" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Discount (₵)</label>
-                <input type="number" step="0.01" id="discount" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Selling Price (₵)</label>
-                <input type="number" step="0.01" id="selling_price" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2">
-            </div>
-        </div>
-        <div class="mt-4 flex gap-3">
-            <button id="submitBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg">➕ Add Screen Purchase</button>
-            <button id="cancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg hidden">Cancel Edit</button>
+        <div class="flex items-center gap-2">
+            <button id="viewPendingBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition flex items-center gap-2">
+                <i class="fas fa-clock"></i> Pending
+                <span id="pendingCount" class="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 hidden">0</span>
+            </button>
         </div>
     </div>
 
-    <!-- SEARCH & FILTER BAR -->
-    <div class="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-wrap gap-4 items-end">
-        <div class="flex-1 min-w-[200px]">
-            <label class="block text-sm font-medium text-gray-700">Search (screen name/brand/category)</label>
-            <input type="text" id="searchInput" placeholder="🔍 Type to filter screens..." class="w-full border border-gray-300 rounded-lg px-3 py-2">
+    <!-- ===== ADD / EDIT FORM ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-6 border border-gray-100/80">
+        <div class="flex items-center gap-2 mb-5">
+            <h2 class="text-xl font-bold text-gray-700" id="formTitle">
+                <i class="fas fa-plus-circle text-purple-500 mr-2"></i> Add Wine Purchase
+            </h2>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+            <div class="relative">
+                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Product Name</label>
+                <input type="text" id="name" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none" autocomplete="off" placeholder="Wine name">
+                <div id="nameSuggestions" class="absolute z-10 bg-white border border-gray-200 rounded-xl shadow-lg hidden w-full max-h-48 overflow-y-auto"></div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Brand</label>
+                <input type="text" id="brand" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
+            </div>
+            <div class="relative">
+                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Category</label>
+                <input type="text" id="category" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none" autocomplete="off" value="Screen" readonly>
+                <div id="categorySuggestions" class="absolute z-10 bg-white border border-gray-200 rounded-xl shadow-lg hidden w-full max-h-48 overflow-y-auto"></div>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Quantity</label>
+                <input type="number" id="quantity" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Cost Price (₵)</label>
+                <input type="number" step="0.01" id="cost_price" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Discount (₵)</label>
+                <input type="number" step="0.01" id="discount" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none" value="0">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Selling Price (₵)</label>
+                <input type="number" step="0.01" id="selling_price" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
+            </div>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-3">
+            <button id="submitBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-xl text-sm font-medium transition shadow-sm hover:shadow">
+                <i class="fas fa-plus mr-2"></i> Add Wine Purchase
+            </button>
+            <button id="cancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-xl text-sm font-medium transition hidden">
+                <i class="fas fa-times mr-2"></i> Cancel Edit
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== SEARCH & FILTER BAR ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-4 border border-gray-100/80 flex flex-wrap gap-3 items-end">
+        <div class="flex-1 min-w-[180px]">
+            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Search</label>
+            <input type="text" id="searchInput" placeholder="🔍 Wine name, brand, or category..." class="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-700">From Date</label>
-            <input type="date" id="fromDate" class="border border-gray-300 rounded-lg px-3 py-2">
+            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">From</label>
+            <input type="date" id="fromDate" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
         </div>
         <div>
-            <label class="block text-sm font-medium text-gray-700">To Date</label>
-            <input type="date" id="toDate" class="border border-gray-300 rounded-lg px-3 py-2">
+            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">To</label>
+            <input type="date" id="toDate" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
         </div>
-        <button id="filterBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg">🔍 Filter</button>
-        <button id="pdfBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-5 py-2 rounded-lg">🧾 PDF Report</button>
-        <!-- Pending Button -->
-        <button id="viewPendingBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2 rounded-lg flex items-center gap-2">
-            <span>⏳ Pending</span>
-            <span id="pendingCount" class="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 hidden">0</span>
+        <button id="filterBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">
+            <i class="fas fa-filter mr-1"></i> Filter
+        </button>
+        <button id="pdfBtn" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">
+            <i class="fas fa-file-pdf mr-1"></i> PDF Report
         </button>
     </div>
 
-    <!-- PURCHASES LIST (scrollable) -->
-    <div class="bg-white rounded-xl shadow-md p-4">
-        <div id="purchasesList" class="max-h-[500px] overflow-y-auto space-y-3">
+    <!-- ===== PURCHASES LIST ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
+        <div id="purchasesList" class="max-h-[500px] overflow-y-auto space-y-2 pr-1">
             <!-- dynamically loaded -->
         </div>
-        <div id="summary" class="mt-4 p-3 bg-gray-50 rounded-lg font-bold text-center text-teal-700"></div>
+        <div id="summary" class="mt-4 pt-4 border-t border-gray-100">
+            <!-- dynamically loaded -->
+        </div>
     </div>
 </div>
 
-<!-- PENDING PURCHASES MODAL -->
-<div id="pendingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
+<!-- ===== PENDING PURCHASES MODAL ===== -->
+<div id="pendingModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-2xl w-11/12 max-w-4xl max-h-[90vh] overflow-hidden">
         <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-            <h3 class="text-xl font-bold">⏳ Pending Screen Purchases</h3>
-            <button onclick="closePendingModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+            <h3 class="text-xl font-bold text-gray-700 flex items-center gap-2">
+                <i class="fas fa-clock text-purple-600"></i> Pending Wine Purchases
+            </h3>
+            <button onclick="closePendingModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
         </div>
-        <div id="pendingList" class="p-4 space-y-3">
+        <div id="pendingList" class="p-4 space-y-3 overflow-y-auto max-h-[60vh]">
             <!-- dynamically loaded -->
         </div>
-        <div class="sticky bottom-0 bg-white p-4 border-t flex justify-between">
-            <div>
-                <button onclick="syncAllPending()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
-                    🔄 Sync All
+        <div class="sticky bottom-0 bg-white p-4 border-t flex flex-wrap justify-between items-center gap-3">
+            <div class="flex flex-wrap gap-2">
+                <button onclick="syncAllPending()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+                    <i class="fas fa-sync mr-1"></i> Sync All
                 </button>
-                <button onclick="clearAllPending()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded ml-2">
-                    🗑️ Clear All
+                <button onclick="clearAllPending()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
+                    <i class="fas fa-trash mr-1"></i> Clear All
                 </button>
             </div>
-            <button onclick="closePendingModal()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded">Close</button>
+            <button onclick="closePendingModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition">Close</button>
         </div>
     </div>
 </div>
 
 <script>
-    // ---------- Offline banner helpers ----------
+    // ---------- Offline banner ----------
     function updateOfflineBanner() {
         const banner = document.getElementById('offlineBanner');
-        if (!navigator.onLine) {
-            banner.classList.remove('hidden');
-        } else {
-            banner.classList.add('hidden');
-        }
+        banner.classList.toggle('hidden', navigator.onLine);
     }
     window.addEventListener('online', updateOfflineBanner);
     window.addEventListener('offline', updateOfflineBanner);
@@ -131,24 +152,18 @@
     let editMode = false;
     let editBatchId = null;
     let isDataFresh = false;
-    const CACHE_KEY = 'cached_purchases_screen';
-    const CACHE_TIMESTAMP_KEY = 'cached_purchases_screen_timestamp';
+    const CACHE_KEY = 'cached_purchases_wine';
+    const CACHE_TIMESTAMP_KEY = 'cached_purchases_wine_timestamp';
 
-    // ---------- Helper functions ----------
+    // ---------- Helpers ----------
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
     }
 
     function formatDate(dateStr) {
         if (!dateStr) return '';
-        const d = new Date(dateStr);
-        return d.toLocaleString();
+        return new Date(dateStr).toLocaleString();
     }
 
     function formatMoney(amount) {
@@ -157,11 +172,7 @@
 
     // ---------- Caching ----------
     function getCacheTimestamp() {
-        try {
-            return localStorage.getItem(CACHE_TIMESTAMP_KEY);
-        } catch (e) {
-            return null;
-        }
+        try { return localStorage.getItem(CACHE_TIMESTAMP_KEY); } catch(e) { return null; }
     }
 
     function cachePurchases(purchases) {
@@ -169,72 +180,50 @@
             localStorage.setItem(CACHE_KEY, JSON.stringify(purchases));
             localStorage.setItem(CACHE_TIMESTAMP_KEY, new Date().toISOString());
             isDataFresh = true;
-        } catch (e) {}
+        } catch(e) {}
     }
 
     function loadCachedPurchases() {
         try {
             const raw = localStorage.getItem(CACHE_KEY);
-            if (!raw) return null;
-            return JSON.parse(raw);
-        } catch (e) {
-            return null;
-        }
+            return raw ? JSON.parse(raw) : null;
+        } catch(e) { return null; }
     }
 
     function updateCacheBanner() {
-        const cacheBanner = document.getElementById('cacheBanner');
-        const timestampSpan = document.getElementById('cacheTimestamp');
-        
+        const banner = document.getElementById('cacheBanner');
+        const tsSpan = document.getElementById('cacheTimestamp');
         if (navigator.onLine && !isDataFresh) {
             const cached = loadCachedPurchases();
-            if (cached && cached.length > 0) {
+            if (cached && cached.length) {
                 const ts = getCacheTimestamp();
-                if (ts) {
-                    const date = new Date(ts);
-                    timestampSpan.innerText = date.toLocaleString();
-                } else {
-                    timestampSpan.innerText = 'unknown time';
-                }
-                cacheBanner.classList.remove('hidden');
+                tsSpan.innerText = ts ? new Date(ts).toLocaleString() : 'unknown';
+                banner.classList.remove('hidden');
             } else {
-                cacheBanner.classList.add('hidden');
+                banner.classList.add('hidden');
             }
         } else {
-            cacheBanner.classList.add('hidden');
+            banner.classList.add('hidden');
         }
     }
 
-    window.refreshData = function() {
-        loadPurchases(true);
-    };
+    window.refreshData = function() { loadPurchases(true); };
 
-    // ---------- PENDING PURCHASES MANAGEMENT ----------
+    // ---------- Pending management ----------
     function getPendingPurchases() {
-        try {
-            return JSON.parse(localStorage.getItem('pendingPurchases') || '[]');
-        } catch (e) {
-            return [];
-        }
+        try { return JSON.parse(localStorage.getItem('pendingPurchasesWine') || '[]'); } catch(e) { return []; }
     }
 
     function savePendingPurchases(pending) {
-        try {
-            localStorage.setItem('pendingPurchases', JSON.stringify(pending));
-        } catch (e) {}
+        try { localStorage.setItem('pendingPurchasesWine', JSON.stringify(pending)); } catch(e) {}
     }
 
     function updatePendingBadge() {
         const pending = getPendingPurchases();
-        const count = pending.length;
         const badge = document.getElementById('pendingCount');
         if (badge) {
-            badge.textContent = count;
-            if (count === 0) {
-                badge.classList.add('hidden');
-            } else {
-                badge.classList.remove('hidden');
-            }
+            badge.textContent = pending.length;
+            badge.classList.toggle('hidden', pending.length === 0);
         }
     }
 
@@ -242,49 +231,47 @@
         const pending = getPendingPurchases();
         const container = document.getElementById('pendingList');
         const modal = document.getElementById('pendingModal');
-        
-        if (pending.length === 0) {
+
+        if (!pending.length) {
             container.innerHTML = `
-                <div class="text-center text-gray-400 py-8">
-                    <p class="text-2xl mb-2">📭</p>
-                    <p>No pending screen purchases.</p>
+                <div class="text-center text-gray-400 py-10">
+                    <i class="fas fa-inbox text-4xl block mb-3"></i>
+                    <p>No pending wine purchases.</p>
                     <p class="text-sm">All purchases have been synced to the server.</p>
                 </div>
             `;
         } else {
-            container.innerHTML = pending.map((p, index) => `
-                <div class="border rounded-lg p-4 hover:shadow transition">
-                    <div class="flex justify-between items-start">
+            container.innerHTML = pending.map((p, idx) => `
+                <div class="border border-gray-200 rounded-xl p-4 hover:shadow transition">
+                    <div class="flex flex-wrap justify-between items-start gap-3">
                         <div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-sm font-semibold ${p.type === 'add' ? 'text-green-600' : 'text-yellow-600'}">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="text-xs font-semibold ${p.type === 'add' ? 'text-green-600' : 'text-yellow-600'}">
                                     ${p.type === 'add' ? '➕ Add' : '✏️ Update'}
                                 </span>
                                 <span class="text-xs text-gray-400">${new Date(p.timestamp).toLocaleString()}</span>
-                                ${p.batchId ? `<span class="text-xs bg-gray-100 px-2 py-0.5 rounded">Batch #${p.batchId}</span>` : ''}
+                                ${p.batchId ? `<span class="text-xs bg-gray-100 px-2 py-0.5 rounded-full">#${p.batchId}</span>` : ''}
                             </div>
-                            <h3 class="font-bold text-lg mt-1">${escapeHtml(p.data.name)} (${escapeHtml(p.data.brand)})</h3>
+                            <h3 class="font-bold text-gray-800 mt-1">🍷 ${escapeHtml(p.data.name)} (${escapeHtml(p.data.brand)})</h3>
                             <p class="text-sm text-gray-600">
-                                Qty: ${p.data.quantity} | 
-                                Cost: ₵${p.data.cost_price.toFixed(2)} | 
-                                Selling: ₵${p.data.selling_price.toFixed(2)}
+                                Qty: ${p.data.quantity} | Cost: ₵${p.data.cost_price.toFixed(2)} | Selling: ₵${p.data.selling_price.toFixed(2)}
                                 ${p.data.discount ? `| Discount: ₵${p.data.discount.toFixed(2)}` : ''}
                             </p>
                             <p class="text-sm text-gray-500">Category: ${p.data.category || 'Screen'}</p>
                         </div>
-                        <div class="flex flex-col gap-1">
-                            <button onclick="syncPendingItem(${index})" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
-                                🔄 Sync
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="syncPendingItem(${idx})" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-xl text-sm transition">
+                                <i class="fas fa-sync mr-1"></i> Sync
                             </button>
-                            <button onclick="removePendingItem(${index})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded text-sm">
-                                🗑️ Remove
+                            <button onclick="removePendingItem(${idx})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-xl text-sm transition">
+                                <i class="fas fa-trash mr-1"></i> Remove
                             </button>
                         </div>
                     </div>
                 </div>
             `).join('');
         }
-        
+
         updatePendingBadge();
         modal.classList.remove('hidden');
     }
@@ -297,28 +284,22 @@
         const pending = getPendingPurchases();
         const item = pending[index];
         if (!item) return;
-        
-        const confirmMsg = `Sync this ${item.type === 'add' ? 'addition' : 'update'} for "${item.data.name}"?`;
-        if (!confirm(confirmMsg)) return;
-        
+        if (!confirm(`Sync this ${item.type === 'add' ? 'addition' : 'update'} for "${item.data.name}"?`)) return;
+
         try {
             let url = '/api/purchases';
             let method = 'POST';
-            
             if (item.type === 'update' && item.batchId) {
                 url = `/api/purchases/${item.batchId}`;
                 method = 'PUT';
             }
-            
             const res = await fetch(url, {
-                method: method,
+                method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(item.data)
             });
-            
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const data = await res.json();
-            
             if (data.success) {
                 pending.splice(index, 1);
                 savePendingPurchases(pending);
@@ -336,62 +317,38 @@
 
     async function syncAllPending() {
         const pending = getPendingPurchases();
-        if (pending.length === 0) {
-            alert('No pending items to sync.');
-            return;
-        }
-        
-        if (!confirm(`Sync all ${pending.length} pending purchase(s)?`)) return;
-        
-        let successCount = 0;
-        let failCount = 0;
-        
+        if (!pending.length) { alert('No pending items to sync.'); return; }
+        if (!confirm(`Sync all ${pending.length} pending wine purchase(s)?`)) return;
+
+        let success = 0, fail = 0;
         for (let i = pending.length - 1; i >= 0; i--) {
             const item = pending[i];
             try {
                 let url = '/api/purchases';
                 let method = 'POST';
-                
                 if (item.type === 'update' && item.batchId) {
                     url = `/api/purchases/${item.batchId}`;
                     method = 'PUT';
                 }
-                
-                const res = await fetch(url, {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(item.data)
-                });
-                
+                const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item.data) });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.success) {
-                        pending.splice(i, 1);
-                        successCount++;
-                    } else {
-                        failCount++;
-                    }
-                } else {
-                    failCount++;
-                }
-            } catch (error) {
-                failCount++;
-            }
+                    if (data.success) { pending.splice(i, 1); success++; }
+                    else fail++;
+                } else { fail++; }
+            } catch(e) { fail++; }
         }
-        
         savePendingPurchases(pending);
         updatePendingBadge();
         viewPendingPurchases();
         loadPurchases(true);
-        
-        alert(`✅ Synced: ${successCount} | ❌ Failed: ${failCount}`);
+        alert(`✅ Synced: ${success} | ❌ Failed: ${fail}`);
     }
 
     function removePendingItem(index) {
         const pending = getPendingPurchases();
         const item = pending[index];
         if (!confirm(`Remove pending ${item.type === 'add' ? 'addition' : 'update'} for "${item.data.name}"?`)) return;
-        
         pending.splice(index, 1);
         savePendingPurchases(pending);
         updatePendingBadge();
@@ -400,57 +357,19 @@
 
     function clearAllPending() {
         const pending = getPendingPurchases();
-        if (pending.length === 0) {
-            alert('No pending items to clear.');
-            return;
-        }
-        if (!confirm(`Delete all ${pending.length} pending purchase(s)? This cannot be undone.`)) return;
-        
+        if (!pending.length) { alert('No pending items to clear.'); return; }
+        if (!confirm(`Delete all ${pending.length} pending wine purchase(s)? This cannot be undone.`)) return;
         savePendingPurchases([]);
         updatePendingBadge();
         viewPendingPurchases();
     }
 
-    // ---------- Check for batch edit from URL ----------
-    function checkForBatchEdit() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const batchId = urlParams.get('edit_batch');
-        if (batchId) {
-            console.log('🔍 Batch edit requested for:', batchId);
-            
-            setTimeout(function() {
-                const purchase = currentPurchases.find(p => p.batch_id === parseInt(batchId));
-                if (purchase) {
-                    console.log('✅ Found purchase:', purchase);
-                    editPurchase(parseInt(batchId));
-                    const form = document.querySelector('.bg-white.rounded-xl.shadow-md.p-6.mb-6');
-                    if (form) {
-                        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        form.style.border = '3px solid #f59e0b';
-                        form.style.transition = 'border-color 0.5s';
-                        setTimeout(() => {
-                            form.style.border = 'none';
-                        }, 3000);
-                    }
-                } else {
-                    console.warn('⚠️ Batch #' + batchId + ' not found');
-                    alert('Batch #' + batchId + ' not found. It may have been deleted.');
-                }
-            }, 1500);
-        }
-    }
-
-    // ---------- Load purchases (filtered to screens) ----------
+    // ---------- Load purchases (filtered to screens/wine) ----------
     async function loadPurchases(forceRefresh = false) {
         updateOfflineBanner();
-        
-        if (forceRefresh) {
-            isDataFresh = false;
-        }
-        
-        let purchases = [];
-        let fromCache = false;
+        if (forceRefresh) isDataFresh = false;
 
+        let purchases = [];
         if (navigator.onLine) {
             try {
                 const res = await fetch('/api/purchases?category=Screen');
@@ -458,182 +377,145 @@
                     purchases = await res.json();
                     cachePurchases(purchases);
                     isDataFresh = true;
-                    console.log('✅ Data loaded from API (fresh)');
-                    
-                    // Auto-sync pending items when online
+                    // Auto-sync pending
                     const pending = getPendingPurchases();
-                    if (pending.length > 0) {
-                        console.log(`📦 ${pending.length} pending purchases found - syncing automatically...`);
+                    if (pending.length) {
+                        console.log(`📦 ${pending.length} pending wine purchases found - syncing...`);
                         await syncAllPendingSilently();
                     }
                 } else {
-                    throw new Error('API returned error');
+                    throw new Error('API error');
                 }
             } catch (err) {
-                console.warn('⚠️ API failed, using cached data:', err.message);
-                fromCache = true;
+                console.warn('Using cached data:', err.message);
                 const cached = loadCachedPurchases();
-                if (cached) {
-                    purchases = cached;
-                    isDataFresh = false;
-                } else {
-                    purchases = [];
-                    isDataFresh = false;
-                }
+                purchases = cached || [];
+                isDataFresh = false;
             }
         } else {
-            fromCache = true;
             const cached = loadCachedPurchases();
-            if (cached) {
-                purchases = cached;
-                isDataFresh = false;
-            } else {
-                purchases = [];
-                isDataFresh = false;
-            }
+            purchases = cached || [];
+            isDataFresh = false;
         }
 
         currentPurchases = purchases;
-        renderList(currentPurchases, fromCache);
+        renderList(currentPurchases);
         updateCacheBanner();
         updatePendingBadge();
-        
-        checkForBatchEdit();
     }
 
-    // Silent sync for pending items (used on reconnect)
     async function syncAllPendingSilently() {
         const pending = getPendingPurchases();
-        if (pending.length === 0) return;
-        
-        let successCount = 0;
-        let failCount = 0;
-        
+        if (!pending.length) return;
+        let success = 0, fail = 0;
         for (let i = pending.length - 1; i >= 0; i--) {
             const item = pending[i];
             try {
                 let url = '/api/purchases';
                 let method = 'POST';
-                
                 if (item.type === 'update' && item.batchId) {
                     url = `/api/purchases/${item.batchId}`;
                     method = 'PUT';
                 }
-                
-                const res = await fetch(url, {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(item.data)
-                });
-                
+                const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(item.data) });
                 if (res.ok) {
                     const data = await res.json();
-                    if (data.success) {
-                        pending.splice(i, 1);
-                        successCount++;
-                    } else {
-                        failCount++;
-                    }
-                } else {
-                    failCount++;
-                }
-            } catch (error) {
-                failCount++;
-            }
+                    if (data.success) { pending.splice(i, 1); success++; }
+                    else fail++;
+                } else { fail++; }
+            } catch(e) { fail++; }
         }
-        
-        if (successCount > 0 || failCount > 0) {
+        if (success || fail) {
             savePendingPurchases(pending);
             updatePendingBadge();
-            console.log(`📦 Sync results: ${successCount} success, ${failCount} failed`);
+            console.log(`📦 Silent sync: ${success} success, ${fail} failed`);
         }
     }
 
     // ---------- Render list ----------
-    function renderList(purchases, fromCache = false) {
+    function renderList(purchases) {
         const container = document.getElementById('purchasesList');
         if (!purchases.length) {
-            container.innerHTML = '<div class="text-center text-gray-400 py-8">No screen purchase records found.</div>';
+            container.innerHTML = `<div class="text-center text-gray-400 py-10">
+                <i class="fas fa-wine-bottle text-4xl block mb-3"></i>
+                <p>No wine purchase records found.</p>
+            </div>`;
             updateSummary([]);
             return;
         }
 
         container.innerHTML = purchases.map(p => `
-            <div class="border rounded-lg p-4 hover:shadow transition">
-                <div class="flex justify-between items-start">
+            <div class="border border-gray-100 rounded-xl p-4 hover:shadow-md transition">
+                <div class="flex flex-wrap justify-between items-start gap-3">
                     <div>
-                        <h3 class="font-bold text-lg">${escapeHtml(p.name)} (${escapeHtml(p.brand)})</h3>
-                        <p class="text-sm text-gray-600">Batch #${p.batch_id} | Qty: ${p.quantity} | Stock: ${p.remaining_quantity}</p>
-                        <p class="text-sm">Cost: ₵${p.cost_price.toFixed(2)} | Discount: ₵${p.discount.toFixed(2)} | Selling: ₵${p.selling_price.toFixed(2)}</p>
-                        <p class="text-sm">Total: ₵${p.total_cost.toFixed(2)} | Date: ${formatDate(p.date)}</p>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="font-bold text-gray-800">🍷 ${escapeHtml(p.name)}</h3>
+                            <span class="text-sm text-gray-500">(${escapeHtml(p.brand)})</span>
+                            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">#${p.batch_id}</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-1">
+                            Qty: ${p.quantity} | Stock: ${p.remaining_quantity || p.quantity} | 
+                            Cost: ₵${p.cost_price.toFixed(2)} | Discount: ₵${p.discount.toFixed(2)} | 
+                            Selling: ₵${p.selling_price.toFixed(2)}
+                        </p>
+                        <p class="text-sm text-gray-500">${formatDate(p.date)}</p>
                     </div>
-                    <button onclick="editPurchase(${p.batch_id})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1 rounded">✏️ Update</button>
+                    <button onclick="editPurchase(${p.batch_id})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1.5 rounded-xl text-sm transition">
+                        <i class="fas fa-edit mr-1"></i> Update
+                    </button>
                 </div>
             </div>
         `).join('');
         updateSummary(purchases);
     }
 
-    // ---------- Update summary with Grand Total, Capital, and Profit ----------
+    // ---------- Summary ----------
     function updateSummary(purchases) {
-        let totalQty = 0;
-        let totalCost = 0;
-        let totalDiscount = 0;
-        let totalSelling = 0;
-        let totalProfit = 0;
-        let totalCapital = 0;
-        const totalBatches = purchases.length;
-        
+        let totalQty = 0, totalCost = 0, totalDiscount = 0, totalSelling = 0, totalProfit = 0, totalCapital = 0;
         purchases.forEach(p => {
-            const itemQty = p.quantity || 0;
-            const itemCost = p.cost_price || 0;
-            const itemSelling = p.selling_price || 0;
-            const itemDiscount = p.discount || 0;
-            
-            totalQty += itemQty;
-            totalCost += p.total_cost || (itemCost * itemQty);
-            totalDiscount += itemDiscount;
-            totalSelling += itemSelling * itemQty;
-            
-            // Profit = (Selling Price - Cost Price) * Quantity - Discount
-            const itemProfit = (itemSelling - itemCost) * itemQty - itemDiscount;
-            totalProfit += itemProfit;
-            
-            // Capital = Total Cost - Discount
-            totalCapital += (itemCost * itemQty) - itemDiscount;
+            const qty = p.quantity || 0;
+            const cost = p.cost_price || 0;
+            const sell = p.selling_price || 0;
+            const disc = p.discount || 0;
+            totalQty += qty;
+            totalCost += p.total_cost || (cost * qty);
+            totalDiscount += disc;
+            totalSelling += sell * qty;
+            totalProfit += (sell - cost) * qty - disc;
+            totalCapital += (cost * qty) - disc;
         });
-        
+
         const isOffline = !navigator.onLine;
         const isCached = !isDataFresh && !isOffline;
-        
+
         document.getElementById('summary').innerHTML = `
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 text-sm">
-                <div class="bg-white rounded p-2 shadow">
-                    <span class="text-gray-500">📦 Batches</span><br>
-                    <span class="text-lg font-bold text-indigo-600">${totalBatches}</span>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
+                <div class="bg-gray-50 rounded-xl p-3 text-center">
+                    <p class="text-gray-400 text-xs uppercase">Batches</p>
+                    <p class="text-xl font-bold text-indigo-600">${purchases.length}</p>
                 </div>
-                <div class="bg-white rounded p-2 shadow">
-                    <span class="text-gray-500">🧾 Total Qty</span><br>
-                    <span class="text-lg font-bold text-blue-600">${totalQty}</span>
+                <div class="bg-gray-50 rounded-xl p-3 text-center">
+                    <p class="text-gray-400 text-xs uppercase">Total Qty</p>
+                    <p class="text-xl font-bold text-blue-600">${totalQty}</p>
                 </div>
-                <div class="bg-white rounded p-2 shadow">
-                    <span class="text-gray-500">💰 Capital</span><br>
-                    <span class="text-lg font-bold text-purple-600">${formatMoney(totalCapital)}</span>
+                <div class="bg-gray-50 rounded-xl p-3 text-center">
+                    <p class="text-gray-400 text-xs uppercase">Capital</p>
+                    <p class="text-xl font-bold text-purple-600">${formatMoney(totalCapital)}</p>
                 </div>
-                <div class="bg-white rounded p-2 shadow">
-                    <span class="text-gray-500">📈 Total Selling</span><br>
-                    <span class="text-lg font-bold text-green-600">${formatMoney(totalSelling)}</span>
+                <div class="bg-gray-50 rounded-xl p-3 text-center">
+                    <p class="text-gray-400 text-xs uppercase">Total Selling</p>
+                    <p class="text-xl font-bold text-green-600">${formatMoney(totalSelling)}</p>
                 </div>
-                <div class="bg-white rounded p-2 shadow">
-                    <span class="text-gray-500">📉 Total Discount</span><br>
-                    <span class="text-lg font-bold text-red-600">${formatMoney(totalDiscount)}</span>
+                <div class="bg-gray-50 rounded-xl p-3 text-center">
+                    <p class="text-gray-400 text-xs uppercase">Discount</p>
+                    <p class="text-xl font-bold text-red-500">${formatMoney(totalDiscount)}</p>
                 </div>
-                <div class="bg-white rounded p-2 shadow">
-                    <span class="text-gray-500">💎 Profit</span><br>
-                    <span class="text-lg font-bold ${totalProfit >= 0 ? 'text-teal-600' : 'text-red-600'}">${formatMoney(totalProfit)}</span>
+                <div class="bg-gray-50 rounded-xl p-3 text-center">
+                    <p class="text-gray-400 text-xs uppercase">Profit</p>
+                    <p class="text-xl font-bold ${totalProfit >= 0 ? 'text-teal-600' : 'text-red-600'}">${formatMoney(totalProfit)}</p>
                 </div>
             </div>
-            <div class="mt-2 text-xs text-gray-400">
+            <div class="mt-2 text-xs text-gray-400 text-center">
                 ${isOffline ? '⚠️ Offline mode' : ''}
                 ${isCached ? '📦 Showing cached data' : ''}
                 ${!isOffline && !isCached ? '✅ Live data' : ''}
@@ -641,9 +523,9 @@
         `;
     }
 
-    // ---------- Save pending purchase ----------
+    // ---------- Save pending ----------
     function savePendingPurchase(payload, actionType, batchId) {
-        let pending = getPendingPurchases();
+        const pending = getPendingPurchases();
         pending.push({
             id: Date.now() + '_' + Math.random().toString(36).substr(2,5),
             type: actionType || 'add',
@@ -653,10 +535,9 @@
         });
         savePendingPurchases(pending);
         updatePendingBadge();
-        console.log('💾 Saved pending screen purchase:', payload);
     }
 
-    // ---------- Submit / Update ----------
+    // ---------- Submit ----------
     async function submitPurchase() {
         const payload = {
             name: document.getElementById('name').value.trim(),
@@ -667,9 +548,9 @@
             discount: parseFloat(document.getElementById('discount').value) || 0,
             selling_price: parseFloat(document.getElementById('selling_price').value)
         };
-        
+
         if (!payload.name || !payload.brand || !payload.quantity || !payload.cost_price || !payload.selling_price) {
-            alert('Please fill required fields: Name, Brand, Quantity, Cost Price, Selling Price');
+            alert('Please fill all required fields: Name, Brand, Quantity, Cost Price, Selling Price');
             return;
         }
 
@@ -677,50 +558,32 @@
         let method = 'POST';
         let actionType = 'add';
         let batchId = null;
-        
+
         if (editMode) {
             url = `/api/purchases/${editBatchId}`;
             method = 'PUT';
             actionType = 'update';
             batchId = editBatchId;
-            console.log('✏️ Updating screen batch:', editBatchId, payload);
-        } else {
-            console.log('➕ Adding new screen purchase:', payload);
         }
 
         try {
-            const res = await fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            
+            const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             if (!res.ok) {
-                const errorData = await res.json();
-                throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
+                const err = await res.json();
+                throw new Error(err.error || `HTTP ${res.status}`);
             }
-            
             const data = await res.json();
-            
             if (data.success) {
-                alert(editMode ? '✅ Screen purchase updated!' : '✅ Screen purchase added!');
+                alert(editMode ? '✅ Wine purchase updated!' : '✅ Wine purchase added!');
                 resetForm();
-                
-                // Clear the URL parameter if coming from edit
-                if (window.history && window.history.pushState) {
-                    const newUrl = window.location.pathname;
-                    window.history.pushState({}, '', newUrl);
-                }
-                
                 loadPurchases(true);
             } else {
                 alert('Error: ' + data.error);
             }
         } catch (error) {
-            console.warn('Network error, saving screen purchase offline:', error);
+            console.warn('Network error, saving offline:', error);
             savePendingPurchase(payload, actionType, batchId);
-            updatePendingBadge();
-            alert('⚠️ You are offline. Screen purchase saved locally and will be synced later.');
+            alert('⚠️ You are offline. Wine purchase saved locally and will be synced later.');
             resetForm();
             loadPurchases();
         }
@@ -728,15 +591,9 @@
 
     // ---------- Edit / Reset ----------
     function editPurchase(batchId) {
-        console.log('✏️ Editing screen purchase:', batchId);
         const purchase = currentPurchases.find(p => p.batch_id === batchId);
-        if (!purchase) {
-            console.warn('Purchase not found:', batchId);
-            return;
-        }
-        
-        console.log('📦 Purchase data:', purchase);
-        
+        if (!purchase) return;
+
         document.getElementById('name').value = purchase.name;
         document.getElementById('brand').value = purchase.brand;
         document.getElementById('category').value = purchase.category || 'Screen';
@@ -744,23 +601,15 @@
         document.getElementById('cost_price').value = purchase.cost_price;
         document.getElementById('discount').value = purchase.discount;
         document.getElementById('selling_price').value = purchase.selling_price;
-        
+
         editMode = true;
         editBatchId = batchId;
-        
-        document.getElementById('formTitle').innerHTML = '✏️ Update Screen Purchase <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">Screens Only</span>';
-        document.getElementById('submitBtn').innerHTML = '✏️ Update Screen Purchase';
+
+        document.getElementById('formTitle').innerHTML = `<i class="fas fa-edit text-yellow-500 mr-2"></i> Update Wine Purchase`;
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save mr-2"></i> Update Wine Purchase';
         document.getElementById('cancelBtn').classList.remove('hidden');
-        
-        const form = document.querySelector('.bg-white.rounded-xl.shadow-md.p-6.mb-6');
-        if (form) {
-            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            form.style.border = '3px solid #f59e0b';
-            form.style.transition = 'border-color 0.5s';
-            setTimeout(() => {
-                form.style.border = 'none';
-            }, 3000);
-        }
+
+        document.querySelector('.bg-white.rounded-3xl.shadow-sm.p-6.border').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function resetForm() {
@@ -769,42 +618,31 @@
         document.getElementById('category').value = 'Screen';
         document.getElementById('quantity').value = '';
         document.getElementById('cost_price').value = '';
-        document.getElementById('discount').value = '';
+        document.getElementById('discount').value = '0';
         document.getElementById('selling_price').value = '';
-        
+
         editMode = false;
         editBatchId = null;
-        
-        document.getElementById('formTitle').innerHTML = '➕ Add Screen Purchase <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">Screens Only</span>';
-        document.getElementById('submitBtn').innerHTML = '➕ Add Screen Purchase';
+
+        document.getElementById('formTitle').innerHTML = `<i class="fas fa-plus-circle text-purple-500 mr-2"></i> Add Wine Purchase`;
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus mr-2"></i> Add Wine Purchase';
         document.getElementById('cancelBtn').classList.add('hidden');
-        
-        const form = document.querySelector('.bg-white.rounded-xl.shadow-md.p-6.mb-6');
-        if (form) {
-            form.style.border = 'none';
-        }
-        
-        // Clear URL parameter
-        if (window.history && window.history.pushState) {
-            const newUrl = window.location.pathname;
-            window.history.pushState({}, '', newUrl);
-        }
     }
 
-    // ---------- Search & Filter ----------
+    // ---------- Filter ----------
     async function filterPurchases() {
-        const fromDate = document.getElementById('fromDate').value;
-        const toDate = document.getElementById('toDate').value;
-        if (fromDate && toDate) {
+        const from = document.getElementById('fromDate').value;
+        const to = document.getElementById('toDate').value;
+        if (from && to) {
             try {
-                const res = await fetch(`/api/purchases/filter?start_date=${fromDate}&end_date=${toDate}&category=Screen`);
+                const res = await fetch(`/api/purchases/filter?start_date=${from}&end_date=${to}&category=Screen`);
                 if (!res.ok) throw new Error();
                 currentPurchases = await res.json();
                 cachePurchases(currentPurchases);
                 isDataFresh = true;
                 updateCacheBanner();
-            } catch (err) {
-                alert('Filter is unavailable offline. Showing cached data.');
+            } catch {
+                alert('Filter unavailable offline. Showing cached data.');
                 const cached = loadCachedPurchases();
                 if (cached) currentPurchases = cached;
                 isDataFresh = false;
@@ -819,7 +657,7 @@
     function applySearch() {
         const keyword = document.getElementById('searchInput').value.toLowerCase();
         if (!keyword) {
-            renderList(currentPurchases, !isDataFresh);
+            renderList(currentPurchases);
             return;
         }
         const filtered = currentPurchases.filter(p =>
@@ -827,74 +665,51 @@
             (p.brand && p.brand.toLowerCase().includes(keyword)) ||
             (p.category && p.category.toLowerCase().includes(keyword))
         );
-        renderList(filtered, !isDataFresh);
+        renderList(filtered);
     }
 
-    // ---------- PDF with Enhanced Summary ----------
+    // ---------- PDF ----------
     async function generatePDF() {
         if (!navigator.onLine) {
             alert('PDF generation requires internet. Please connect and try again.');
             return;
         }
-        const fromDate = document.getElementById('fromDate').value;
-        const toDate = document.getElementById('toDate').value;
-        const purchasesToExport = currentPurchases;
+        const from = document.getElementById('fromDate').value;
+        const to = document.getElementById('toDate').value;
+        const data = { purchases: currentPurchases, from_date: from, to_date: to };
 
-        // Calculate totals for the report
-        let totalQty = 0;
-        let totalCost = 0;
-        let totalDiscount = 0;
-        let totalSelling = 0;
-        let totalProfit = 0;
-        let totalCapital = 0;
-        
-        purchasesToExport.forEach(p => {
-            const itemQty = p.quantity || 0;
-            const itemCost = p.cost_price || 0;
-            const itemSelling = p.selling_price || 0;
-            const itemDiscount = p.discount || 0;
-            
-            totalQty += itemQty;
-            totalCost += p.total_cost || (itemCost * itemQty);
-            totalDiscount += itemDiscount;
-            totalSelling += itemSelling * itemQty;
-            
-            const itemProfit = (itemSelling - itemCost) * itemQty - itemDiscount;
-            totalProfit += itemProfit;
-            totalCapital += (itemCost * itemQty) - itemDiscount;
+        let totalQty = 0, totalCost = 0, totalDiscount = 0, totalSelling = 0, totalProfit = 0, totalCapital = 0;
+        currentPurchases.forEach(p => {
+            const qty = p.quantity || 0;
+            const cost = p.cost_price || 0;
+            const sell = p.selling_price || 0;
+            const disc = p.discount || 0;
+            totalQty += qty;
+            totalCost += p.total_cost || (cost * qty);
+            totalDiscount += disc;
+            totalSelling += sell * qty;
+            totalProfit += (sell - cost) * qty - disc;
+            totalCapital += (cost * qty) - disc;
         });
+        data.totals = { total_qty: totalQty, total_cost: totalCost, total_discount: totalDiscount, total_selling: totalSelling, total_profit: totalProfit, total_capital: totalCapital, total_batches: currentPurchases.length };
 
         try {
             const res = await fetch('/api/purchases/pdf', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    purchases: purchasesToExport,
-                    from_date: fromDate,
-                    to_date: toDate,
-                    // Send calculated totals for the PDF
-                    totals: {
-                        total_qty: totalQty,
-                        total_cost: totalCost,
-                        total_discount: totalDiscount,
-                        total_selling: totalSelling,
-                        total_profit: totalProfit,
-                        total_capital: totalCapital,
-                        total_batches: purchasesToExport.length
-                    }
-                })
+                body: JSON.stringify(data)
             });
             if (!res.ok) throw new Error();
             const blob = await res.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Screen_Purchases_${new Date().toISOString().slice(0,19)}.pdf`;
+            a.download = `Wine_Purchases_${new Date().toISOString().slice(0,19)}.pdf`;
             document.body.appendChild(a);
             a.click();
             a.remove();
             window.URL.revokeObjectURL(url);
-        } catch (err) {
+        } catch {
             alert('Failed to generate PDF. Please try again.');
         }
     }
@@ -903,10 +718,7 @@
     let nameTimeout, catTimeout;
 
     async function fetchNameSuggestions() {
-        if (!navigator.onLine) {
-            document.getElementById('nameSuggestions').classList.add('hidden');
-            return;
-        }
+        if (!navigator.onLine) { document.getElementById('nameSuggestions').classList.add('hidden'); return; }
         const q = document.getElementById('name').value.trim();
         if (!q) { document.getElementById('nameSuggestions').classList.add('hidden'); return; }
         try {
@@ -915,22 +727,17 @@
             const suggestions = await res.json();
             const box = document.getElementById('nameSuggestions');
             if (!suggestions.length) { box.classList.add('hidden'); return; }
-            box.innerHTML = suggestions.map(s => `<div class="px-3 py-1 hover:bg-gray-100 cursor-pointer" onclick="selectNameSuggestion('${escapeHtml(s.name)}', '${escapeHtml(s.brand)}', '${escapeHtml(s.category)}')">${escapeHtml(s.name)} (${escapeHtml(s.brand)})</div>`).join('');
+            box.innerHTML = suggestions.map(s => `<div class="px-3 py-1.5 hover:bg-purple-50 cursor-pointer" onclick="selectNameSuggestion('${escapeHtml(s.name)}','${escapeHtml(s.brand)}','${escapeHtml(s.category)}')">🍷 ${escapeHtml(s.name)} (${escapeHtml(s.brand)})</div>`).join('');
             box.classList.remove('hidden');
             const rect = document.getElementById('name').getBoundingClientRect();
-            box.style.top = rect.bottom + window.scrollY + 'px';
+            box.style.top = (rect.bottom + window.scrollY + 4) + 'px';
             box.style.left = rect.left + 'px';
             box.style.width = rect.width + 'px';
-        } catch (err) {
-            document.getElementById('nameSuggestions').classList.add('hidden');
-        }
+        } catch { document.getElementById('nameSuggestions').classList.add('hidden'); }
     }
 
     async function fetchCategorySuggestions() {
-        if (!navigator.onLine) {
-            document.getElementById('categorySuggestions').classList.add('hidden');
-            return;
-        }
+        if (!navigator.onLine) { document.getElementById('categorySuggestions').classList.add('hidden'); return; }
         const q = document.getElementById('category').value.trim();
         if (!q) { document.getElementById('categorySuggestions').classList.add('hidden'); return; }
         try {
@@ -939,15 +746,13 @@
             const suggestions = await res.json();
             const box = document.getElementById('categorySuggestions');
             if (!suggestions.length) { box.classList.add('hidden'); return; }
-            box.innerHTML = suggestions.map(s => `<div class="px-3 py-1 hover:bg-gray-100 cursor-pointer" onclick="selectCategorySuggestion('${escapeHtml(s.category)}')">${escapeHtml(s.category)}</div>`).join('');
+            box.innerHTML = suggestions.map(s => `<div class="px-3 py-1.5 hover:bg-purple-50 cursor-pointer" onclick="selectCategorySuggestion('${escapeHtml(s.category)}')">${escapeHtml(s.category)}</div>`).join('');
             box.classList.remove('hidden');
             const rect = document.getElementById('category').getBoundingClientRect();
-            box.style.top = rect.bottom + window.scrollY + 'px';
+            box.style.top = (rect.bottom + window.scrollY + 4) + 'px';
             box.style.left = rect.left + 'px';
             box.style.width = rect.width + 'px';
-        } catch (err) {
-            document.getElementById('categorySuggestions').classList.add('hidden');
-        }
+        } catch { document.getElementById('categorySuggestions').classList.add('hidden'); }
     }
 
     window.selectNameSuggestion = function(name, brand, category) {
@@ -965,22 +770,18 @@
     // ---------- Event listeners ----------
     document.addEventListener('DOMContentLoaded', function() {
         loadPurchases();
-        if (typeof updatePendingBadge === 'function') updatePendingBadge();
-        
-        // View Pending button
-        const viewPendingBtn = document.getElementById('viewPendingBtn');
-        if (viewPendingBtn) {
-            viewPendingBtn.addEventListener('click', viewPendingPurchases);
-        }
-        
-        // Submit button
+        updatePendingBadge();
+
         document.getElementById('submitBtn').addEventListener('click', submitPurchase);
         document.getElementById('cancelBtn').addEventListener('click', resetForm);
         document.getElementById('filterBtn').addEventListener('click', filterPurchases);
         document.getElementById('pdfBtn').addEventListener('click', generatePDF);
         document.getElementById('searchInput').addEventListener('input', applySearch);
+        document.getElementById('viewPendingBtn').addEventListener('click', viewPendingPurchases);
+
         document.getElementById('name').addEventListener('input', () => { clearTimeout(nameTimeout); nameTimeout = setTimeout(fetchNameSuggestions, 300); });
         document.getElementById('category').addEventListener('input', () => { clearTimeout(catTimeout); catTimeout = setTimeout(fetchCategorySuggestions, 300); });
+
         document.addEventListener('click', function(e) {
             if (!e.target.closest('#name')) document.getElementById('nameSuggestions').classList.add('hidden');
             if (!e.target.closest('#category')) document.getElementById('categorySuggestions').classList.add('hidden');
@@ -988,9 +789,6 @@
     });
 
     // Auto-refresh on reconnect
-    window.addEventListener('online', function() {
-        loadPurchases(true);
-    });
-
+    window.addEventListener('online', function() { loadPurchases(true); });
 </script>
 {% endblock %}

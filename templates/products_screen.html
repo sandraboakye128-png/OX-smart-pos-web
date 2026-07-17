@@ -1,143 +1,171 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="p-6">
-    <!-- Offline banner (updated for screens) -->
-    <div id="offlineBanner" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded hidden">
-        ⚠️ You are offline – showing cached screen products. Deletions will be saved and applied when you reconnect.
+<div class="p-4 md:p-6 space-y-6">
+
+    <!-- Offline banner -->
+    <div id="offlineBanner" class="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-xl hidden">
+        <i class="fas fa-exclamation-triangle mr-2"></i> You are offline – showing cached wine products. Deletions will be saved and applied when you reconnect.
     </div>
 
-    <!-- Header with screen indicator -->
-    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-        <div class="flex items-center gap-2">
-            <h2 class="text-2xl font-bold text-indigo-600 mb-0">📦 Product Manager</h2>
-            <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">Screens Only</span>
-        </div>
-        <p class="text-gray-600 mt-1">Manage your screen products and batches</p>
-    </div>
-
-    <!-- Search Bar -->
-    <div class="mb-4">
-        <input type="text" id="searchInput" placeholder="🔍 Search screen by name, brand or category..." 
-               class="w-full border border-gray-300 rounded-lg px-4 py-2">
-    </div>
-
-    <!-- Summary -->
-    <div id="summary" class="text-teal-600 font-bold mb-4"></div>
-
-    <!-- Products List (cards) -->
-    <div id="productsList" class="space-y-4">
-        <!-- dynamic content -->
-    </div>
-</div>
-
-<!-- Modal: View Batches -->
-<div id="batchModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-            <h3 class="text-xl font-bold" id="modalTitle">Batches</h3>
-            <button onclick="closeBatchModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
-        </div>
-        <!-- Batch Search Bar -->
-        <div class="p-4 border-b bg-gray-50">
+    <!-- ===== HEADER ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-6 border border-gray-100/80">
+        <div class="flex flex-wrap justify-between items-center gap-3">
             <div class="flex items-center gap-3">
-                <div class="flex-1">
-                    <input type="text" id="batchSearchInput" placeholder="🔍 Search batch by ID..." 
-                           class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm">
-                </div>
                 <div class="flex items-center gap-2">
-                    <span id="batchCountDisplay" class="text-sm text-gray-600 font-medium"></span>
-                    <button onclick="clearBatchSearch()" class="text-gray-400 hover:text-gray-600 text-sm hidden" id="clearBatchSearchBtn">✕ Clear</button>
+                    <h2 class="text-2xl font-bold text-gray-800">
+                        <i class="fas fa-wine-bottle text-purple-500 mr-2"></i> Product Manager
+                    </h2>
+                    <span class="bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full">Wine Category</span>
                 </div>
+            </div>
+            <div class="text-sm text-gray-400" id="summary">
+                <i class="fas fa-spinner fa-spin mr-1"></i> Loading...
             </div>
         </div>
-        <div id="batchList" class="p-4 space-y-3"></div>
-        <div class="sticky bottom-0 bg-white p-4 border-t flex justify-between">
-            <div>
-                <button onclick="selectAllBatches()" class="bg-blue-500 text-white px-3 py-1 rounded mr-2">Select All</button>
-                <button onclick="deselectAllBatches()" class="bg-orange-500 text-white px-3 py-1 rounded">Deselect All</button>
+        <p class="text-gray-500 text-sm mt-1">Manage your wine products and batches</p>
+    </div>
+
+    <!-- ===== SEARCH BAR ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-4 border border-gray-100/80">
+        <div class="relative">
+            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input type="text" id="searchInput" placeholder="Search wine by name, brand, or category..." 
+                   class="w-full border border-gray-200 rounded-xl pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
+        </div>
+    </div>
+
+    <!-- ===== PRODUCTS LIST ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
+        <div id="productsList" class="space-y-3">
+            <!-- dynamic content -->
+        </div>
+    </div>
+</div>
+
+<!-- ===== MODAL: View Batches ===== -->
+<div id="batchModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-2xl w-11/12 max-w-4xl max-h-[90vh] overflow-hidden">
+        <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
+            <h3 class="text-xl font-bold text-gray-700" id="modalTitle">
+                <i class="fas fa-layer-group text-purple-500 mr-2"></i> Batches
+            </h3>
+            <button onclick="closeBatchModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        </div>
+        <!-- Batch Search -->
+        <div class="p-4 border-b bg-gray-50/80">
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="flex-1 min-w-[180px]">
+                    <div class="relative">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                        <input type="text" id="batchSearchInput" placeholder="Search batch by ID..." 
+                               class="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
+                    </div>
+                </div>
+                <span id="batchCountDisplay" class="text-sm text-gray-500 font-medium"></span>
+                <button onclick="clearBatchSearch()" class="text-gray-400 hover:text-gray-600 text-sm hidden" id="clearBatchSearchBtn">
+                    <i class="fas fa-times mr-1"></i> Clear
+                </button>
             </div>
-            <div>
-                <button onclick="deleteSelectedBatches()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded">Delete Selected</button>
-                <button onclick="closeBatchModal()" class="bg-gray-400 hover:bg-gray-500 text-white px-4 py-2 rounded ml-2">Close</button>
+        </div>
+        <div id="batchList" class="p-4 space-y-2 overflow-y-auto max-h-[50vh]">
+            <!-- dynamically loaded -->
+        </div>
+        <div class="sticky bottom-0 bg-white p-4 border-t flex flex-wrap justify-between items-center gap-3">
+            <div class="flex flex-wrap gap-2">
+                <button onclick="selectAllBatches()" class="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-xl text-sm transition">
+                    <i class="fas fa-check-double mr-1"></i> Select All
+                </button>
+                <button onclick="deselectAllBatches()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-xl text-sm transition">
+                    <i class="fas fa-times mr-1"></i> Deselect All
+                </button>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <button onclick="deleteSelectedBatches()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">
+                    <i class="fas fa-trash mr-1"></i> Delete Selected
+                </button>
+                <button onclick="closeBatchModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-1.5 rounded-xl text-sm font-medium transition">
+                    Close
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal: Delete Product Options -->
-<div id="deleteProductModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="bg-white rounded-xl shadow-xl w-96 p-6">
-        <h3 class="text-xl font-bold mb-2">Delete Screen Product</h3>
-        <p id="deleteProductName" class="mb-4 text-gray-600"></p>
-        <button id="deleteKeepBtn" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded mb-2">📦 Keep History (Recommended)</button>
-        <p class="text-xs text-gray-500 mb-3">✓ Product deleted but sales/purchase history remains<br>✓ Can be restored from Archive</p>
-        <button id="deleteCleanBtn" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 rounded mb-2">⚠️ Clean Everything (Permanent)</button>
-        <p class="text-xs text-red-500 mb-3">⚠️ Product AND all history deleted – CANNOT be restored!</p>
-        <button onclick="closeDeleteProductModal()" class="w-full bg-gray-400 hover:bg-gray-500 text-white py-2 rounded">Cancel</button>
+<!-- ===== MODAL: Delete Product Options ===== -->
+<div id="deleteProductModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
+    <div class="bg-white rounded-3xl shadow-2xl w-96 p-6">
+        <h3 class="text-xl font-bold text-gray-700 flex items-center gap-2">
+            <i class="fas fa-exclamation-triangle text-red-500"></i> Delete Wine Product
+        </h3>
+        <p id="deleteProductName" class="mt-2 text-gray-600 text-sm"></p>
+        <div class="mt-4 space-y-3">
+            <button id="deleteKeepBtn" class="w-full bg-green-600 hover:bg-green-700 text-white py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2">
+                <i class="fas fa-archive"></i> Keep History (Recommended)
+            </button>
+            <p class="text-xs text-gray-400 text-center">✓ Product deleted but sales/purchase history remains<br>✓ Can be restored from Archive</p>
+            <button id="deleteCleanBtn" class="w-full bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2">
+                <i class="fas fa-skull-crossbones"></i> Clean Everything (Permanent)
+            </button>
+            <p class="text-xs text-red-400 text-center">⚠️ Product AND all history deleted – CANNOT be restored!</p>
+            <button onclick="closeDeleteProductModal()" class="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 py-2.5 rounded-xl font-medium transition">
+                Cancel
+            </button>
+        </div>
     </div>
 </div>
 
 <script>
-    // -------------------- OFFLINE HELPERS (fallback) --------------------
+    // ===== OFFLINE HELPERS =====
     if (typeof savePendingBatchDeletion === 'undefined') {
         window.savePendingBatchDeletion = function(batchId, deleteType) {
-            let pending = JSON.parse(localStorage.getItem('pendingBatchDeletions') || '[]');
+            let pending = JSON.parse(localStorage.getItem('pendingBatchDeletionsWine') || '[]');
             pending.push({ id: Date.now() + '_' + Math.random().toString(36).substr(2,5), batchId, deleteType, timestamp: new Date().toISOString() });
-            localStorage.setItem('pendingBatchDeletions', JSON.stringify(pending));
+            localStorage.setItem('pendingBatchDeletionsWine', JSON.stringify(pending));
             if (typeof updatePendingBadge === 'function') updatePendingBadge();
         };
     }
     if (typeof savePendingProductDeletion === 'undefined') {
         window.savePendingProductDeletion = function(productId, deleteType) {
-            let pending = JSON.parse(localStorage.getItem('pendingProductDeletions') || '[]');
+            let pending = JSON.parse(localStorage.getItem('pendingProductDeletionsWine') || '[]');
             pending.push({ id: Date.now() + '_' + Math.random().toString(36).substr(2,5), productId, deleteType, timestamp: new Date().toISOString() });
-            localStorage.setItem('pendingProductDeletions', JSON.stringify(pending));
+            localStorage.setItem('pendingProductDeletionsWine', JSON.stringify(pending));
             if (typeof updatePendingBadge === 'function') updatePendingBadge();
         };
     }
 
-    // -------------------- MAIN LOGIC --------------------
+    // ===== MAIN VARIABLES =====
     let currentProducts = [];
     let currentProductIdForDelete = null;
     let currentBatchSelections = [];
     let currentBatchModalProductName = "";
-    let currentBatches = []; // Store all batches for filtering
+    let currentBatches = [];
+    const PRODUCTS_CACHE_KEY = 'cached_products_wine';
 
-    // Helper: escape HTML
+    // ===== HELPERS =====
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
     }
 
-    // Helper: Navigate to purchase page with batch ID
+    function formatMoney(amount) {
+        return '₵' + (parseFloat(amount) || 0).toFixed(2);
+    }
+
     function navigateToPurchase(batchId) {
-        // Open the purchase page in a new tab with the batch ID as a parameter
         const url = `/purchases/screens?edit_batch=${batchId}`;
         window.open(url, '_blank');
     }
 
-    // Update offline banner
+    // ===== OFFLINE BANNER =====
     function updateOfflineBanner() {
         const banner = document.getElementById('offlineBanner');
-        if (!navigator.onLine) {
-            banner.classList.remove('hidden');
-        } else {
-            banner.classList.add('hidden');
-        }
+        banner.classList.toggle('hidden', navigator.onLine);
     }
     window.addEventListener('online', updateOfflineBanner);
     window.addEventListener('offline', updateOfflineBanner);
 
-    // Cache key for screen products (separate from accessories)
-    const PRODUCTS_CACHE_KEY = 'cached_products_screen';
-
-    // Load products from API or cache (filtered to Screen category)
+    // ===== LOAD PRODUCTS =====
     async function loadProducts() {
         updateOfflineBanner();
         let productsData = null;
@@ -145,18 +173,16 @@
         let fromCache = false;
 
         try {
-            // Fetch only screen products
             const res = await fetch('/api/products?category=Screen');
             if (!res.ok) throw new Error('Network error');
             const data = await res.json();
             productsData = data.products;
             summaryData = { total_products: data.total_products, total_batches: data.total_batches };
-            // Cache the data
             try {
                 localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify({ products: productsData, summary: summaryData, timestamp: Date.now() }));
-            } catch (e) {}
+            } catch(e) {}
         } catch (err) {
-            console.warn('Offline – using cached screen products');
+            console.warn('Offline – using cached wine products');
             fromCache = true;
             const cached = localStorage.getItem(PRODUCTS_CACHE_KEY);
             if (cached) {
@@ -170,32 +196,37 @@
         }
 
         currentProducts = productsData || [];
-        document.getElementById('summary').innerHTML = `Total Screen Products: ${summaryData.total_products} | Total Batches: ${summaryData.total_batches}${fromCache ? ' (cached)' : ''}`;
+        document.getElementById('summary').innerHTML = `
+            <span class="inline-flex items-center gap-2">
+                <i class="fas fa-wine-bottle text-purple-500"></i>
+                ${summaryData.total_products} products
+                <span class="text-gray-300">|</span>
+                <i class="fas fa-layer-group text-blue-400"></i>
+                ${summaryData.total_batches} batches
+                ${fromCache ? '<span class="text-xs text-yellow-500 ml-1">(cached)</span>' : ''}
+            </span>
+        `;
         applySearch();
-        
-        // Auto-open batches if coming from dashboard
         autoOpenBatches();
     }
 
-    // Auto-open batches when coming from dashboard
+    // ===== AUTO-OPEN BATCHES =====
     function autoOpenBatches() {
         if (sessionStorage.getItem('autoOpenBatches') === 'true') {
             const productName = sessionStorage.getItem('autoOpenProduct');
             if (productName) {
-                // Wait for products to render
-                setTimeout(function() {
-                    const products = document.querySelectorAll('#productsList .bg-white');
+                setTimeout(() => {
+                    const products = document.querySelectorAll('#productsList .product-card');
                     for (const product of products) {
-                        const nameEl = product.querySelector('h3');
+                        const nameEl = product.querySelector('.product-name');
                         if (nameEl && nameEl.textContent.trim().startsWith(productName)) {
-                            const viewBtn = product.querySelector('button.bg-blue-500');
+                            const viewBtn = product.querySelector('button.view-batches-btn');
                             if (viewBtn) {
                                 viewBtn.click();
                                 break;
                             }
                         }
                     }
-                    // Clear the session storage
                     sessionStorage.removeItem('autoOpenBatches');
                     sessionStorage.removeItem('autoOpenProduct');
                 }, 800);
@@ -203,7 +234,7 @@
         }
     }
 
-    // Filter products based on search input
+    // ===== SEARCH =====
     function applySearch() {
         const keyword = document.getElementById('searchInput').value.toLowerCase();
         let filtered = currentProducts;
@@ -217,54 +248,78 @@
         renderProducts(filtered);
     }
 
-    // Render product cards
+    // ===== RENDER PRODUCTS =====
     function renderProducts(products) {
         const container = document.getElementById('productsList');
         if (!products.length) {
-            container.innerHTML = '<div class="text-center text-gray-400 py-8">No screen products found.</div>';
+            container.innerHTML = `
+                <div class="text-center text-gray-400 py-12">
+                    <i class="fas fa-wine-bottle text-5xl block mb-3"></i>
+                    <p>No wine products found.</p>
+                </div>
+            `;
             return;
         }
+
         container.innerHTML = products.map(p => {
             const status = p.stock > 0 ? "In Stock" : "Out of Stock";
-            const statusColor = p.stock > 0 ? "text-green-600" : "text-red-600";
+            const statusColor = p.stock > 0 ? "text-green-600" : "text-red-500";
+            const stockIcon = p.stock > 0 ? "fa-check-circle" : "fa-exclamation-circle";
+            
             return `
-                <div class="bg-white rounded-xl shadow-md p-4 border">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="text-xl font-bold text-indigo-700">${escapeHtml(p.name)} (${escapeHtml(p.brand)})</h3>
-                            <p class="text-gray-600 text-sm">Category: ${escapeHtml(p.category)} | Stock: ${p.stock}</p>
-                            <p class="text-sm">Cost: ₵${p.cost_price.toFixed(2)} | Selling: ₵${p.selling_price.toFixed(2)} | Discount: ₵${p.discount.toFixed(2)}</p>
+                <div class="product-card bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-md transition">
+                    <div class="flex flex-wrap justify-between items-start gap-3">
+                        <div class="flex-1 min-w-[200px]">
+                            <h3 class="product-name text-lg font-bold text-gray-800">
+                                <i class="fas fa-wine-bottle text-purple-400 mr-1"></i>
+                                ${escapeHtml(p.name)}
+                                <span class="text-sm font-normal text-gray-500">(${escapeHtml(p.brand)})</span>
+                            </h3>
+                            <div class="flex flex-wrap items-center gap-3 mt-1 text-sm text-gray-500">
+                                <span><i class="fas fa-tag text-purple-400 mr-1"></i> ${escapeHtml(p.category)}</span>
+                                <span><i class="fas fa-archive text-blue-400 mr-1"></i> ${p.stock} in stock</span>
+                                <span><i class="fas fa-money-bill-wave text-green-400 mr-1"></i> ${formatMoney(p.cost_price)}</span>
+                                <span><i class="fas fa-tag text-purple-400 mr-1"></i> ${formatMoney(p.selling_price)}</span>
+                                ${p.discount > 0 ? `<span class="text-red-400"><i class="fas fa-percent mr-1"></i> ${formatMoney(p.discount)}</span>` : ''}
+                            </div>
                         </div>
-                        <div class="text-right">
-                            <span class="font-semibold ${statusColor}">● ${status}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center text-sm font-medium ${statusColor}">
+                                <i class="fas ${stockIcon} mr-1"></i> ${status}
+                            </span>
                         </div>
                     </div>
-                    <div class="mt-3 flex justify-end space-x-2">
+                    <div class="mt-3 flex flex-wrap justify-end gap-2">
                         <button onclick="viewBatches(${p.product_id}, '${escapeHtml(p.name)}', ${JSON.stringify(p.batches).replace(/"/g, '&quot;')})" 
-                                class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded">View Batches</button>
+                                class="view-batches-btn bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition flex items-center gap-1">
+                            <i class="fas fa-layer-group"></i> View Batches
+                        </button>
                         <button onclick="confirmDeleteProduct(${p.product_id}, '${escapeHtml(p.name)}')" 
-                                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded">Delete Product</button>
+                                class="bg-red-500 hover:bg-red-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition flex items-center gap-1">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
                     </div>
                 </div>
             `;
         }).join('');
     }
 
-    // ----- Batch Management with Search and Update Button -----
+    // ===== VIEW BATCHES =====
     function viewBatches(productId, productName, batches) {
         currentBatches = batches;
         currentBatchModalProductName = productName;
         const totalBatches = batches.length;
-        document.getElementById('modalTitle').innerHTML = `Batches for ${productName}`;
-        
-        // Reset search
+        document.getElementById('modalTitle').innerHTML = `
+            <i class="fas fa-wine-bottle text-purple-500 mr-2"></i> Batches for ${productName}
+            <span class="text-sm font-normal text-gray-400 ml-2">(${totalBatches} batch${totalBatches !== 1 ? 'es' : ''})</span>
+        `;
+
         document.getElementById('batchSearchInput').value = '';
         document.getElementById('clearBatchSearchBtn').classList.add('hidden');
-        
-        // Render all batches
+
         renderBatchList(batches);
         updateBatchCount(batches.length, totalBatches);
-        
+
         document.getElementById('batchModal').classList.remove('hidden');
     }
 
@@ -272,56 +327,57 @@
         const container = document.getElementById('batchList');
         container.innerHTML = '';
         currentBatchSelections = [];
-        
+
         if (!batches || batches.length === 0) {
-            container.innerHTML = '<div class="text-center text-gray-400 py-8">No batches match your search.</div>';
+            container.innerHTML = `
+                <div class="text-center text-gray-400 py-8">
+                    <i class="fas fa-inbox text-4xl block mb-2"></i>
+                    <p>No batches match your search.</p>
+                </div>
+            `;
             return;
         }
-        
+
         batches.forEach((batch, idx) => {
             const div = document.createElement('div');
-            div.className = 'border rounded-lg p-3 hover:bg-gray-50';
-            
-            // Create a flex container for checkbox and content
+            div.className = 'border border-gray-100 rounded-xl p-3 hover:bg-purple-50/40 transition';
+
             const flexDiv = document.createElement('div');
-            flexDiv.className = 'flex items-start space-x-3';
-            
+            flexDiv.className = 'flex items-start gap-3';
+
             const cb = document.createElement('input');
             cb.type = 'checkbox';
-            cb.className = 'mt-1';
+            cb.className = 'mt-1.5 w-4 h-4 text-purple-500 rounded focus:ring-purple-400';
             cb.dataset.batchId = batch.batch_id;
             cb.dataset.batchData = JSON.stringify(batch);
-            
+
             const info = document.createElement('div');
             info.className = 'flex-1 text-sm';
-            
-            // Build batch info with Update button
+
+            const statusText = batch.remaining_quantity > 0 ? 'In Stock' : 'Depleted';
+            const statusColor = batch.remaining_quantity > 0 ? 'text-green-600' : 'text-red-500';
+
             info.innerHTML = `
-                <div class="flex justify-between items-start">
+                <div class="flex flex-wrap justify-between items-start gap-2">
                     <div>
-                        <strong class="text-indigo-600">Batch #${batch.batch_id}</strong>
+                        <strong class="text-purple-600">#${batch.batch_id}</strong>
                         <span class="text-xs text-gray-400 ml-2">${new Date(batch.date).toLocaleString()}</span>
+                        <span class="text-xs font-medium ${statusColor} ml-2">● ${statusText}</span>
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <span class="text-xs font-semibold ${batch.remaining_quantity > 0 ? 'text-green-600' : 'text-red-600'}">
-                            ${batch.remaining_quantity > 0 ? '● In Stock' : '● Depleted'}
-                        </span>
-                        <button onclick="event.stopPropagation(); navigateToPurchase(${batch.batch_id})" 
-                                class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs px-2 py-1 rounded transition-colors" 
-                                title="Update this batch">
-                            ✏️ Update
-                        </button>
-                    </div>
+                    <button onclick="event.stopPropagation(); navigateToPurchase(${batch.batch_id})" 
+                            class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs px-3 py-1 rounded-xl transition flex items-center gap-1">
+                        <i class="fas fa-edit"></i> Update
+                    </button>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1 text-xs">
-                    <span>Qty: <strong>${batch.quantity}</strong></span>
-                    <span>Remaining: <strong>${batch.remaining_quantity}</strong></span>
-                    <span>Cost: ₵${batch.cost_price.toFixed(2)}</span>
-                    <span>Selling: ₵${batch.selling_price.toFixed(2)}</span>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1.5 text-xs text-gray-600">
+                    <span><i class="fas fa-box mr-1"></i> Qty: <strong>${batch.quantity}</strong></span>
+                    <span><i class="fas fa-box-open mr-1"></i> Remaining: <strong>${batch.remaining_quantity}</strong></span>
+                    <span><i class="fas fa-coins mr-1"></i> Cost: ${formatMoney(batch.cost_price)}</span>
+                    <span><i class="fas fa-tag mr-1"></i> Selling: ${formatMoney(batch.selling_price)}</span>
                 </div>
-                ${batch.discount > 0 ? `<div class="text-xs text-gray-500 mt-1">Discount: ₵${batch.discount.toFixed(2)}</div>` : ''}
+                ${batch.discount > 0 ? `<div class="text-xs text-red-400 mt-1"><i class="fas fa-percent mr-1"></i> Discount: ${formatMoney(batch.discount)}</div>` : ''}
             `;
-            
+
             flexDiv.appendChild(cb);
             flexDiv.appendChild(info);
             div.appendChild(flexDiv);
@@ -339,14 +395,13 @@
         }
     }
 
-    // Batch search functionality
+    // ===== BATCH SEARCH =====
     document.getElementById('batchSearchInput').addEventListener('input', function() {
         const keyword = this.value.trim().toLowerCase();
         const clearBtn = document.getElementById('clearBatchSearchBtn');
-        
+
         if (keyword) {
             clearBtn.classList.remove('hidden');
-            // Filter batches by batch_id
             const filtered = currentBatches.filter(batch => 
                 batch.batch_id.toString().includes(keyword)
             );
@@ -368,14 +423,15 @@
 
     function closeBatchModal() {
         document.getElementById('batchModal').classList.add('hidden');
-        // Reset search
         document.getElementById('batchSearchInput').value = '';
         document.getElementById('clearBatchSearchBtn').classList.add('hidden');
     }
 
+    // ===== BATCH SELECTION =====
     function selectAllBatches() {
         currentBatchSelections.forEach(item => item.cb.checked = true);
     }
+
     function deselectAllBatches() {
         currentBatchSelections.forEach(item => item.cb.checked = false);
     }
@@ -386,9 +442,10 @@
             alert('Please select at least one batch.');
             return;
         }
+
         const choice = confirm(`Delete ${selected.length} batch(es)?\n\n- Click OK to KEEP history (recommended, can restore)\n- Click Cancel for PERMANENT deletion (cannot restore)`);
         const deleteType = choice ? 'keep' : 'clean';
-        
+
         let successCount = 0;
         for (const item of selected) {
             try {
@@ -408,7 +465,7 @@
         if (successCount > 0) {
             alert(`${successCount} batch(es) deleted online.`);
         }
-        const pending = JSON.parse(localStorage.getItem('pendingBatchDeletions') || '[]');
+        const pending = JSON.parse(localStorage.getItem('pendingBatchDeletionsWine') || '[]');
         if (pending.length > 0) {
             alert(`⚠️ ${pending.length} batch deletion(s) saved offline. They will be applied when you reconnect.`);
         }
@@ -416,10 +473,16 @@
         loadProducts();
     }
 
-    // ----- Product Deletion (unchanged) -----
+    // ===== PRODUCT DELETION =====
     function confirmDeleteProduct(productId, productName) {
         currentProductIdForDelete = productId;
-        document.getElementById('deleteProductName').innerHTML = `Screen Product: ${productName}`;
+        document.getElementById('deleteProductName').innerHTML = `
+            <div class="flex items-center gap-2">
+                <i class="fas fa-wine-bottle text-purple-500"></i>
+                <span><strong>${productName}</strong></span>
+                <span class="text-xs text-gray-400">(Wine Category)</span>
+            </div>
+        `;
         document.getElementById('deleteProductModal').classList.remove('hidden');
     }
 
@@ -434,7 +497,7 @@
             const res = await fetch(`/api/products/${currentProductIdForDelete}?type=${deleteType}`, { method: 'DELETE' });
             const data = await res.json();
             if (data.success) {
-                alert(`Screen product ${deleteType === 'clean' ? 'permanently deleted' : 'deleted (history kept)'}.`);
+                alert(`Wine product ${deleteType === 'clean' ? 'permanently deleted' : 'deleted (history kept)'}.`);
                 closeDeleteProductModal();
                 loadProducts();
             } else {
@@ -443,26 +506,30 @@
         } catch (err) {
             console.warn('Product deletion failed (offline), saving for later:', err);
             savePendingProductDeletion(currentProductIdForDelete, deleteType);
-            alert(`Screen product deletion saved offline. It will be applied when you reconnect.`);
+            alert(`Wine product deletion saved offline. It will be applied when you reconnect.`);
             closeDeleteProductModal();
             loadProducts();
         }
     }
 
-    // Event listeners
+    // ===== EVENT LISTENERS =====
     document.getElementById('searchInput').addEventListener('input', applySearch);
     document.getElementById('deleteKeepBtn').addEventListener('click', () => deleteProduct('keep'));
     document.getElementById('deleteCleanBtn').addEventListener('click', () => deleteProduct('clean'));
 
-    // Initial load
+    // ===== INIT =====
     document.addEventListener('DOMContentLoaded', function() {
         loadProducts();
         if (typeof updatePendingBadge === 'function') updatePendingBadge();
+        updateOfflineBanner();
     });
 
     window.addEventListener('online', function() {
         loadProducts();
     });
 
+    window.addEventListener('offline', function() {
+        updateOfflineBanner();
+    });
 </script>
 {% endblock %}

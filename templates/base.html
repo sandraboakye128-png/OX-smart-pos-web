@@ -1,372 +1,375 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OX Smart POS</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Your custom CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vendrex · POS</title>
+  <!-- Tailwind + Font Awesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <!-- custom style (overrides) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 
-    <!-- ===== SERVICE WORKER REGISTRATION ===== -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/static/sw.js')
-                .then(() => console.log('✅ Service Worker registered'))
-                .catch(err => console.log('❌ SW registration failed:', err));
-        }
-    </script>
+  <!-- Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/static/sw.js')
+        .then(() => console.log('✅ SW registered'))
+        .catch(err => console.log('❌ SW reg failed:', err));
+    }
+  </script>
 
-    <style>
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+  <style>
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 20px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 20px; }
 
-        /* Sidebar link hover & active states */
-        .nav-link {
-            transition: all 0.2s ease;
-        }
-        .nav-link:hover {
-            background-color: #334155;
-        }
-        .nav-link.active {
-            background-color: #00CFCF;
-            color: #0f172a;
-        }
+    /* sidebar links */
+    .nav-link {
+      transition: all 0.15s ease;
+      border-radius: 10px;
+    }
+    .nav-link:hover {
+      background-color: #334155;
+      color: white;
+    }
+    .nav-link.active {
+      background-color: #00CFCF;
+      color: #0f172a;
+      font-weight: 500;
+    }
+    .nav-link i {
+      width: 1.4rem;
+      text-align: center;
+    }
 
-        /* Dropdown toggle */
-        .dropdown-toggle {
-            cursor: pointer;
-            user-select: none;
-        }
-        .dropdown-toggle i.fa-chevron-down {
-            transition: transform 0.2s ease;
-        }
-        .dropdown-toggle.open i.fa-chevron-down {
-            transform: rotate(180deg);
-        }
-        .dropdown-menu {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease;
-        }
-        .dropdown-menu.open {
-            max-height: 500px; /* enough for all items */
-        }
-        .dropdown-menu a {
-            padding-left: 2.5rem;
-        }
+    /* dropdown toggle */
+    .dropdown-toggle {
+      cursor: pointer;
+      user-select: none;
+    }
+    .dropdown-toggle .fa-chevron-down {
+      transition: transform 0.25s ease;
+    }
+    .dropdown-toggle.open .fa-chevron-down {
+      transform: rotate(180deg);
+    }
+    .dropdown-menu {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    .dropdown-menu.open {
+      max-height: 400px;
+    }
+    .dropdown-menu a {
+      padding-left: 2.5rem;
+    }
 
-        /* Protected user badge in sidebar */
-        .protected-badge {
-            background-color: #ef4444;
-            color: white;
-            font-size: 0.6rem;
-            padding: 1px 6px;
-            border-radius: 10px;
-            margin-left: 4px;
-        }
-    </style>
+    .protected-badge {
+      background: #ef4444;
+      color: #fff;
+      font-size: 0.55rem;
+      padding: 1px 8px;
+      border-radius: 30px;
+      margin-left: 6px;
+    }
+
+    /* card style */
+    .stat-card {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 8px 20px -6px rgba(0,0,0,0.05);
+      padding: 1.2rem 1rem;
+      transition: 0.15s;
+    }
+    .stat-card:hover {
+      box-shadow: 0 12px 28px -10px rgba(0,0,0,0.08);
+    }
+
+    /* footer */
+    .footer-brand {
+      background: #1E293B;
+      color: #94a3b8;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-[#f1f5f9] font-sans antialiased">
 
 <div class="flex min-h-screen">
-    <!-- ========== SIDEBAR (dark, narrower) ========== -->
-    <div class="w-56 bg-[#1E293B] shadow-lg rounded-r-2xl flex flex-col">
-        <!-- Brand -->
-        <div class="px-4 py-5">
-            <h2 class="text-xl font-bold text-white">🧾 TOMFRIMP MOBICOM</h2>
-            <p class="text-xs text-gray-400 mt-1">OX SMART INVENTORY & POS SYSTEM</p>
-        </div>
 
-        <!-- User Info -->
-        {% if current_user %}
-        <div class="mx-3 mb-4 p-2 bg-[#273449] rounded-xl">
-            <div class="flex items-center gap-2 text-white text-sm">
-                <i class="fas fa-user-circle text-lg"></i>
-                <span class="font-semibold truncate">{{ current_user.username }}</span>
-                {% if current_user.username.lower() == 'oxbee' %}
-                <span class="protected-badge">🔒 Admin</span>
-                {% endif %}
-            </div>
-            <div class="text-xs text-[#00CFCF] mt-1">Role: {{ current_user.role }}</div>
-        </div>
+  <!-- ===== SIDEBAR (Vendrex style) ===== -->
+  <div class="w-60 bg-[#1E293B] shadow-2xl rounded-r-3xl flex flex-col shrink-0">
+
+    <!-- Brand -->
+    <div class="px-5 pt-6 pb-3">
+      <h2 class="text-2xl font-extrabold tracking-tight text-white">🧾 Vendrex</h2>
+      <p class="text-[0.65rem] uppercase tracking-wider text-gray-400 mt-0.5">POS · Inventory</p>
+    </div>
+
+    <!-- user pill -->
+    {% if current_user %}
+    <div class="mx-3 mb-4 p-2.5 bg-[#273449] rounded-2xl">
+      <div class="flex items-center gap-2 text-white text-sm">
+        <i class="fas fa-user-circle text-xl"></i>
+        <span class="font-semibold truncate">{{ current_user.username }}</span>
+        {% if current_user.username.lower() == 'oxbee' %}
+        <span class="protected-badge">Admin</span>
         {% endif %}
-
-        <!-- Navigation -->
-        <nav class="flex-1 px-2 space-y-1 overflow-y-auto">
-
-            <!-- DASHBOARD -->
-            <a href="/" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                <i class="fas fa-tachometer-alt w-5"></i> Dashboard
-            </a>
-
-            <!-- SALES (Accessories) -->
-            <a href="/sales" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                <i class="fas fa-cash-register w-5"></i> Sales (Accessories)
-            </a>
-
-            <!-- PRODUCTS (Accessories) -->
-            <a href="/products" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                <i class="fas fa-boxes w-5"></i> Products (Accessories)
-            </a>
-
-            <!-- TODAY'S SALES (Accessories) -->
-            <a href="/today-sales" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                <i class="fas fa-chart-line w-5"></i> Today's Sales (Accessories)
-            </a>
-
-            <!-- ANALYTICS -->
-            <a href="/analytics" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                <i class="fas fa-chart-pie w-5"></i> Analytics
-            </a>
-
-            <!-- ARCHIVE -->
-            <a href="/archive" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                <i class="fas fa-archive w-5"></i> Archive
-            </a>
-
-            <!-- ===== SCREENS DROPDOWN (Public) ===== -->
-            <div class="mt-2">
-                <div class="dropdown-toggle flex items-center justify-between px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm" onclick="toggleDropdown(this)">
-                    <span class="flex items-center gap-3">
-                        <i class="fas fa-mobile-alt w-5"></i> Screens
-                    </span>
-                    <i class="fas fa-chevron-down text-xs"></i>
-                </div>
-                <div class="dropdown-menu space-y-1 pl-2">
-                    <a href="/sales/screens" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                        <i class="fas fa-cash-register w-5"></i> Sales (Screens)
-                    </a>
-                    <a href="/products/screens" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                        <i class="fas fa-boxes w-5"></i> Products (Screens)
-                    </a>
-                    <a href="/today-sales/screens" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                        <i class="fas fa-chart-line w-5"></i> Today's Sales (Screens)
-                    </a>
-                </div>
-            </div>
-
-            <!-- ===== ADMIN-ONLY LINKS ===== -->
-            {% if current_user and current_user.role == 'admin' %}
-            <div class="border-t border-gray-700 my-2"></div>
-            <div class="text-xs text-gray-500 uppercase px-3 py-1">Admin</div>
-
-            <!-- USER LOGS (Only oxbee can see this) -->
-            {% if current_user.username.lower() == 'oxbee' %}
-            <a href="/logs" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                <i class="fas fa-history w-5"></i> User Logs
-                <span class="text-xs text-red-400 ml-auto">🔒</span>
-            </a>
-            {% endif %}
-
-            <!-- Purchases (Accessories) -->
-            <a href="/purchases" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                <i class="fas fa-shopping-cart w-5"></i> Purchases (Accessories)
-            </a>
-
-            <!-- Purchases (Screens) -->
-            <a href="/purchases/screens" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                <i class="fas fa-shopping-cart w-5"></i> Purchases (Screens)
-            </a>
-
-            <!-- Import Data (opens in new tab) -->
-            <a href="/inventory/import" target="_blank" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                <i class="fas fa-file-import w-5"></i> Import Data
-            </a>
-
-            <!-- Users Management -->
-            <a href="/admin/users" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:bg-[#334155] transition text-sm">
-                <i class="fas fa-users-cog w-5"></i> Users
-            </a>
-            {% endif %}
-
-            <!-- ===== PENDING BADGE & SYNC / CLEAR BUTTONS (stacked vertically) ===== -->
-            {% if current_user %}
-            <div class="mt-4 flex flex-col gap-2 px-3 py-1">
-                <!-- First row: badge + Sync button -->
-                <div class="flex items-center gap-2">
-                    <span id="pending-badge" class="text-xs text-yellow-300 bg-gray-700 px-2 py-0.5 rounded-full" style="display:none;"></span>
-                    <button onclick="syncPendingSales()" class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-md transition">
-                        <i class="fas fa-cloud-upload-alt mr-1"></i> Sync Offline
-                    </button>
-                </div>
-                <!-- Second row: Clear Offline Data button -->
-                <button onclick="clearOfflineData()" class="text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-md transition">
-                    <i class="fas fa-trash mr-1"></i> Clear Offline Data
-                </button>
-            </div>
-            {% endif %}
-
-            <!-- ===== LOGOUT BUTTON ===== -->
-            {% if current_user %}
-            <div class="pt-4 pb-2">
-                <button onclick="logout()" class="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2 rounded-lg transition flex items-center justify-center gap-2 text-sm">
-                    <i class="fas fa-sign-out-alt"></i> Logout
-                </button>
-            </div>
-            {% endif %}
-
-        </nav>
-        <!-- end of nav -->
-
+      </div>
+      <div class="text-[0.7rem] text-[#00CFCF] mt-0.5">Role: {{ current_user.role }}</div>
     </div>
-    <!-- end of sidebar -->
+    {% endif %}
 
-    <!-- ========== MAIN CONTENT AREA ========== -->
-    <div class="flex-1 flex flex-col">
-        <!-- Dynamic content -->
-        <div class="flex-1 p-6 overflow-y-auto">
-            {% block content %}{% endblock %}
+    <!-- navigation -->
+    <nav class="flex-1 px-3 pb-4 space-y-1 overflow-y-auto">
+
+      <!-- Dashboard -->
+      <a href="/" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-tachometer-alt"></i> Dashboard
+      </a>
+
+      <!-- ===== GENERAL CATEGORY (main) ===== -->
+      <div class="text-[0.6rem] font-bold uppercase tracking-wider text-gray-500 pt-2 pb-1 px-3">General Category</div>
+
+      <a href="/sales" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-cash-register"></i> Sales
+      </a>
+      <a href="/products" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-boxes"></i> Products
+      </a>
+      <a href="/today-sales" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-chart-line"></i> Today's Sales
+      </a>
+      <a href="/purchases" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-shopping-cart"></i> Purchases
+      </a>
+
+      <!-- divider -->
+      <div class="border-t border-gray-700/50 my-3"></div>
+
+      <!-- ===== WINE CATEGORY (screens) ===== -->
+      <div class="text-[0.6rem] font-bold uppercase tracking-wider text-gray-500 pb-1 px-3">Wine Category</div>
+
+      <a href="/sales/screens" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-wine-glass-alt"></i> Sales (Wine)
+      </a>
+      <a href="/products/screens" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-wine-bottle"></i> Products (Wine)
+      </a>
+      <a href="/today-sales/screens" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-calendar-day"></i> Today's Sales (Wine)
+      </a>
+      <a href="/purchases/screens" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-truck"></i> Purchases (Wine)
+      </a>
+
+      <!-- divider -->
+      <div class="border-t border-gray-700/50 my-3"></div>
+
+      <!-- other common -->
+      <a href="/analytics" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-chart-pie"></i> Analytics
+      </a>
+      <a href="/archive" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-archive"></i> Archive
+      </a>
+
+      <!-- admin only -->
+      {% if current_user and current_user.role == 'admin' %}
+      <div class="border-t border-gray-700/50 my-2"></div>
+      <div class="text-[0.55rem] uppercase text-gray-500 px-3 pt-1">Admin</div>
+
+      {% if current_user.username.lower() == 'oxbee' %}
+      <a href="/logs" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-history"></i> User Logs <span class="text-red-400 text-xs ml-auto">🔒</span>
+      </a>
+      {% endif %}
+
+      <a href="/inventory/import" target="_blank" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-file-import"></i> Import Data
+      </a>
+      <a href="/admin/users" class="nav-link flex items-center gap-3 px-3 py-2.5 text-gray-300 hover:text-white text-sm">
+        <i class="fas fa-users-cog"></i> Users
+      </a>
+      {% endif %}
+
+      <!-- offline sync group -->
+      {% if current_user %}
+      <div class="mt-6 flex flex-col gap-2 px-1">
+        <div class="flex items-center gap-2">
+          <span id="pending-badge" class="text-[0.6rem] bg-yellow-300/20 text-yellow-200 px-2 py-0.5 rounded-full" style="display:none;"></span>
+          <button onclick="syncPendingSales()" class="text-[0.7rem] bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl transition">
+            <i class="fas fa-cloud-upload-alt mr-1"></i> Sync
+          </button>
+        </div>
+        <button onclick="clearOfflineData()" class="text-[0.7rem] bg-red-600/80 hover:bg-red-700 text-white px-3 py-1.5 rounded-xl transition">
+          <i class="fas fa-trash mr-1"></i> Clear offline
+        </button>
+      </div>
+      {% endif %}
+
+      <!-- logout -->
+      {% if current_user %}
+      <div class="pt-6 pb-1">
+        <button onclick="logout()" class="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold py-2.5 rounded-xl transition flex items-center justify-center gap-2 text-sm">
+          <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
+      </div>
+      {% endif %}
+
+    </nav>
+  </div>
+
+  <!-- ===== MAIN PANEL ===== -->
+  <div class="flex-1 flex flex-col">
+
+    <!-- content -->
+    <div class="flex-1 p-5 md:p-7 overflow-y-auto">
+      {% block content %}
+      <!-- default dashboard preview (Vendrex style) -->
+      <div class="space-y-6">
+
+        <!-- top stats -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="stat-card"><div class="text-gray-500 text-xs uppercase">Today</div><div class="text-2xl font-bold">₵ 1,240</div></div>
+          <div class="stat-card"><div class="text-gray-500 text-xs uppercase">This week</div><div class="text-2xl font-bold">₵ 8,450</div></div>
+          <div class="stat-card"><div class="text-gray-500 text-xs uppercase">Month</div><div class="text-2xl font-bold">₵ 32,100</div></div>
+          <div class="stat-card"><div class="text-gray-500 text-xs uppercase">Items sold</div><div class="text-2xl font-bold">187</div></div>
         </div>
 
-        <!-- Footer -->
-        <footer class="bg-[#1E293B] text-gray-300 text-center py-3 text-xs">
-            TOMFRIMP MOBICOM SOLUTIONS  | HOME OF COMPUTER, PHONES, AND ACCESSORIES<br>
-            Developed by HUMMNINGBIRD DIGITAL SOLUTIONS © 2026 - All Rights Reserved
-            <span class="block mt-1">
-                <a href="/offline" class="text-gray-400 hover:text-white underline">📶 Offline</a>
-            </span>
-        </footer>
+        <!-- sales overview (mock) -->
+        <div class="bg-white rounded-3xl shadow-sm p-6">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-semibold text-gray-700">Sales overview, per month</h3>
+            <span class="text-xs text-gray-400"><i class="far fa-calendar-alt mr-1"></i>2026</span>
+          </div>
+          <div class="h-48 flex items-end gap-3">
+            <div class="flex-1 bg-teal-400/80 h-[30%] rounded-t-lg"></div>
+            <div class="flex-1 bg-teal-400 h-[55%] rounded-t-lg"></div>
+            <div class="flex-1 bg-teal-400/70 h-[70%] rounded-t-lg"></div>
+            <div class="flex-1 bg-teal-400 h-[90%] rounded-t-lg"></div>
+            <div class="flex-1 bg-teal-400/60 h-[45%] rounded-t-lg"></div>
+            <div class="flex-1 bg-teal-400 h-[80%] rounded-t-lg"></div>
+            <div class="flex-1 bg-teal-400/50 h-[25%] rounded-t-lg"></div>
+            <div class="flex-1 bg-teal-400 h-[65%] rounded-t-lg"></div>
+          </div>
+          <div class="flex justify-between text-xs text-gray-400 mt-2">
+            <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Aug</span><span>Sep</span>
+          </div>
+        </div>
+
+        <!-- Top Category Sales + Inventory badges -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div class="bg-white rounded-3xl shadow-sm p-5">
+            <h4 class="font-semibold text-gray-700 mb-3">Top Category Sales</h4>
+            <div class="h-32 flex items-end gap-3">
+              <div class="flex-1 bg-indigo-300 h-[40%] rounded-t-lg"></div>
+              <div class="flex-1 bg-indigo-400 h-[70%] rounded-t-lg"></div>
+              <div class="flex-1 bg-indigo-300 h-[55%] rounded-t-lg"></div>
+              <div class="flex-1 bg-indigo-400 h-[85%] rounded-t-lg"></div>
+              <div class="flex-1 bg-indigo-300 h-[30%] rounded-t-lg"></div>
+            </div>
+            <div class="flex justify-between text-xs text-gray-400 mt-1">
+              <span>Aun</span><span>Sep</span><span>Web</span><span>Thu</span><span>Nov</span>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-3xl shadow-sm p-5">
+            <h4 class="font-semibold text-gray-700 mb-3">Inventory</h4>
+            <div class="flex flex-wrap gap-2">
+              <span class="bg-red-100 text-red-700 px-4 py-1.5 rounded-full text-sm font-medium">⚠️ Low Stock (12)</span>
+              <span class="bg-red-200 text-red-800 px-4 py-1.5 rounded-full text-sm font-medium">🚫 Out of Stock (3)</span>
+              <span class="bg-amber-100 text-amber-700 px-4 py-1.5 rounded-full text-sm font-medium">📦 Out of Stock (3)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- recent transactions -->
+        <div class="bg-white rounded-3xl shadow-sm p-5">
+          <h4 class="font-semibold text-gray-700 mb-3">Recent Transactions</h4>
+          <ul class="divide-y divide-gray-100 text-sm">
+            <li class="py-2 flex justify-between"><span>Payment Connect</span><span class="text-gray-400">1 year ago</span></li>
+            <li class="py-2 flex justify-between"><span>Item 1</span><span class="text-gray-400">1 year ago</span></li>
+            <li class="py-2 flex justify-between"><span>I:oducts</span><span class="text-gray-400">1 year ago</span></li>
+            <li class="py-2 flex justify-between"><span>Command stand</span><span class="text-gray-400">1 year ago</span></li>
+          </ul>
+        </div>
+
+      </div>
+      {% endblock %}
     </div>
+
+    <!-- footer -->
+    <footer class="footer-brand text-center py-3 text-xs border-t border-gray-700/20">
+      TOMFRIMP MOBICOM SOLUTIONS · HOME OF COMPUTER, PHONES &amp; ACCESSORIES<br />
+      <span class="opacity-70">Developed by HUMMINGBIRD DIGITAL SOLUTIONS © 2026 - All Rights Reserved</span>
+      <span class="block mt-0.5"><a href="/offline" class="text-gray-400 hover:text-white underline">📶 Offline</a></span>
+    </footer>
+  </div>
 </div>
 
-<!-- ===== OFFLINE HELPERS ===== -->
+<!-- scripts -->
 <script src="{{ url_for('static', filename='js/offline.js') }}"></script>
-
 <script>
-    // Dropdown toggle function
-    function toggleDropdown(element) {
-        const parent = element.closest('.dropdown-toggle');
-        const menu = parent.nextElementSibling;
-        parent.classList.toggle('open');
-        menu.classList.toggle('open');
-    }
+  // toggle dropdown
+  function toggleDropdown(el) {
+    const parent = el.closest('.dropdown-toggle');
+    const menu = parent.nextElementSibling;
+    parent.classList.toggle('open');
+    menu.classList.toggle('open');
+  }
 
-    // Helper: refresh the current page's data
-    function refreshPageData() {
-        window.dispatchEvent(new CustomEvent('refresh-request'));
-        if (window.refreshCurrentPage && typeof window.refreshCurrentPage === 'function') {
-            window.refreshCurrentPage();
-        } else {
-            location.reload();
-        }
-    }
+  // logout
+  async function logout() {
+    try {
+      const res = await fetch('/api/auth/logout', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) window.location.href = '/login';
+      else alert('Logout failed');
+    } catch(e) { alert('Logout error'); }
+  }
 
-    // Logout function with logging
-    async function logout() {
-        try {
-            const res = await fetch('/api/auth/logout', { method: 'POST' });
-            const data = await res.json();
-            if (data.success) {
-                window.location.href = '/login';
-            } else {
-                alert('Logout failed');
-            }
-        } catch (error) {
-            alert('Logout failed: ' + error.message);
-        }
-    }
-
-    // Clear all offline storage (pending sales, imports, badge counts)
-    function clearOfflineData() {
-        if (!confirm('⚠️ This will clear all pending offline sales and import data. Proceed?')) return;
-        
-        // 1. Remove all known localStorage & sessionStorage keys
-        const keysToRemove = [
-            'pendingCount', 
-            'pendingSales', 
-            'offlineQueue', 
-            'importPending',
-            'pendingImports',
-            'offlineSales',
-            'pendingJobId',
-            'pendingJobStatus',
-            'pendingPurchases'
-        ];
-        keysToRemove.forEach(key => {
-            localStorage.removeItem(key);
-            sessionStorage.removeItem(key);
-        });
-        
-        // 2. Delete IndexedDB databases (common names used in offline.js)
-        const dbNames = [
-            'OfflineSalesDB', 
-            'SalesDB', 
-            'offlineDB', 
-            'PendingDB',
-            'ImportQueueDB'
-        ];
-        dbNames.forEach(name => {
-            try {
-                const request = indexedDB.deleteDatabase(name);
-                request.onerror = function() { 
-                    console.warn('Could not delete DB:', name); 
-                };
-                request.onsuccess = function() { 
-                    console.log('✅ Deleted DB:', name); 
-                };
-            } catch(e) {
-                console.warn('Error deleting DB:', name, e);
-            }
-        });
-        
-        // 3. Hide the pending badge immediately
-        const badge = document.getElementById('pending-badge');
-        if (badge) {
-            badge.style.display = 'none';
-            badge.textContent = '';
-        }
-        
-        // 4. Refresh the page after a short delay
-        setTimeout(() => {
-            location.reload();
-        }, 600);
-    }
-
-    // Sync pending sales (placeholder - actual implementation may vary)
-    async function syncPendingSales() {
-        if (!navigator.onLine) {
-            alert('You are offline. Please connect to the internet to sync.');
-            return;
-        }
-        
-        const badge = document.getElementById('pending-badge');
-        if (badge && badge.style.display !== 'none') {
-            alert('Syncing pending sales... This may take a moment.');
-            // In a real implementation, you would call your sync function here
-            // For now, we'll just refresh the page
-            setTimeout(() => {
-                location.reload();
-            }, 1000);
-        } else {
-            alert('No pending sales to sync.');
-        }
-    }
-
-    // Auto-close dropdown if clicked outside (optional)
-    document.addEventListener('click', function(e) {
-        const dropdown = e.target.closest('.dropdown-toggle');
-        if (!dropdown) {
-            document.querySelectorAll('.dropdown-toggle.open').forEach(el => {
-                el.classList.remove('open');
-                el.nextElementSibling.classList.remove('open');
-            });
-        }
+  // clear offline data
+  function clearOfflineData() {
+    if (!confirm('⚠️ Clear all pending offline data?')) return;
+    ['pendingCount','pendingSales','offlineQueue','importPending','pendingImports','offlineSales','pendingJobId','pendingJobStatus','pendingPurchases']
+      .forEach(k => { localStorage.removeItem(k); sessionStorage.removeItem(k); });
+    ['OfflineSalesDB','SalesDB','offlineDB','PendingDB','ImportQueueDB'].forEach(name => {
+      try { indexedDB.deleteDatabase(name); } catch(e) {}
     });
+    const badge = document.getElementById('pending-badge');
+    if (badge) { badge.style.display = 'none'; badge.textContent = ''; }
+    setTimeout(() => location.reload(), 500);
+  }
 
-    // Display current year in footer dynamically (optional)
-    document.addEventListener('DOMContentLoaded', function() {
-        const footer = document.querySelector('footer');
-        if (footer) {
-            const year = new Date().getFullYear();
-            footer.innerHTML = footer.innerHTML.replace('© 2026', `© ${year}`);
-        }
-    });
+  // sync placeholder
+  function syncPendingSales() {
+    if (!navigator.onLine) return alert('You are offline.');
+    const badge = document.getElementById('pending-badge');
+    if (badge && badge.style.display !== 'none') {
+      alert('Syncing pending sales…');
+      setTimeout(() => location.reload(), 800);
+    } else alert('No pending sales.');
+  }
+
+  // close dropdowns on outside click
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown-toggle')) {
+      document.querySelectorAll('.dropdown-toggle.open').forEach(el => {
+        el.classList.remove('open');
+        el.nextElementSibling?.classList.remove('open');
+      });
+    }
+  });
+
+  // update footer year
+  document.addEventListener('DOMContentLoaded', function() {
+    const yr = new Date().getFullYear();
+    const footer = document.querySelector('footer');
+    if (footer) footer.innerHTML = footer.innerHTML.replace('© 2026', `© ${yr}`);
+  });
 </script>
 </body>
 </html>

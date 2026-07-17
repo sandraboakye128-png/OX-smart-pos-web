@@ -1,95 +1,124 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="p-6">
+<div class="p-4 md:p-6 space-y-6">
+
     <!-- Offline banner -->
-    <div id="offlineBanner" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded hidden">
-        ⚠️ You are offline – showing cached analytics data. Data will refresh when you reconnect.
+    <div id="offlineBanner" class="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-xl hidden">
+        <i class="fas fa-exclamation-triangle mr-2"></i> You are offline – showing cached analytics data. Data will refresh when you reconnect.
     </div>
 
-    <!-- Header & Period Filter -->
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-3xl font-bold text-indigo-600">📊 Analytics Dashboard</h1>
-        <div class="flex gap-2 flex-wrap">
-            <button data-period="daily" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg">Today</button>
-            <button data-period="weekly" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg">This Week</button>
-            <button data-period="monthly" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg">This Month</button>
-            <button data-period="yearly" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg">This Year</button>
-            <button data-period="all" class="period-btn bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg">All Time</button>
+    <!-- ===== HEADER ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-6 border border-gray-100/80">
+        <div class="flex flex-wrap justify-between items-center gap-3">
+            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <i class="fas fa-chart-pie text-teal-500"></i> Analytics Dashboard
+            </h1>
+            <div class="flex flex-wrap gap-2">
+                <button data-period="daily" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">Today</button>
+                <button data-period="weekly" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">This Week</button>
+                <button data-period="monthly" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">This Month</button>
+                <button data-period="yearly" class="period-btn bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">This Year</button>
+                <button data-period="all" class="period-btn bg-purple-500 hover:bg-purple-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">All Time</button>
+            </div>
         </div>
+        <p class="text-gray-500 text-sm mt-1">Comprehensive overview of sales performance and product insights</p>
     </div>
 
-    <!-- Date Range Picker -->
-    <div class="bg-white rounded-xl shadow-md p-4 mb-6">
-        <div class="flex flex-wrap items-end gap-4">
+    <!-- ===== DATE RANGE ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-4 border border-gray-100/80">
+        <div class="flex flex-wrap items-end gap-3">
             <div>
-                <label class="block text-sm font-medium text-gray-700">From Date</label>
-                <input type="date" id="startDate" class="border rounded-lg px-3 py-2">
+                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">From</label>
+                <input type="date" id="startDate" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">To Date</label>
-                <input type="date" id="endDate" class="border rounded-lg px-3 py-2">
+                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">To</label>
+                <input type="date" id="endDate" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
             </div>
-            <button id="applyCustomRange" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg">Apply Range</button>
+            <button id="applyCustomRange" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">
+                <i class="fas fa-filter mr-1"></i> Apply Range
+            </button>
+            <button id="refreshBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition ml-auto">
+                <i class="fas fa-sync mr-1"></i> Refresh
+            </button>
         </div>
     </div>
 
-    <!-- Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-xl shadow-md p-4">
-            <p class="text-gray-500 text-sm">📦 Items Sold</p>
-            <p id="itemsSold" class="text-2xl font-bold text-indigo-600">0</p>
+    <!-- ===== SUMMARY CARDS ===== -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl shadow-sm p-4 border border-gray-100/80 hover:shadow-md transition">
+            <p class="text-gray-400 text-xs uppercase tracking-wider flex items-center gap-1">
+                <i class="fas fa-box text-indigo-400"></i> Items Sold
+            </p>
+            <p id="itemsSold" class="text-2xl font-bold text-indigo-600 mt-1">0</p>
         </div>
-        <div class="bg-white rounded-xl shadow-md p-4">
-            <p class="text-gray-500 text-sm">💰 Revenue</p>
-            <p id="revenue" class="text-2xl font-bold text-green-600">₵0</p>
+        <div class="bg-white rounded-2xl shadow-sm p-4 border border-gray-100/80 hover:shadow-md transition">
+            <p class="text-gray-400 text-xs uppercase tracking-wider flex items-center gap-1">
+                <i class="fas fa-money-bill-wave text-green-400"></i> Revenue
+            </p>
+            <p id="revenue" class="text-2xl font-bold text-green-600 mt-1">₵0</p>
         </div>
-        <div class="bg-white rounded-xl shadow-md p-4">
-            <p class="text-gray-500 text-sm">📈 Profit</p>
-            <p id="profit" class="text-2xl font-bold text-blue-600">₵0</p>
+        <div class="bg-white rounded-2xl shadow-sm p-4 border border-gray-100/80 hover:shadow-md transition">
+            <p class="text-gray-400 text-xs uppercase tracking-wider flex items-center gap-1">
+                <i class="fas fa-chart-line text-blue-400"></i> Profit
+            </p>
+            <p id="profit" class="text-2xl font-bold text-blue-600 mt-1">₵0</p>
         </div>
-        <div class="bg-white rounded-xl shadow-md p-4">
-            <p class="text-gray-500 text-sm">🏷 Discount</p>
-            <p id="discount" class="text-2xl font-bold text-red-600">₵0</p>
+        <div class="bg-white rounded-2xl shadow-sm p-4 border border-gray-100/80 hover:shadow-md transition">
+            <p class="text-gray-400 text-xs uppercase tracking-wider flex items-center gap-1">
+                <i class="fas fa-percent text-red-400"></i> Discount
+            </p>
+            <p id="discount" class="text-2xl font-bold text-red-500 mt-1">₵0</p>
         </div>
     </div>
 
-    <!-- Trend Chart -->
-    <div class="bg-white rounded-xl shadow-md p-4 mb-8">
-        <h2 class="text-xl font-semibold mb-4">📈 Sales & Profit Trend</h2>
-        <canvas id="trendChart" height="100"></canvas>
-        <div id="trendOfflineMsg" class="text-gray-500 text-center mt-2 hidden">Trend data unavailable offline</div>
+    <!-- ===== TREND CHART ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <i class="fas fa-chart-line text-teal-500"></i> Sales &amp; Profit Trend
+        </h2>
+        <div class="relative">
+            <canvas id="trendChart" height="120"></canvas>
+        </div>
+        <div id="trendOfflineMsg" class="text-gray-400 text-center mt-3 hidden">
+            <i class="fas fa-wifi-slash text-2xl block mb-1"></i>
+            <p>Trend data unavailable offline</p>
+        </div>
     </div>
 
-    <!-- Top Products -->
-    <div class="bg-white rounded-xl shadow-md p-4">
-        <h2 class="text-xl font-semibold mb-4">🏆 Top Products</h2>
-        <div id="topProductsList" class="space-y-2 max-h-80 overflow-y-auto">
-            <!-- dynamic list -->
+    <!-- ===== TOP PRODUCTS ===== -->
+    <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
+        <h2 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <i class="fas fa-crown text-amber-400"></i> Top Products
+        </h2>
+        <div id="topProductsList" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+            <div class="text-center text-gray-400 py-6">
+                <i class="fas fa-spinner fa-spin text-2xl block mb-2"></i>
+                <p>Loading top products...</p>
+            </div>
         </div>
+        <p class="text-[0.6rem] text-gray-400 mt-2">* Based on total quantity sold for selected period</p>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // ---------- Offline banner ----------
+    // ===== OFFLINE BANNER =====
     function updateOfflineBanner() {
         const banner = document.getElementById('offlineBanner');
-        if (!navigator.onLine) {
-            banner.classList.remove('hidden');
-        } else {
-            banner.classList.add('hidden');
-        }
+        banner.classList.toggle('hidden', navigator.onLine);
     }
     window.addEventListener('online', updateOfflineBanner);
     window.addEventListener('offline', updateOfflineBanner);
 
-    // ---------- Caching helpers ----------
+    // ===== CACHING HELPERS =====
     function cacheData(key, data) {
         try {
             localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
         } catch(e) {}
     }
+
     function getCachedData(key, maxAgeMinutes = 60) {
         try {
             const raw = localStorage.getItem(key);
@@ -111,18 +140,23 @@
         return key;
     }
 
-    // ---------- Main variables ----------
+    // ===== MAIN VARIABLES =====
     let currentPeriod = 'daily';
     let customStartDate = null;
     let customEndDate = null;
     let trendChart = null;
 
-    // Helper: format currency
+    // ===== HELPERS =====
     function formatMoney(amount) {
         return '₵' + (parseFloat(amount) || 0).toFixed(2);
     }
 
-    // ---------- Load summary ----------
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m] || m);
+    }
+
+    // ===== LOAD SUMMARY =====
     async function loadSummary() {
         updateOfflineBanner();
         let salesData = [];
@@ -135,14 +169,8 @@
                 url = `/api/today_sales?start_date=${customStartDate}&end_date=${customEndDate}`;
             } else if (currentPeriod === 'all') {
                 url = '/api/today_sales?period=all';
-            } else if (currentPeriod === 'weekly') {
-                url = '/api/today_sales?period=weekly';
-            } else if (currentPeriod === 'monthly') {
-                url = '/api/today_sales?period=monthly';
-            } else if (currentPeriod === 'yearly') {
-                url = '/api/today_sales?period=yearly';
             } else {
-                url = '/api/today_sales?period=daily';
+                url = `/api/today_sales?period=${currentPeriod}`;
             }
             const res = await fetch(url);
             if (!res.ok) throw new Error();
@@ -172,19 +200,14 @@
         document.getElementById('profit').innerText = formatMoney(totalProfit);
         document.getElementById('discount').innerText = formatMoney(totalDiscount);
 
-        if (fromCache) {
-            // Optionally add a small note next to the summary cards
-        }
         return salesData;
     }
 
-    // ---------- Load trend (grouped by date) ----------
+    // ===== LOAD TREND =====
     async function loadTrend(salesData) {
         if (!salesData) {
-            // If no salesData passed, try to load from summary or cache
             salesData = await loadSummary();
         }
-        // If salesData is still empty, try cache
         if (!salesData || salesData.length === 0) {
             const cacheKey = getCacheKey('analytics_trend');
             const cached = getCachedData(cacheKey);
@@ -198,7 +221,6 @@
             return;
         }
 
-        // Group by date
         const trendMap = new Map();
         for (const sale of salesData) {
             const date = sale.sale_date.split(' ')[0];
@@ -213,11 +235,10 @@
         }
 
         const sortedDates = Array.from(trendMap.keys()).sort();
-        const labels = sortedDates;
-        const sales = sortedDates.map(d => trendMap.get(d).sales);
-        const profits = sortedDates.map(d => trendMap.get(d).profit);
+        const labels = sortedDates.slice(-30); // Show last 30 days max
+        const sales = labels.map(d => trendMap.get(d).sales);
+        const profits = labels.map(d => trendMap.get(d).profit);
 
-        // Cache trend data separately for offline use
         cacheData(getCacheKey('analytics_trend'), salesData);
 
         if (trendChart) trendChart.destroy();
@@ -233,7 +254,9 @@
                         borderColor: 'rgb(59, 130, 246)',
                         backgroundColor: 'rgba(59, 130, 246, 0.1)',
                         tension: 0.3,
-                        fill: true
+                        fill: true,
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgb(59, 130, 246)'
                     },
                     {
                         label: 'Profit (₵)',
@@ -241,7 +264,9 @@
                         borderColor: 'rgb(34, 197, 94)',
                         backgroundColor: 'rgba(34, 197, 94, 0.1)',
                         tension: 0.3,
-                        fill: true
+                        fill: true,
+                        pointRadius: 3,
+                        pointBackgroundColor: 'rgb(34, 197, 94)'
                     }
                 ]
             },
@@ -249,11 +274,31 @@
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            boxWidth: 12,
+                            font: { size: 11 }
+                        }
+                    },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
                                 return `${context.dataset.label}: ₵${context.raw.toFixed(2)}`;
                             }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    },
+                    y: {
+                        grid: { color: 'rgba(0,0,0,0.05)' },
+                        ticks: {
+                            font: { size: 10 },
+                            callback: function(value) { return '₵' + value; }
                         }
                     }
                 }
@@ -262,7 +307,7 @@
         document.getElementById('trendOfflineMsg').classList.add('hidden');
     }
 
-    // ---------- Load top products ----------
+    // ===== LOAD TOP PRODUCTS =====
     async function loadTopProducts() {
         updateOfflineBanner();
         let products = [];
@@ -273,16 +318,10 @@
             let url = '/api/dashboard/top_products?limit=10';
             if (customStartDate && customEndDate) {
                 url = `/api/dashboard/top_products?start_date=${customStartDate}&end_date=${customEndDate}&limit=10`;
-            } else if (currentPeriod === 'weekly') {
-                url = '/api/dashboard/top_products?period=weekly&limit=10';
-            } else if (currentPeriod === 'monthly') {
-                url = '/api/dashboard/top_products?period=monthly&limit=10';
-            } else if (currentPeriod === 'yearly') {
-                url = '/api/dashboard/top_products?period=yearly&limit=10';
             } else if (currentPeriod === 'all') {
                 url = '/api/dashboard/top_products?period=all&limit=10';
             } else {
-                url = '/api/dashboard/top_products?limit=10';
+                url = `/api/dashboard/top_products?period=${currentPeriod}&limit=10`;
             }
             const res = await fetch(url);
             if (!res.ok) throw new Error();
@@ -296,23 +335,35 @@
         }
 
         const container = document.getElementById('topProductsList');
-        if (products.length === 0) {
-            container.innerHTML = '<div class="text-gray-400 text-center py-4">No product data available.</div>';
+        if (!products || products.length === 0) {
+            container.innerHTML = `
+                <div class="text-center text-gray-400 py-6">
+                    <i class="fas fa-box-open text-3xl block mb-2"></i>
+                    <p>No product data available for this period.</p>
+                </div>
+            `;
             return;
         }
 
         container.innerHTML = '';
         products.forEach((p, index) => {
             const div = document.createElement('div');
-            div.className = 'border-b pb-2 flex justify-between items-center';
+            div.className = 'border-b border-gray-100 pb-2 flex justify-between items-center hover:bg-gray-50/50 p-2 rounded-xl transition';
+            
             let medal = '';
-            if (index === 0) medal = '🥇 ';
-            else if (index === 1) medal = '🥈 ';
-            else if (index === 2) medal = '🥉 ';
+            let medalClass = '';
+            if (index === 0) { medal = '🥇'; medalClass = 'text-amber-500'; }
+            else if (index === 1) { medal = '🥈'; medalClass = 'text-gray-400'; }
+            else if (index === 2) { medal = '🥉'; medalClass = 'text-amber-600'; }
+            else { medal = `${index + 1}.`; medalClass = 'text-gray-400'; }
+            
             div.innerHTML = `
-                <div>
-                    <span class="font-medium">${medal}${p.name}</span>
-                    <span class="text-sm text-gray-500"> (${p.brand || 'No brand'} | ${p.category || 'No category'})</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium ${medalClass} w-6">${medal}</span>
+                    <div>
+                        <span class="font-medium text-gray-800">${escapeHtml(p.name)}</span>
+                        <span class="text-sm text-gray-500"> (${escapeHtml(p.brand || 'No brand')} | ${escapeHtml(p.category || 'No category')})</span>
+                    </div>
                 </div>
                 <div>
                     <span class="font-bold text-indigo-600">${p.qty} sold</span>
@@ -323,21 +374,27 @@
 
         if (fromCache) {
             const note = document.createElement('div');
-            note.className = 'text-xs text-gray-400 mt-2 text-center';
-            note.innerText = '⚠️ Data may be outdated (offline)';
+            note.className = 'text-xs text-yellow-500 mt-2 text-center';
+            note.innerHTML = '<i class="fas fa-database mr-1"></i> Data may be outdated (offline mode)';
             container.appendChild(note);
         }
     }
 
-    // ---------- Reload all ----------
+    // ===== RELOAD ALL =====
     async function reloadAnalytics() {
         console.log("Loading analytics for period:", currentPeriod, customStartDate, customEndDate);
+        document.getElementById('topProductsList').innerHTML = `
+            <div class="text-center text-gray-400 py-6">
+                <i class="fas fa-spinner fa-spin text-2xl block mb-2"></i>
+                <p>Loading top products...</p>
+            </div>
+        `;
         const salesData = await loadSummary();
         await loadTrend(salesData);
         await loadTopProducts();
     }
 
-    // ---------- Event listeners ----------
+    // ===== EVENT LISTENERS =====
     document.querySelectorAll('.period-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             currentPeriod = btn.getAttribute('data-period');
@@ -362,12 +419,16 @@
         }
     });
 
-    // ---------- Auto-refresh on reconnect ----------
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+        reloadAnalytics();
+    });
+
+    // ===== AUTO-REFRESH ON RECONNECT =====
     window.addEventListener('online', function() {
         reloadAnalytics();
     });
 
-    // ---------- Initial load ----------
+    // ===== INITIAL LOAD =====
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('startDate').value = today;
     document.getElementById('endDate').value = today;
