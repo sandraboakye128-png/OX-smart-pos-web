@@ -19,7 +19,7 @@ def get_today_sales(selected_date=None, start_datetime=None, end_datetime=None):
                 AND NOT EXISTS (
                     SELECT 1 FROM deleted_products dp 
                     WHERE dp.product_id = p.id 
-                    AND dp.action = 'PERMANENTLY DELETED' 
+                    AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
                     AND dp.source = 'product'
                 )
             )
@@ -38,7 +38,7 @@ def get_today_sales(selected_date=None, start_datetime=None, end_datetime=None):
                 AND NOT EXISTS (
                     SELECT 1 FROM deleted_products dp 
                     WHERE dp.product_id = p.id 
-                    AND dp.action = 'PERMANENTLY DELETED' 
+                    AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
                     AND dp.source = 'product'
                 )
             )
@@ -56,7 +56,7 @@ def get_today_sales(selected_date=None, start_datetime=None, end_datetime=None):
                 AND NOT EXISTS (
                     SELECT 1 FROM deleted_products dp 
                     WHERE dp.product_id = p.id 
-                    AND dp.action = 'PERMANENTLY DELETED' 
+                    AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
                     AND dp.source = 'product'
                 )
             )
@@ -85,7 +85,7 @@ def get_today_profit(selected_date=None, start_datetime=None, end_datetime=None)
                 AND NOT EXISTS (
                     SELECT 1 FROM deleted_products dp 
                     WHERE dp.product_id = p.id 
-                    AND dp.action = 'PERMANENTLY DELETED' 
+                    AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
                     AND dp.source = 'product'
                 )
             )
@@ -104,7 +104,7 @@ def get_today_profit(selected_date=None, start_datetime=None, end_datetime=None)
                 AND NOT EXISTS (
                     SELECT 1 FROM deleted_products dp 
                     WHERE dp.product_id = p.id 
-                    AND dp.action = 'PERMANENTLY DELETED' 
+                    AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
                     AND dp.source = 'product'
                 )
             )
@@ -122,7 +122,7 @@ def get_today_profit(selected_date=None, start_datetime=None, end_datetime=None)
                 AND NOT EXISTS (
                     SELECT 1 FROM deleted_products dp 
                     WHERE dp.product_id = p.id 
-                    AND dp.action = 'PERMANENTLY DELETED' 
+                    AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
                     AND dp.source = 'product'
                 )
             )
@@ -133,44 +133,104 @@ def get_today_profit(selected_date=None, start_datetime=None, end_datetime=None)
     return profit
 
 
-# ----------------- TOTAL PRODUCTS -----------------
+# ----------------- TOTAL PRODUCTS (ALL unique products, including stock 0 and without batches) -----------------
 def get_total_products():
+    """
+    Count ALL unique products (grouped by name + brand) 
+    including those with stock = 0 and those without any batches.
+    Excludes permanently deleted products.
+    FIXED: Uses COUNT(*) instead of COUNT(DISTINCT CONCAT) to get accurate product count.
+    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT COUNT(*) 
+        SELECT COUNT(*) as total_products
         FROM products p
         WHERE NOT EXISTS (
             SELECT 1 FROM deleted_products dp 
             WHERE dp.product_id = p.id 
-            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
             AND dp.source = 'product'
         )
     """)
-    total = cursor.fetchone()[0]
+    total = cursor.fetchone()[0] or 0
     conn.close()
     return total
 
 
-# ----------------- LOW STOCK PRODUCTS -----------------
-def get_low_stock_products(threshold=10):
+# ----------------- TOTAL BATCHES (all active batches, regardless of stock) -----------------
+def get_total_batches():
+    """
+    Count all purchase batches that belong to non‑deleted products.
+    This includes both Accessories and Screens.
+    """
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT p.name, p.brand, p.category, p.stock
+        SELECT COUNT(*)
+        FROM purchase_batches pb
+        JOIN products p ON p.id = pb.product_id
+        WHERE NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = p.id 
+            AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
+            AND dp.source = 'product'
+        )
+    """)
+    count = cursor.fetchone()[0] or 0
+    conn.close()
+    return count
+
+
+# ----------------- LOW STOCK PRODUCTS (including zero stock, products without batches, AND ALL batch IDs) -----------------
+def get_low_stock_products(threshold=10):
+    """
+    Return products with stock <= threshold (including 0).
+    FIXED: Now includes ALL products with low stock, even those without batches.
+    NEW: Includes ALL batch IDs for each product (including depleted batches) so you can trace them.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT p.name, p.brand, p.category, p.stock,
+               COALESCE(
+                   (SELECT array_agg(pb.id ORDER BY pb.date ASC)
+                    FROM purchase_batches pb
+                    WHERE pb.product_id = p.id),
+                   '{}'::integer[]
+               ) as all_batch_ids,
+               COALESCE(
+                   (SELECT array_agg(pb.id ORDER BY pb.date ASC)
+                    FROM purchase_batches pb
+                    WHERE pb.product_id = p.id AND pb.remaining_quantity > 0),
+                   '{}'::integer[]
+               ) as active_batch_ids
         FROM products p
         WHERE p.stock <= %s
+        AND p.stock >= 0
         AND NOT EXISTS (
             SELECT 1 FROM deleted_products dp 
             WHERE dp.product_id = p.id 
-            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
             AND dp.source = 'product'
         )
         ORDER BY p.stock ASC
+        LIMIT 1000
     """, (threshold,))
     products = cursor.fetchall()
     conn.close()
-    return products
+    
+    # Return as list of tuples with batch_ids as the 5th element
+    # Use active_batch_ids (remaining_quantity > 0) as the primary batch list
+    # If no active batches, return all_batch_ids to show history
+    result = []
+    for p in products:
+        name, brand, category, stock, all_batch_ids, active_batch_ids = p
+        # Use active batches if available, otherwise show all batches
+        batch_ids = active_batch_ids if active_batch_ids else all_batch_ids
+        result.append((name, brand, category, stock, batch_ids))
+    
+    return result
 
 
 # ----------------- WEEKLY SALES (NET) -----------------
@@ -189,7 +249,7 @@ def get_weekly_sales():
             AND NOT EXISTS (
                 SELECT 1 FROM deleted_products dp 
                 WHERE dp.product_id = p.id 
-                AND dp.action = 'PERMANENTLY DELETED' 
+                AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
                 AND dp.source = 'product'
             )
         )
@@ -215,7 +275,7 @@ def get_top_products(selected_date=None, limit=5, start_datetime=None, end_datet
         AND NOT EXISTS (
             SELECT 1 FROM deleted_products dp 
             WHERE dp.product_id = p.id 
-            AND dp.action = 'PERMANENTLY DELETED' 
+            AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
             AND dp.source = 'product'
         )
     """
@@ -257,7 +317,7 @@ def get_sales_history(selected_date=None, start_datetime=None, end_datetime=None
             AND NOT EXISTS (
                 SELECT 1 FROM deleted_products dp 
                 WHERE dp.product_id = p.id 
-                AND dp.action = 'PERMANENTLY DELETED' 
+                AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
                 AND dp.source = 'product'
             )
         )
@@ -277,3 +337,136 @@ def get_sales_history(selected_date=None, start_datetime=None, end_datetime=None
     rows = cursor.fetchall()
     conn.close()
     return [(r[0], r[1], r[2], r[3]) for r in rows]
+
+
+# ----------------- DASHBOARD SUMMARY (Combines all data for the dashboard) -----------------
+def get_dashboard_summary(start_datetime=None, end_datetime=None):
+    """
+    Get all dashboard summary data in one call.
+    Returns sales, profit, total_products, total_batches, low_stock_count, and low_stock_products.
+    FIXED: Uses COUNT(*) for total_products instead of COUNT(DISTINCT CONCAT)
+    NEW: Includes ALL batch IDs for low stock products (including depleted batches) so you can trace them.
+    """
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # Get sales and profit
+    if start_datetime and end_datetime:
+        cursor.execute("""
+            SELECT 
+                COALESCE(SUM(s.total), 0) as total_sales,
+                COALESCE(SUM(s.profit), 0) as total_profit
+            FROM sales s
+            WHERE s.date BETWEEN %s AND %s
+            AND s.reversed = 0
+            AND EXISTS (
+                SELECT 1 FROM sales_items si
+                JOIN products p ON p.id = si.product_id
+                WHERE si.sale_id = s.id
+                AND NOT EXISTS (
+                    SELECT 1 FROM deleted_products dp 
+                    WHERE dp.product_id = p.id 
+                    AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
+                    AND dp.source = 'product'
+                )
+            )
+        """, (start_datetime, end_datetime))
+    else:
+        cursor.execute("""
+            SELECT 
+                COALESCE(SUM(s.total), 0) as total_sales,
+                COALESCE(SUM(s.profit), 0) as total_profit
+            FROM sales s
+            WHERE s.date::date = CURRENT_DATE
+            AND s.reversed = 0
+            AND EXISTS (
+                SELECT 1 FROM sales_items si
+                JOIN products p ON p.id = si.product_id
+                WHERE si.sale_id = s.id
+                AND NOT EXISTS (
+                    SELECT 1 FROM deleted_products dp 
+                    WHERE dp.product_id = p.id 
+                    AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
+                    AND dp.source = 'product'
+                )
+            )
+        """)
+    
+    sales_data = cursor.fetchone()
+    total_sales = sales_data[0] or 0
+    total_profit = sales_data[1] or 0
+    
+    # Get total products (ALL products, including those without batches)
+    cursor.execute("""
+        SELECT COUNT(*) as total_products
+        FROM products p
+        WHERE NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = p.id 
+            AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
+            AND dp.source = 'product'
+        )
+    """)
+    total_products = cursor.fetchone()[0] or 0
+    
+    # Get total batches
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM purchase_batches pb
+        JOIN products p ON p.id = pb.product_id
+        WHERE NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = p.id 
+            AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
+            AND dp.source = 'product'
+        )
+    """)
+    total_batches = cursor.fetchone()[0] or 0
+    
+    # Get low stock products with ALL batch IDs (including depleted batches)
+    cursor.execute("""
+        SELECT p.name, p.brand, p.category, p.stock,
+               COALESCE(
+                   (SELECT array_agg(pb.id ORDER BY pb.date ASC)
+                    FROM purchase_batches pb
+                    WHERE pb.product_id = p.id),
+                   '{}'::integer[]
+               ) as all_batch_ids,
+               COALESCE(
+                   (SELECT array_agg(pb.id ORDER BY pb.date ASC)
+                    FROM purchase_batches pb
+                    WHERE pb.product_id = p.id AND pb.remaining_quantity > 0),
+                   '{}'::integer[]
+               ) as active_batch_ids
+        FROM products p
+        WHERE p.stock <= 10
+        AND p.stock >= 0
+        AND NOT EXISTS (
+            SELECT 1 FROM deleted_products dp 
+            WHERE dp.product_id = p.id 
+            AND dp.action IN ('PERMANENTLY DELETED', 'PRODUCT DELETED')
+            AND dp.source = 'product'
+        )
+        ORDER BY p.stock ASC
+        LIMIT 1000
+    """)
+    low_stock_rows = cursor.fetchall()
+    
+    conn.close()
+    
+    # Process rows to use active batches if available, otherwise all batches
+    processed_rows = []
+    for row in low_stock_rows:
+        name, brand, category, stock, all_batch_ids, active_batch_ids = row
+        # Use active batches if available, otherwise show all batches
+        batch_ids = active_batch_ids if active_batch_ids else all_batch_ids
+        processed_rows.append((name, brand, category, stock, batch_ids))
+    
+    return {
+        'sales': total_sales,
+        'profit': total_profit,
+        'total_products': total_products,
+        'total_batches': total_batches,
+        'low_stock_count': len(processed_rows),
+        'low_stock_products': processed_rows  # Each row: (name, brand, category, stock, batch_ids)
+    }

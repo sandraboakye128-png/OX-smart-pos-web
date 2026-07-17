@@ -11,12 +11,12 @@
         <form id="signupForm">
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2">👤 Username</label>
-                <input type="text" id="username" name="username" required
+                <input type="text" id="username" name="username" required autocomplete="off"
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
             <div class="mb-4">
                 <label class="block text-gray-700 text-sm font-bold mb-2">🔒 Password</label>
-                <input type="password" id="password" name="password" required
+                <input type="password" id="password" name="password" required autocomplete="new-password"
                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <p class="text-xs text-gray-500 mt-1">Password must be at least 4 characters</p>
             </div>
@@ -48,41 +48,74 @@
 </div>
 
 <script>
-    // Toggle password visibility
+    // ----- CLEAR FORM FIELDS -----
+    function clearFormFields() {
+        document.querySelectorAll('#signupForm input[type="text"], #signupForm input[type="password"]').forEach(input => {
+            input.value = '';
+        });
+        document.getElementById('showPassword').checked = false;
+        document.getElementById('password').type = 'password';
+        document.getElementById('role').value = 'user';
+    }
+
+    // Force clear multiple times to beat browser autofill
+    function forceClear() {
+        clearFormFields();
+        setTimeout(clearFormFields, 50);
+        setTimeout(clearFormFields, 200);
+    }
+
+    // Clear on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        forceClear();
+        checkAdminCount();
+    });
+
+    // Clear also when page is restored from bfcache (back/forward)
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            forceClear();
+            checkAdminCount();
+        }
+    });
+
+    // ----- TOGGLE PASSWORD VISIBILITY -----
     const showPasswordCheckbox = document.getElementById('showPassword');
     const passwordField = document.getElementById('password');
     showPasswordCheckbox.addEventListener('change', () => {
         passwordField.type = showPasswordCheckbox.checked ? 'text' : 'password';
     });
-    
-    // Check if an admin already exists
-    async function checkAdminExists() {
+
+    // ----- CHECK ADMIN COUNT -----
+    async function checkAdminCount() {
         try {
-            const res = await fetch('/api/auth/admin_exists');
+            const res = await fetch('/api/auth/admin_count');
             const data = await res.json();
+            const adminCount = data.admin_count || 0;
             const roleContainer = document.getElementById('roleContainer');
             const roleNote = document.getElementById('roleNote');
             
-            if (data.admin_exists) {
-                // Admin already exists - hide role selection, only user role allowed
+            if (adminCount >= 2) {
                 roleContainer.style.display = 'none';
-                // Set role to user by default
                 document.getElementById('role').value = 'user';
-                console.log('Admin exists - role selection hidden');
+                roleNote.textContent = 'Maximum 2 admins reached. New accounts will be regular users.';
             } else {
-                // No admin exists - show role selection
                 roleContainer.style.display = 'block';
-                roleNote.textContent = 'First user can create Admin account';
-                console.log('No admin exists - role selection shown');
+                if (adminCount === 0) {
+                    roleNote.textContent = 'First user can create an Admin account.';
+                } else if (adminCount === 1) {
+                    roleNote.textContent = 'You can create one more Admin account (2 admins max).';
+                } else {
+                    roleNote.textContent = '';
+                }
             }
         } catch (error) {
-            console.error('Error checking admin existence:', error);
-            // Default to showing role container if API fails
+            console.error('Error checking admin count:', error);
             document.getElementById('roleContainer').style.display = 'block';
         }
     }
-    
-    // Handle signup form submission
+
+    // ----- HANDLE SIGNUP SUBMISSION -----
     const signupForm = document.getElementById('signupForm');
     signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -90,19 +123,15 @@
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value;
         
-        // Validate username
         if (!username) {
             alert('Please enter a username');
             return;
         }
-        
-        // Validate password length
         if (password.length < 4) {
             alert('Password must be at least 4 characters long');
             return;
         }
         
-        // Determine role
         let role = 'user';
         const roleContainer = document.getElementById('roleContainer');
         if (roleContainer.style.display !== 'none') {
@@ -133,8 +162,5 @@
             alert('Network error. Please try again.');
         }
     });
-    
-    // Check admin status when page loads
-    checkAdminExists();
 </script>
 {% endblock %}

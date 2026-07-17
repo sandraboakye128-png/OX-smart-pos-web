@@ -1,19 +1,26 @@
 # gunicorn.conf.py
 import multiprocessing
+import os
 
-# Increase timeout for long-running operations
-timeout = 120  # 2 minutes instead of default 30 seconds
-graceful_timeout = 30
+# --- Timeouts (critical for large imports) ---
+timeout = 600              # 10 minutes – enough for 5000+ rows
+graceful_timeout = 60
 keepalive = 5
 
-# Worker settings
+# --- Workers ---
+# Use sync workers (gevent requires installation; sync works fine with timeout)
+worker_class = 'sync'      # <-- changed from 'gevent'
 workers = multiprocessing.cpu_count() * 2 + 1
-worker_class = 'sync'  # or 'gevent' for async
-worker_connections = 1000
-max_requests = 1000
-max_requests_jitter = 50
+worker_connections = 1000  # only used for gevent, but harmless
 
-# Logging
+# --- Request limits ---
+max_requests = 5000
+max_requests_jitter = 100
+
+# --- Logging ---
 accesslog = '-'
 errorlog = '-'
 loglevel = 'info'
+
+# --- Bind ---
+bind = f"0.0.0.0:{os.environ.get('PORT', 10000)}"

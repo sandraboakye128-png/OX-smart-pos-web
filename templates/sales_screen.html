@@ -4,13 +4,13 @@
 <div class="p-6">
     <!-- Offline banner -->
     <div id="offlineBanner" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded hidden">
-        ⚠️ You are offline – showing cached accessories. Sales will be saved and synced when you reconnect.
+        ⚠️ You are offline – showing cached screens. Sales will be saved and synced when you reconnect.
     </div>
 
-    <!-- No accessories banner -->
+    <!-- No screens banner -->
     <div id="noProductsBanner" class="mb-4 bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded hidden">
-        <strong>⚠️ No accessories found.</strong><br>
-        Please ensure your inventory imports are correctly categorised as <strong>Accessories</strong> (not Screens).
+        <strong>⚠️ No screens found.</strong><br>
+        Please ensure your inventory imports are correctly categorised as <strong>Screens</strong> (not Accessories).
         <br><br>
         <a href="/inventory/import" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded inline-block">
             📥 Go to Import Page
@@ -27,15 +27,15 @@
             <div class="bg-white rounded-xl shadow-md p-4">
                 <div class="flex items-center gap-2 mb-2">
                     <h2 class="text-xl font-bold text-indigo-600">🛒 Sales Terminal</h2>
-                    <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Accessories</span>
+                    <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">Screens</span>
                 </div>
                 
-                <input type="text" id="searchProduct" placeholder="🔍 Search accessory..." 
+                <input type="text" id="searchProduct" placeholder="🔍 Search screen..." 
                        class="w-full border border-gray-300 rounded-lg px-3 py-2 mb-3">
                 
                 <div id="productList" class="max-h-80 overflow-y-auto border rounded-lg p-2 mb-4"></div>
                 
-                <div id="selectedProductInfo" class="text-gray-600 text-sm mb-2">No accessory selected</div>
+                <div id="selectedProductInfo" class="text-gray-600 text-sm mb-2">No screen selected</div>
                 
                 <div class="grid grid-cols-2 gap-3 mb-3">
                     <input type="number" id="quantity" placeholder="Quantity" class="border rounded-lg px-3 py-2">
@@ -146,7 +146,7 @@
 </div>
 
 <script>
-    // ---------- Sales JS (Accessories – excludes Screen) ----------
+    // ---------- Sales JS (Screens only – excludes Accessories) ----------
     let products = [];
     let currentProduct = null;
     let cart = [];
@@ -198,7 +198,7 @@
         } catch(e) { return null; }
     }
 
-    const PRODUCTS_CACHE_KEY = 'sales_products_cache_accessories';
+    const PRODUCTS_CACHE_KEY = 'sales_products_cache_screens';
     const LICENSE_CACHE_KEY = 'sales_license_cache';
 
     // ---------- Clear Offline Data ----------
@@ -206,7 +206,7 @@
         const keys = [
             'pending_sales',
             'offline_sales', 
-            'sales_products_cache_accessories',
+            'sales_products_cache_screens',
             'sales_license_cache',
             PRODUCTS_CACHE_KEY,
             LICENSE_CACHE_KEY
@@ -374,7 +374,7 @@
         return `${minutes.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`;
     }
 
-    // ---------- Load Products (exclude Screen) ----------
+    // ---------- Load Products (Screen only) ----------
     async function loadProducts() {
         updateOfflineBanner();
         const noProductsBanner = document.getElementById('noProductsBanner');
@@ -384,17 +384,19 @@
         let fromCache = false;
 
         try {
-            const res = await fetch('/api/sales/products?exclude_category=Screen');
+            // ✅ Fetch ONLY Screen category
+            const res = await fetch('/api/sales/products?category=Screen');
             if (!res.ok) throw new Error();
             prods = await res.json();
             cacheData(PRODUCTS_CACHE_KEY, prods);
         } catch (err) {
-            console.warn('Offline – using cached accessories');
+            console.warn('Offline – using cached screens');
             fromCache = true;
             const cached = getCachedData(PRODUCTS_CACHE_KEY);
             if (cached) prods = cached;
         }
 
+        // ✅ Group by name+brand for clean display
         const grouped = {};
         prods.forEach(p => {
             const key = `${p.name}|${p.brand}`;
@@ -418,7 +420,7 @@
             noProductsBanner.classList.remove('hidden');
             if (fromCache) {
                 document.getElementById('productList').innerHTML = 
-                    '<div class="text-gray-500 p-2">No cached accessories – connect to refresh</div>';
+                    '<div class="text-gray-500 p-2">No cached screens – connect to refresh</div>';
             }
         } else {
             renderProductList(products);
@@ -429,7 +431,7 @@
     function renderProductList(prods) {
         const container = document.getElementById('productList');
         if (!prods.length) {
-            container.innerHTML = '<div class="text-gray-400 p-2">No accessories available</div>';
+            container.innerHTML = '<div class="text-gray-400 p-2">No screens available</div>';
             return;
         }
         container.innerHTML = '';
@@ -476,7 +478,7 @@
         neededQty = qty;
         let batches = [];
 
-        console.log('🔍 Opening batch selector for:', product.name);
+        console.log('🔍 Opening batch selector for screen:', product.name);
         console.log('📦 Product stock:', product.stock);
         console.log('📦 Product has batches?', product.batches ? product.batches.length : 0);
 

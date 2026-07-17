@@ -4,7 +4,7 @@
 <div class="p-6">
     <!-- Offline banner -->
     <div id="offlineBanner" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded hidden">
-        ⚠️ You are offline – showing cached accessory purchases. New purchases will be saved and synced when you reconnect.
+        ⚠️ You are offline – showing cached screen purchases. New purchases will be saved and synced when you reconnect.
     </div>
 
     <!-- Cache banner (shows when using cached data while online) -->
@@ -16,13 +16,13 @@
     <!-- ADD / EDIT FORM -->
     <div class="bg-white rounded-xl shadow-md p-6 mb-6">
         <div class="flex items-center gap-2 mb-4">
-            <h2 class="text-xl font-bold" id="formTitle">➕ Add Accessory Purchase</h2>
-            <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Accessories</span>
+            <h2 class="text-xl font-bold" id="formTitle">➕ Add Screen Purchase</h2>
+            <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">Screens Only</span>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-3">
             <div>
                 <label class="block text-sm font-medium text-gray-700">Product Name</label>
-                <input type="text" id="name" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2" autocomplete="off">
+                <input type="text" id="name" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2" autocomplete="off" placeholder="Screen name">
                 <div id="nameSuggestions" class="absolute z-10 bg-white border rounded-lg shadow-lg hidden"></div>
             </div>
             <div>
@@ -31,7 +31,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Category</label>
-                <input type="text" id="category" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2" autocomplete="off">
+                <input type="text" id="category" class="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2" autocomplete="off" value="Screen" readonly>
                 <div id="categorySuggestions" class="absolute z-10 bg-white border rounded-lg shadow-lg hidden"></div>
             </div>
             <div>
@@ -52,7 +52,7 @@
             </div>
         </div>
         <div class="mt-4 flex gap-3">
-            <button id="submitBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg">➕ Add Accessory Purchase</button>
+            <button id="submitBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg">➕ Add Screen Purchase</button>
             <button id="cancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-6 py-2 rounded-lg hidden">Cancel Edit</button>
         </div>
     </div>
@@ -60,8 +60,8 @@
     <!-- SEARCH & FILTER BAR -->
     <div class="bg-white rounded-xl shadow-md p-4 mb-6 flex flex-wrap gap-4 items-end">
         <div class="flex-1 min-w-[200px]">
-            <label class="block text-sm font-medium text-gray-700">Search (name/brand/category)</label>
-            <input type="text" id="searchInput" placeholder="🔍 Type to filter..." class="w-full border border-gray-300 rounded-lg px-3 py-2">
+            <label class="block text-sm font-medium text-gray-700">Search (screen name/brand/category)</label>
+            <input type="text" id="searchInput" placeholder="🔍 Type to filter screens..." class="w-full border border-gray-300 rounded-lg px-3 py-2">
         </div>
         <div>
             <label class="block text-sm font-medium text-gray-700">From Date</label>
@@ -93,7 +93,7 @@
 <div id="pendingModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
     <div class="bg-white rounded-xl shadow-xl w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto">
         <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-            <h3 class="text-xl font-bold">⏳ Pending Purchases</h3>
+            <h3 class="text-xl font-bold">⏳ Pending Screen Purchases</h3>
             <button onclick="closePendingModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
         </div>
         <div id="pendingList" class="p-4 space-y-3">
@@ -131,8 +131,8 @@
     let editMode = false;
     let editBatchId = null;
     let isDataFresh = false;
-    const CACHE_KEY = 'cached_purchases_accessories';
-    const CACHE_TIMESTAMP_KEY = 'cached_purchases_accessories_timestamp';
+    const CACHE_KEY = 'cached_purchases_screen';
+    const CACHE_TIMESTAMP_KEY = 'cached_purchases_screen_timestamp';
 
     // ---------- Helper functions ----------
     function escapeHtml(str) {
@@ -247,7 +247,7 @@
             container.innerHTML = `
                 <div class="text-center text-gray-400 py-8">
                     <p class="text-2xl mb-2">📭</p>
-                    <p>No pending purchases.</p>
+                    <p>No pending screen purchases.</p>
                     <p class="text-sm">All purchases have been synced to the server.</p>
                 </div>
             `;
@@ -270,7 +270,7 @@
                                 Selling: ₵${p.data.selling_price.toFixed(2)}
                                 ${p.data.discount ? `| Discount: ₵${p.data.discount.toFixed(2)}` : ''}
                             </p>
-                            <p class="text-sm text-gray-500">Category: ${p.data.category || 'Accessory'}</p>
+                            <p class="text-sm text-gray-500">Category: ${p.data.category || 'Screen'}</p>
                         </div>
                         <div class="flex flex-col gap-1">
                             <button onclick="syncPendingItem(${index})" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded text-sm">
@@ -418,7 +418,6 @@
         if (batchId) {
             console.log('🔍 Batch edit requested for:', batchId);
             
-            // Wait for purchases to load
             setTimeout(function() {
                 const purchase = currentPurchases.find(p => p.batch_id === parseInt(batchId));
                 if (purchase) {
@@ -441,7 +440,7 @@
         }
     }
 
-    // ---------- Load purchases (EXCLUDE screens) ----------
+    // ---------- Load purchases (filtered to screens) ----------
     async function loadPurchases(forceRefresh = false) {
         updateOfflineBanner();
         
@@ -454,7 +453,7 @@
 
         if (navigator.onLine) {
             try {
-                const res = await fetch('/api/purchases?exclude_category=Screen');
+                const res = await fetch('/api/purchases?category=Screen');
                 if (res.ok) {
                     purchases = await res.json();
                     cachePurchases(purchases);
@@ -554,7 +553,7 @@
     function renderList(purchases, fromCache = false) {
         const container = document.getElementById('purchasesList');
         if (!purchases.length) {
-            container.innerHTML = '<div class="text-center text-gray-400 py-8">No accessory purchase records found.</div>';
+            container.innerHTML = '<div class="text-center text-gray-400 py-8">No screen purchase records found.</div>';
             updateSummary([]);
             return;
         }
@@ -654,7 +653,7 @@
         });
         savePendingPurchases(pending);
         updatePendingBadge();
-        console.log('💾 Saved pending purchase:', payload);
+        console.log('💾 Saved pending screen purchase:', payload);
     }
 
     // ---------- Submit / Update ----------
@@ -662,7 +661,7 @@
         const payload = {
             name: document.getElementById('name').value.trim(),
             brand: document.getElementById('brand').value.trim(),
-            category: document.getElementById('category').value.trim() || 'Accessory',
+            category: document.getElementById('category').value.trim() || 'Screen',
             quantity: parseInt(document.getElementById('quantity').value),
             cost_price: parseFloat(document.getElementById('cost_price').value),
             discount: parseFloat(document.getElementById('discount').value) || 0,
@@ -684,9 +683,9 @@
             method = 'PUT';
             actionType = 'update';
             batchId = editBatchId;
-            console.log('✏️ Updating batch:', editBatchId, payload);
+            console.log('✏️ Updating screen batch:', editBatchId, payload);
         } else {
-            console.log('➕ Adding new purchase:', payload);
+            console.log('➕ Adding new screen purchase:', payload);
         }
 
         try {
@@ -704,7 +703,7 @@
             const data = await res.json();
             
             if (data.success) {
-                alert(editMode ? '✅ Accessory purchase updated!' : '✅ Accessory purchase added!');
+                alert(editMode ? '✅ Screen purchase updated!' : '✅ Screen purchase added!');
                 resetForm();
                 
                 // Clear the URL parameter if coming from edit
@@ -718,10 +717,10 @@
                 alert('Error: ' + data.error);
             }
         } catch (error) {
-            console.warn('Network error, saving purchase offline:', error);
+            console.warn('Network error, saving screen purchase offline:', error);
             savePendingPurchase(payload, actionType, batchId);
             updatePendingBadge();
-            alert('⚠️ You are offline. Purchase saved locally and will be synced later.');
+            alert('⚠️ You are offline. Screen purchase saved locally and will be synced later.');
             resetForm();
             loadPurchases();
         }
@@ -729,7 +728,7 @@
 
     // ---------- Edit / Reset ----------
     function editPurchase(batchId) {
-        console.log('✏️ Editing purchase:', batchId);
+        console.log('✏️ Editing screen purchase:', batchId);
         const purchase = currentPurchases.find(p => p.batch_id === batchId);
         if (!purchase) {
             console.warn('Purchase not found:', batchId);
@@ -740,7 +739,7 @@
         
         document.getElementById('name').value = purchase.name;
         document.getElementById('brand').value = purchase.brand;
-        document.getElementById('category').value = purchase.category || 'Accessory';
+        document.getElementById('category').value = purchase.category || 'Screen';
         document.getElementById('quantity').value = purchase.quantity;
         document.getElementById('cost_price').value = purchase.cost_price;
         document.getElementById('discount').value = purchase.discount;
@@ -749,8 +748,8 @@
         editMode = true;
         editBatchId = batchId;
         
-        document.getElementById('formTitle').innerHTML = '✏️ Update Accessory Purchase <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Accessories</span>';
-        document.getElementById('submitBtn').innerHTML = '✏️ Update Accessory Purchase';
+        document.getElementById('formTitle').innerHTML = '✏️ Update Screen Purchase <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">Screens Only</span>';
+        document.getElementById('submitBtn').innerHTML = '✏️ Update Screen Purchase';
         document.getElementById('cancelBtn').classList.remove('hidden');
         
         const form = document.querySelector('.bg-white.rounded-xl.shadow-md.p-6.mb-6');
@@ -767,7 +766,7 @@
     function resetForm() {
         document.getElementById('name').value = '';
         document.getElementById('brand').value = '';
-        document.getElementById('category').value = '';
+        document.getElementById('category').value = 'Screen';
         document.getElementById('quantity').value = '';
         document.getElementById('cost_price').value = '';
         document.getElementById('discount').value = '';
@@ -776,8 +775,8 @@
         editMode = false;
         editBatchId = null;
         
-        document.getElementById('formTitle').innerHTML = '➕ Add Accessory Purchase <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Accessories</span>';
-        document.getElementById('submitBtn').innerHTML = '➕ Add Accessory Purchase';
+        document.getElementById('formTitle').innerHTML = '➕ Add Screen Purchase <span class="bg-purple-100 text-purple-800 text-xs font-semibold px-2.5 py-0.5 rounded">Screens Only</span>';
+        document.getElementById('submitBtn').innerHTML = '➕ Add Screen Purchase';
         document.getElementById('cancelBtn').classList.add('hidden');
         
         const form = document.querySelector('.bg-white.rounded-xl.shadow-md.p-6.mb-6');
@@ -798,7 +797,7 @@
         const toDate = document.getElementById('toDate').value;
         if (fromDate && toDate) {
             try {
-                const res = await fetch(`/api/purchases/filter?start_date=${fromDate}&end_date=${toDate}&exclude_category=Screen`);
+                const res = await fetch(`/api/purchases/filter?start_date=${fromDate}&end_date=${toDate}&category=Screen`);
                 if (!res.ok) throw new Error();
                 currentPurchases = await res.json();
                 cachePurchases(currentPurchases);
@@ -890,7 +889,7 @@
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `Purchases_Accessories_${new Date().toISOString().slice(0,19)}.pdf`;
+            a.download = `Screen_Purchases_${new Date().toISOString().slice(0,19)}.pdf`;
             document.body.appendChild(a);
             a.click();
             a.remove();
@@ -911,7 +910,7 @@
         const q = document.getElementById('name').value.trim();
         if (!q) { document.getElementById('nameSuggestions').classList.add('hidden'); return; }
         try {
-            const res = await fetch(`/api/purchases/suggestions/name?q=${encodeURIComponent(q)}&exclude_category=Screen`);
+            const res = await fetch(`/api/purchases/suggestions/name?q=${encodeURIComponent(q)}&category=Screen`);
             if (!res.ok) throw new Error();
             const suggestions = await res.json();
             const box = document.getElementById('nameSuggestions');
@@ -935,7 +934,7 @@
         const q = document.getElementById('category').value.trim();
         if (!q) { document.getElementById('categorySuggestions').classList.add('hidden'); return; }
         try {
-            const res = await fetch(`/api/purchases/suggestions/category?q=${encodeURIComponent(q)}&exclude_category=Screen`);
+            const res = await fetch(`/api/purchases/suggestions/category?q=${encodeURIComponent(q)}&category=Screen`);
             if (!res.ok) throw new Error();
             const suggestions = await res.json();
             const box = document.getElementById('categorySuggestions');
@@ -954,7 +953,7 @@
     window.selectNameSuggestion = function(name, brand, category) {
         document.getElementById('name').value = name;
         document.getElementById('brand').value = brand;
-        document.getElementById('category').value = category || 'Accessory';
+        document.getElementById('category').value = category || 'Screen';
         document.getElementById('nameSuggestions').classList.add('hidden');
     };
 
