@@ -323,6 +323,37 @@ def signup():
     return render_template("signup.html")
 
 # ---------------------- PROTECTED ROUTES ----------------------
+# ===== SETTINGS ROUTES =====
+
+@app.route("/settings")
+@login_required
+def settings_page():
+    return render_template("settings.html")
+
+@app.route('/api/settings', methods=['GET'])
+@login_required
+def api_get_settings():
+    from services.settings_service import get_user_settings
+    user_id = session.get('user_id')
+    settings = get_user_settings(user_id)
+    return jsonify({'success': True, 'settings': settings})
+
+@app.route('/api/settings', methods=['POST'])
+@login_required
+def api_update_settings():
+    from services.settings_service import update_user_settings
+    user_id = session.get('user_id')
+    data = request.json
+    
+    success = update_user_settings(user_id, data)
+    if success:
+        # Store theme in session for quick access
+        if 'theme' in data:
+            session['theme'] = data['theme']
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False, 'error': 'Failed to update settings'}), 400
+
 @app.route("/")
 @login_required
 def dashboard():

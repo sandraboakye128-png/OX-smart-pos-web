@@ -428,6 +428,14 @@
             border-top: 1px solid rgba(255, 255, 255, 0.06);
             margin: 0.5rem 0.75rem;
         }
+
+        /* ===== SETTINGS ICON ===== */
+        .settings-icon {
+            transition: transform 0.3s ease;
+        }
+        .settings-icon:hover {
+            transform: rotate(45deg);
+        }
     </style>
 </head>
 <body>
@@ -542,8 +550,17 @@
 
             <div class="nav-divider"></div>
 
-            <!-- ===== OFFLINE SYNC (All users) ===== -->
+            <!-- ===== SETTINGS (All users) ===== -->
             {% if current_user %}
+            <div class="nav-section-label">Preferences</div>
+
+            <a href="/settings" class="nav-link flex items-center gap-3 px-3 py-2 rounded-lg text-gray-300 hover:text-white text-sm">
+                <i class="fas fa-cog w-5 settings-icon"></i> Settings
+            </a>
+
+            <div class="nav-divider"></div>
+
+            <!-- ===== OFFLINE SYNC (All users) ===== -->
             <div class="px-1 py-2">
                 <div class="flex flex-col gap-1.5">
                     <div class="flex items-center gap-2">
@@ -708,6 +725,36 @@
     window.addEventListener('resize', function() {
         if (window.innerWidth >= 768) closeSidebar();
     });
+
+    // ===== SETTINGS THEME APPLICATION =====
+    // Apply saved theme on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('westlink_theme') || 'light';
+        applyTheme(savedTheme);
+    });
+
+    function applyTheme(theme) {
+        const body = document.body;
+        if (theme === 'dark') {
+            body.style.background = '#1a1a2e';
+            // Apply dark theme to white cards
+            document.querySelectorAll('.bg-white:not(.sidebar):not(.mobile-header)').forEach(el => {
+                if (!el.closest('.sidebar') && !el.closest('.mobile-header') && !el.closest('.fixed')) {
+                    el.style.background = '#1e293b';
+                    el.style.color = '#e2e8f0';
+                }
+            });
+        } else {
+            body.style.background = '#f3f4f6';
+            document.querySelectorAll('.bg-white:not(.sidebar):not(.mobile-header)').forEach(el => {
+                if (!el.closest('.sidebar') && !el.closest('.mobile-header') && !el.closest('.fixed')) {
+                    el.style.background = '';
+                    el.style.color = '';
+                }
+            });
+        }
+        localStorage.setItem('westlink_theme', theme);
+    }
 </script>
 </body>
 </html>
