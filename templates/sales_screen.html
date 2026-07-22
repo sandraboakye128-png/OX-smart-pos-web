@@ -1,118 +1,118 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="p-4 md:p-6 space-y-6">
+<div class="p-4 md:p-6 space-y-4 md:space-y-6">
 
     <!-- Offline banner -->
-    <div id="offlineBanner" class="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-xl hidden">
+    <div id="offlineBanner" class="mb-3 md:mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-3 py-2 md:px-4 md:py-3 rounded-lg text-xs md:text-sm hidden">
         <i class="fas fa-exclamation-triangle mr-2"></i> You are offline – showing cached wine products. Sales will be saved and synced when you reconnect.
     </div>
 
     <!-- No products banner -->
-    <div id="noProductsBanner" class="mb-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 px-4 py-3 rounded-xl hidden">
+    <div id="noProductsBanner" class="mb-3 md:mb-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 px-3 py-2 md:px-4 md:py-3 rounded-lg text-xs md:text-sm hidden">
         <i class="fas fa-exclamation-circle mr-2"></i>
         <strong>No wine products found.</strong><br>
-        Please ensure your inventory imports are correctly categorised as <strong>Screens</strong> (wine products).
-        <div class="mt-3 flex flex-wrap gap-2">
-            <a href="/inventory/import" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition inline-flex items-center gap-2">
+        Please ensure your inventory imports are correctly categorised as <strong>Wine</strong>.
+        <div class="mt-2 md:mt-3 flex flex-wrap gap-1.5 md:gap-2">
+            <a href="/inventory/import" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition inline-flex items-center gap-1 md:gap-2">
                 <i class="fas fa-file-import"></i> Go to Import
             </a>
-            <button onclick="refreshProducts()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition inline-flex items-center gap-2">
+            <button onclick="refreshProducts()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition inline-flex items-center gap-1 md:gap-2">
                 <i class="fas fa-sync"></i> Refresh
             </button>
         </div>
     </div>
 
     <!-- ===== HEADER ===== -->
-    <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
-        <div class="flex flex-wrap justify-between items-center gap-3">
-            <div class="flex items-center gap-3">
-                <h2 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fas fa-wine-bottle text-purple-500"></i> Wine Sales Terminal
+    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-5 border border-gray-100/80">
+        <div class="flex flex-wrap justify-between items-center gap-2 md:gap-3">
+            <div class="flex items-center gap-2 md:gap-3">
+                <h2 class="text-lg md:text-2xl font-bold text-gray-800 flex items-center gap-1.5 md:gap-2">
+                    <i class="fas fa-wine-bottle text-amber-500"></i> Wine Sales Terminal
                 </h2>
-                <span class="bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full">Wine Category</span>
+                <span class="bg-amber-100 text-amber-700 text-[8px] md:text-xs font-semibold px-2 py-0.5 md:px-3 md:py-1 rounded-full">Wine Category</span>
             </div>
-            <div class="flex items-center gap-2 text-sm text-gray-400">
+            <div class="flex items-center gap-1 md:gap-2 text-[9px] md:text-sm text-gray-400">
                 <i class="fas fa-store"></i>
-                <span>Wine Products</span>
+                <span class="hidden xs:inline">Wine Products</span>
             </div>
         </div>
     </div>
 
     <!-- ===== TWO-COLUMN LAYOUT ===== -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
 
         <!-- ===== LEFT: Products & Form ===== -->
-        <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
-            <div class="mb-4">
+        <div class="bg-white rounded-2xl shadow-sm p-4 md:p-5 border border-gray-100/80">
+            <div class="mb-3 md:mb-4">
                 <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] md:text-sm"></i>
                     <input type="text" id="searchProduct" placeholder="Search wine by name or brand..." 
-                           class="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
+                           class="w-full border border-gray-200 rounded-lg pl-7 pr-3 py-1.5 md:pl-9 md:pr-3 md:py-2.5 text-[10px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
                 </div>
             </div>
 
-            <div id="productList" class="max-h-72 overflow-y-auto border border-gray-100 rounded-xl p-1 mb-4"></div>
+            <div id="productList" class="max-h-56 md:max-h-72 overflow-y-auto border border-gray-100 rounded-lg p-1 mb-3 md:mb-4"></div>
 
-            <div id="selectedProductInfo" class="text-sm text-gray-500 mb-3 p-2 bg-gray-50 rounded-xl">
-                <i class="fas fa-info-circle mr-1"></i> No wine product selected
+            <div id="selectedProductInfo" class="text-[10px] md:text-sm text-gray-500 mb-2 md:mb-3 p-1.5 md:p-2 bg-gray-50 rounded-lg">
+                <i class="fas fa-info-circle mr-0.5 md:mr-1"></i> No wine product selected
             </div>
 
-            <div class="grid grid-cols-2 gap-3 mb-3">
+            <div class="grid grid-cols-2 gap-2 md:gap-3 mb-2 md:mb-3">
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Quantity</label>
-                    <input type="number" id="quantity" placeholder="0" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
+                    <label class="block text-[7px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Quantity</label>
+                    <input type="number" id="quantity" placeholder="0" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-[10px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Discount (₵)</label>
-                    <input type="number" step="0.01" id="discount" placeholder="0.00" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
-                </div>
-            </div>
-
-            <div class="grid grid-cols-2 gap-3 mb-3">
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Sale Date</label>
-                    <input type="date" id="saleDate" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Time</label>
-                    <input type="text" id="saleTime" placeholder="2:30 PM" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
+                    <label class="block text-[7px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Discount (₵)</label>
+                    <input type="number" step="0.01" id="discount" placeholder="0.00" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-[10px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
                 </div>
             </div>
 
-            <button id="addToCartBtn" class="w-full bg-purple-500 hover:bg-purple-600 text-white py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2">
+            <div class="grid grid-cols-2 gap-2 md:gap-3 mb-2 md:mb-3">
+                <div>
+                    <label class="block text-[7px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Sale Date</label>
+                    <input type="date" id="saleDate" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-[10px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
+                </div>
+                <div>
+                    <label class="block text-[7px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Time</label>
+                    <input type="text" id="saleTime" placeholder="2:30 PM" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-[10px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
+                </div>
+            </div>
+
+            <button id="addToCartBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition flex items-center justify-center gap-1.5 md:gap-2">
                 <i class="fas fa-cart-plus"></i> Add to Cart
             </button>
         </div>
 
         <!-- ===== RIGHT: Cart & Receipt ===== -->
-        <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                <i class="fas fa-shopping-cart text-purple-500"></i> Cart
-                <span class="text-xs text-gray-400 font-normal ml-auto" id="cartCount">0 items</span>
+        <div class="bg-white rounded-2xl shadow-sm p-4 md:p-5 border border-gray-100/80">
+            <h3 class="text-base md:text-lg font-semibold text-gray-700 mb-3 md:mb-4 flex items-center gap-1.5 md:gap-2">
+                <i class="fas fa-shopping-cart text-amber-500"></i> Cart
+                <span class="text-[8px] md:text-xs text-gray-400 font-normal ml-auto" id="cartCount">0 items</span>
             </h3>
 
-            <div id="cartItems" class="max-h-80 overflow-y-auto border border-gray-100 rounded-xl p-2 mb-4 space-y-2 min-h-[100px]">
-                <div class="text-gray-400 text-center py-6 text-sm">
-                    <i class="fas fa-empty-set text-2xl block mb-2"></i>
+            <div id="cartItems" class="max-h-60 md:max-h-80 overflow-y-auto border border-gray-100 rounded-lg p-1.5 md:p-2 mb-3 md:mb-4 space-y-1.5 md:space-y-2 min-h-[80px] md:min-h-[100px]">
+                <div class="text-gray-400 text-center py-4 md:py-6 text-[10px] md:text-sm">
+                    <i class="fas fa-empty-set text-xl md:text-2xl block mb-1 md:mb-2"></i>
                     Cart is empty
                 </div>
             </div>
 
-            <div class="flex justify-between items-center mb-4 p-3 bg-gray-50 rounded-xl">
-                <span class="text-sm font-medium text-gray-600">Grand Total:</span>
-                <span id="grandTotal" class="text-2xl font-bold text-purple-600">₵0.00</span>
+            <div class="flex justify-between items-center mb-3 md:mb-4 p-2 md:p-3 bg-gray-50 rounded-lg">
+                <span class="text-[10px] md:text-sm font-medium text-gray-600">Grand Total:</span>
+                <span id="grandTotal" class="text-lg md:text-2xl font-bold text-amber-600">₵0.00</span>
             </div>
 
-            <button id="completeSaleBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 mb-2">
+            <button id="completeSaleBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition flex items-center justify-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
                 <i class="fas fa-check-circle"></i> Complete Sale
             </button>
 
-            <button id="printReceiptBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2.5 rounded-xl font-medium transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            <button id="printReceiptBtn" class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 md:py-2.5 rounded-lg text-xs md:text-sm font-medium transition flex items-center justify-center gap-1.5 md:gap-2 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                 <i class="fas fa-print"></i> Print Receipt
             </button>
 
-            <div id="receiptPreview" class="mt-3 border border-gray-100 rounded-xl p-3 bg-gray-50 font-mono text-xs max-h-48 overflow-y-auto hidden">
+            <div id="receiptPreview" class="mt-2 md:mt-3 border border-gray-100 rounded-lg p-2 md:p-3 bg-gray-50 font-mono text-[8px] md:text-xs max-h-36 md:max-h-48 overflow-y-auto hidden">
                 <!-- Receipt will appear here -->
             </div>
         </div>
@@ -121,30 +121,30 @@
 
 <!-- ===== MODAL: Batch Selection ===== -->
 <div id="batchModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
-    <div class="bg-white rounded-3xl shadow-2xl w-11/12 max-w-4xl max-h-[90vh] overflow-hidden">
-        <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-            <h3 class="text-xl font-bold text-gray-700" id="batchModalTitle">
-                <i class="fas fa-layer-group text-purple-500 mr-2"></i> Select Batches
+    <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-4xl max-h-[90vh] overflow-hidden">
+        <div class="sticky top-0 bg-white p-3 md:p-4 border-b flex justify-between items-center">
+            <h3 class="text-base md:text-xl font-bold text-gray-700" id="batchModalTitle">
+                <i class="fas fa-layer-group text-amber-500 mr-1.5 md:mr-2"></i> Select Batches
             </h3>
-            <button onclick="closeBatchModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            <button onclick="closeBatchModal()" class="text-gray-400 hover:text-gray-600 text-xl md:text-2xl">&times;</button>
         </div>
-        <div id="batchList" class="p-4 space-y-2 overflow-y-auto max-h-[55vh]"></div>
-        <div class="sticky bottom-0 bg-white p-4 border-t flex flex-wrap justify-between items-center gap-3">
-            <div class="flex flex-wrap gap-2">
-                <button onclick="selectAllBatches()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-xl text-sm transition">
-                    <i class="fas fa-check-double mr-1"></i> Select All
+        <div id="batchList" class="p-3 md:p-4 space-y-1.5 md:space-y-2 overflow-y-auto max-h-[45vh] md:max-h-[55vh]"></div>
+        <div class="sticky bottom-0 bg-white p-3 md:p-4 border-t flex flex-wrap justify-between items-center gap-2 md:gap-3">
+            <div class="flex flex-wrap gap-1.5 md:gap-2">
+                <button onclick="selectAllBatches()" class="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-sm transition">
+                    <i class="fas fa-check-double mr-0.5 md:mr-1"></i> Select All
                 </button>
-                <button onclick="deselectAllBatches()" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-xl text-sm transition">
-                    <i class="fas fa-times mr-1"></i> Deselect All
+                <button onclick="deselectAllBatches()" class="bg-orange-500 hover:bg-orange-600 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-sm transition">
+                    <i class="fas fa-times mr-0.5 md:mr-1"></i> Deselect All
                 </button>
             </div>
-            <div class="flex flex-wrap items-center gap-3">
-                <span id="assignedQty" class="text-sm font-medium text-green-600">Assigned: 0</span>
-                <span id="remainingQty" class="text-sm font-medium text-red-500">Remaining: 0</span>
-                <button onclick="confirmBatchSelection()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">
-                    <i class="fas fa-check mr-1"></i> Confirm
+            <div class="flex flex-wrap items-center gap-2 md:gap-3">
+                <span id="assignedQty" class="text-[9px] md:text-sm font-medium text-green-600">Assigned: 0</span>
+                <span id="remainingQty" class="text-[9px] md:text-sm font-medium text-red-500">Remaining: 0</span>
+                <button onclick="confirmBatchSelection()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 md:px-4 md:py-1.5 rounded-lg text-[10px] md:text-sm font-medium transition">
+                    <i class="fas fa-check mr-0.5 md:mr-1"></i> Confirm
                 </button>
-                <button onclick="closeBatchModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-1.5 rounded-xl text-sm font-medium transition">Cancel</button>
+                <button onclick="closeBatchModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-3 py-1 md:px-4 md:py-1.5 rounded-lg text-[10px] md:text-sm font-medium transition">Cancel</button>
             </div>
         </div>
     </div>
@@ -152,41 +152,41 @@
 
 <!-- ===== MODAL: Payment ===== -->
 <div id="paymentModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
-    <div class="bg-white rounded-3xl shadow-2xl w-96 p-6">
-        <h3 class="text-xl font-bold text-gray-700 mb-4 flex items-center gap-2">
-            <i class="fas fa-credit-card text-purple-500"></i> Payment Method
+    <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-sm md:w-96 p-5 md:p-6">
+        <h3 class="text-base md:text-xl font-bold text-gray-700 mb-3 md:mb-4 flex items-center gap-1.5 md:gap-2">
+            <i class="fas fa-credit-card text-amber-500"></i> Payment Method
         </h3>
-        <div class="space-y-2">
-            <button onclick="selectPayment('cash', event)" class="payment-option w-full text-left px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-3">
-                <span class="text-2xl">💵</span>
+        <div class="space-y-1.5 md:space-y-2">
+            <button onclick="selectPayment('cash', event)" class="payment-option w-full text-left px-3 py-2.5 md:px-4 md:py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition flex items-center gap-2 md:gap-3">
+                <span class="text-xl md:text-2xl">💵</span>
                 <div>
-                    <span class="font-bold text-green-600">Cash</span>
-                    <span class="text-xs text-gray-500 block">Pay with cash</span>
+                    <span class="font-bold text-green-600 text-xs md:text-sm">Cash</span>
+                    <span class="text-[8px] md:text-xs text-gray-500 block">Pay with cash</span>
                 </div>
             </button>
-            <button onclick="selectPayment('momo', event)" class="payment-option w-full text-left px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-3">
-                <span class="text-2xl">📱</span>
+            <button onclick="selectPayment('momo', event)" class="payment-option w-full text-left px-3 py-2.5 md:px-4 md:py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition flex items-center gap-2 md:gap-3">
+                <span class="text-xl md:text-2xl">📱</span>
                 <div>
-                    <span class="font-bold text-blue-600">Mobile Money</span>
-                    <span class="text-xs text-gray-500 block">MTN, Vodafone, AirtelTigo</span>
+                    <span class="font-bold text-blue-600 text-xs md:text-sm">Mobile Money</span>
+                    <span class="text-[8px] md:text-xs text-gray-500 block">MTN, Vodafone, AirtelTigo</span>
                 </div>
             </button>
-            <button onclick="showChequeInput(event)" class="payment-option w-full text-left px-4 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition flex items-center gap-3">
-                <span class="text-2xl">📝</span>
+            <button onclick="showChequeInput(event)" class="payment-option w-full text-left px-3 py-2.5 md:px-4 md:py-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition flex items-center gap-2 md:gap-3">
+                <span class="text-xl md:text-2xl">📝</span>
                 <div>
-                    <span class="font-bold text-purple-600">Cheque</span>
-                    <span class="text-xs text-gray-500 block">Pay with cheque</span>
+                    <span class="font-bold text-purple-600 text-xs md:text-sm">Cheque</span>
+                    <span class="text-[8px] md:text-xs text-gray-500 block">Pay with cheque</span>
                 </div>
             </button>
         </div>
-        <div id="chequeInputContainer" class="hidden mt-4">
-            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Cheque Number</label>
-            <input type="text" id="chequeNumber" placeholder="Enter cheque number" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none">
+        <div id="chequeInputContainer" class="hidden mt-3 md:mt-4">
+            <label class="block text-[7px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Cheque Number</label>
+            <input type="text" id="chequeNumber" placeholder="Enter cheque number" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-[10px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
         </div>
-        <div class="flex justify-end gap-3 mt-6">
-            <button id="cancelPaymentBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition">Cancel</button>
-            <button id="confirmPaymentBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
-                <i class="fas fa-check mr-1"></i> Confirm Sale
+        <div class="flex justify-end gap-2 md:gap-3 mt-4 md:mt-6">
+            <button id="cancelPaymentBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition">Cancel</button>
+            <button id="confirmPaymentBtn" class="bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition">
+                <i class="fas fa-check mr-0.5 md:mr-1"></i> Confirm Sale
             </button>
         </div>
     </div>
@@ -194,17 +194,17 @@
 
 <!-- ===== MODAL: License ===== -->
 <div id="licenseModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
-    <div class="bg-white rounded-3xl shadow-2xl w-96 p-6">
-        <h3 class="text-xl font-bold text-gray-700 mb-2" id="licenseModalTitle">
-            <i class="fas fa-key text-yellow-500 mr-2"></i> Trial Version
+    <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-sm md:w-96 p-5 md:p-6">
+        <h3 class="text-base md:text-xl font-bold text-gray-700 mb-2" id="licenseModalTitle">
+            <i class="fas fa-key text-yellow-500 mr-1.5 md:mr-2"></i> Trial Version
         </h3>
-        <div id="licenseModalMessage" class="text-gray-600 text-sm mb-4 whitespace-pre-line"></div>
-        <input type="text" id="licenseKeyInput" placeholder="Enter license key" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-purple-300 outline-none mb-4">
-        <div class="flex justify-end gap-3">
-            <button id="licenseCancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition">Cancel</button>
-            <button id="licenseOkBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">Activate</button>
+        <div id="licenseModalMessage" class="text-gray-600 text-[10px] md:text-sm mb-3 md:mb-4 whitespace-pre-line"></div>
+        <input type="text" id="licenseKeyInput" placeholder="Enter license key" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-[10px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none mb-3 md:mb-4">
+        <div class="flex justify-end gap-2 md:gap-3">
+            <button id="licenseCancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition">Cancel</button>
+            <button id="licenseOkBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition">Activate</button>
         </div>
-        <div id="licenseTimer" class="text-xs text-center text-gray-500 mt-3"></div>
+        <div id="licenseTimer" class="text-[8px] md:text-xs text-center text-gray-500 mt-2 md:mt-3"></div>
     </div>
 </div>
 
@@ -443,7 +443,7 @@
             noProductsBanner.classList.remove('hidden');
             if (fromCache) {
                 document.getElementById('productList').innerHTML =
-                    '<div class="text-gray-500 p-3 text-center text-sm">No cached wine products – connect to refresh</div>';
+                    '<div class="text-gray-500 p-2 md:p-3 text-center text-[10px] md:text-sm">No cached wine products – connect to refresh</div>';
             }
         } else {
             renderProductList(products);
@@ -453,7 +453,7 @@
     function renderProductList(prods) {
         const container = document.getElementById('productList');
         if (!prods.length) {
-            container.innerHTML = '<div class="text-gray-400 p-3 text-center text-sm">No wine products available</div>';
+            container.innerHTML = '<div class="text-gray-400 p-2 md:p-3 text-center text-[10px] md:text-sm">No wine products available</div>';
             return;
         }
         container.innerHTML = '';
@@ -461,15 +461,15 @@
             const btn = document.createElement('button');
             const batchCount = p.batches ? p.batches.length : 0;
             const stockClass = p.stock > 0 ? 'text-gray-700' : 'text-red-400';
-            btn.className = `w-full text-left px-3 py-2 hover:bg-purple-50 rounded-xl transition border-b border-gray-50 flex justify-between items-center`;
+            btn.className = `w-full text-left px-2 py-1.5 md:px-3 md:py-2 hover:bg-amber-50 rounded-lg transition border-b border-gray-50 flex justify-between items-center`;
             btn.innerHTML = `
-                <div>
-                    <span class="font-medium text-gray-800"><i class="fas fa-wine-bottle text-purple-400 mr-1"></i> ${escapeHtml(p.name)}</span>
-                    <span class="text-xs text-gray-400">(${escapeHtml(p.brand)})</span>
+                <div class="flex items-center gap-1">
+                    <span class="font-medium text-gray-800 text-[10px] md:text-sm"><i class="fas fa-wine-bottle text-amber-400 mr-0.5 md:mr-1"></i> ${escapeHtml(p.name)}</span>
+                    <span class="text-[8px] md:text-xs text-gray-400">(${escapeHtml(p.brand)})</span>
                 </div>
-                <div class="text-xs ${stockClass}">
-                    <i class="fas fa-box mr-1"></i> ${p.stock}
-                    ${batchCount > 0 ? `<span class="ml-1 text-purple-400"><i class="fas fa-layer-group"></i> ${batchCount}</span>` : ''}
+                <div class="text-[8px] md:text-xs ${stockClass}">
+                    <i class="fas fa-box mr-0.5 md:mr-1"></i> ${p.stock}
+                    ${batchCount > 0 ? `<span class="ml-0.5 md:ml-1 text-amber-400"><i class="fas fa-layer-group"></i> ${batchCount}</span>` : ''}
                 </div>
             `;
             btn.title = `Select ${p.name} - ${p.stock} in stock`;
@@ -484,10 +484,10 @@
         currentProduct = product;
         const batchCount = product.batches ? product.batches.length : 0;
         document.getElementById('selectedProductInfo').innerHTML = `
-            <strong class="text-gray-800"><i class="fas fa-wine-bottle text-purple-400 mr-1"></i> ${escapeHtml(product.name)}</strong>
-            <span class="text-gray-500">(${escapeHtml(product.brand)})</span>
-            <span class="text-purple-600 font-medium ml-2">₵${product.selling_price.toFixed(2)}</span>
-            <span class="text-xs text-gray-400 ml-2">Stock: ${product.stock} (${batchCount} batches)</span>
+            <strong class="text-gray-800 text-[10px] md:text-sm"><i class="fas fa-wine-bottle text-amber-400 mr-0.5 md:mr-1"></i> ${escapeHtml(product.name)}</strong>
+            <span class="text-gray-500 text-[9px] md:text-xs">(${escapeHtml(product.brand)})</span>
+            <span class="text-amber-600 font-medium ml-1 md:ml-2 text-[10px] md:text-sm">₵${product.selling_price.toFixed(2)}</span>
+            <span class="text-[8px] md:text-xs text-gray-400 ml-1 md:ml-2">Stock: ${product.stock} (${batchCount} batches)</span>
         `;
         document.getElementById('quantity').value = '';
         document.getElementById('discount').value = '';
@@ -563,7 +563,7 @@
         batchSelection = [];
 
         const header = document.createElement('div');
-        header.className = 'grid grid-cols-6 gap-2 bg-gray-50 p-2 rounded-xl font-semibold text-xs text-gray-500 uppercase tracking-wider sticky top-0 border-b';
+        header.className = 'grid grid-cols-6 gap-1 md:gap-2 bg-gray-50 p-1.5 md:p-2 rounded-lg font-semibold text-[8px] md:text-xs text-gray-500 uppercase tracking-wider sticky top-0 border-b';
         header.innerHTML = `<div>Select</div><div>Batch</div><div>Stock</div><div>Price</div><div>Cost</div><div>Qty</div>`;
         container.appendChild(header);
 
@@ -575,31 +575,31 @@
             if (batch.is_fallback) isFallback = true;
 
             const row = document.createElement('div');
-            row.className = 'grid grid-cols-6 gap-2 items-center border-b py-2 hover:bg-purple-50/40 transition';
+            row.className = 'grid grid-cols-6 gap-1 md:gap-2 items-center border-b py-1.5 md:py-2 hover:bg-amber-50/40 transition';
 
             const cb = document.createElement('input');
             cb.type = 'checkbox';
-            cb.className = 'w-4 h-4 text-purple-500 rounded focus:ring-purple-400';
+            cb.className = 'w-3.5 h-3.5 md:w-4 md:h-4 text-amber-500 rounded focus:ring-amber-400';
 
             const batchIdSpan = document.createElement('span');
             batchIdSpan.innerText = batch.is_fallback ? '⚠️ FALLBACK' : batch.batch_id;
-            batchIdSpan.className = `text-sm ${batch.is_fallback ? 'text-orange-600 font-bold' : ''}`;
+            batchIdSpan.className = `text-[8px] md:text-sm ${batch.is_fallback ? 'text-orange-600 font-bold' : ''}`;
 
             const stockSpan = document.createElement('span');
             stockSpan.innerText = batch.remaining_quantity;
-            stockSpan.className = 'font-medium';
+            stockSpan.className = 'font-medium text-[9px] md:text-sm';
 
             const priceSpan = document.createElement('span');
             priceSpan.innerText = `₵${batch.selling_price.toFixed(2)}`;
-            priceSpan.className = 'text-green-600';
+            priceSpan.className = 'text-green-600 text-[9px] md:text-sm';
 
             const costSpan = document.createElement('span');
             costSpan.innerText = `₵${batch.cost_price.toFixed(2)}`;
-            costSpan.className = 'text-gray-400 text-sm';
+            costSpan.className = 'text-gray-400 text-[8px] md:text-sm';
 
             const qtyInput = document.createElement('input');
             qtyInput.type = 'number';
-            qtyInput.className = 'border border-gray-200 rounded-xl px-1 py-1 w-16 text-center text-sm focus:ring-2 focus:ring-purple-300 outline-none';
+            qtyInput.className = 'border border-gray-200 rounded-lg px-0.5 py-0.5 md:px-1 md:py-1 w-12 md:w-16 text-center text-[9px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none';
             qtyInput.value = '0';
             qtyInput.min = 0;
             qtyInput.max = batch.remaining_quantity;
@@ -633,12 +633,12 @@
         }
 
         const infoRow = document.createElement('div');
-        infoRow.className = `col-span-6 text-sm ${isFallback ? 'bg-orange-50 text-orange-700' : 'bg-purple-50 text-purple-700'} p-2 rounded-xl mt-2`;
+        infoRow.className = `col-span-6 text-[9px] md:text-sm ${isFallback ? 'bg-orange-50 text-orange-700' : 'bg-amber-50 text-amber-700'} p-1.5 md:p-2 rounded-lg mt-1.5 md:mt-2`;
         infoRow.innerHTML = `
             ${isFallback ? '⚠️ ' : '🍷 '}
             Total available: <strong>${totalAvailableStock}</strong> units across ${currentBatches.length} batches
-            ${neededQty > totalAvailableStock ? `<span class="text-red-600 ml-2">⚠️ Need ${neededQty}, only ${totalAvailableStock} available</span>` : ''}
-            ${isFallback ? `<br><span class="text-xs text-orange-500">⚠️ FALLBACK BATCH: Stock will not be deducted from real inventory.</span>` : ''}
+            ${neededQty > totalAvailableStock ? `<span class="text-red-600 ml-1 md:ml-2">⚠️ Need ${neededQty}, only ${totalAvailableStock} available</span>` : ''}
+            ${isFallback ? `<br><span class="text-[8px] md:text-xs text-orange-500">⚠️ FALLBACK BATCH: Stock will not be deducted from real inventory.</span>` : ''}
         `;
         container.appendChild(infoRow);
 
@@ -656,12 +656,12 @@
             const remaining = neededQty - assigned;
             const remSpan = document.getElementById('remainingQty');
             remSpan.innerText = `Remaining: ${remaining}`;
-            remSpan.className = `text-sm font-medium ${remaining < 0 ? 'text-red-500' : remaining === 0 ? 'text-green-600' : 'text-gray-500'}`;
+            remSpan.className = `text-[9px] md:text-sm font-medium ${remaining < 0 ? 'text-red-500' : remaining === 0 ? 'text-green-600' : 'text-gray-500'}`;
         }
 
         document.getElementById('batchModalTitle').innerHTML = `
-            <i class="fas fa-wine-bottle text-purple-500 mr-2"></i> Select batches for <strong>${escapeHtml(product.name)}</strong>
-            <span class="text-sm font-normal text-gray-400 ml-2">(need ${qty} units, ${totalAvailableStock} available)</span>
+            <i class="fas fa-wine-bottle text-amber-500 mr-1.5 md:mr-2"></i> Select batches for <strong>${escapeHtml(product.name)}</strong>
+            <span class="text-[9px] md:text-sm font-normal text-gray-400 ml-1 md:ml-2">(need ${qty} units, ${totalAvailableStock} available)</span>
         `;
         document.getElementById('assignedQty').innerText = 'Assigned: 0';
         document.getElementById('remainingQty').innerText = `Remaining: ${neededQty}`;
@@ -712,7 +712,7 @@
         const remaining = neededQty - assigned;
         const remSpan = document.getElementById('remainingQty');
         remSpan.innerText = `Remaining: ${remaining}`;
-        remSpan.className = `text-sm font-medium ${remaining < 0 ? 'text-red-500' : remaining === 0 ? 'text-green-600' : 'text-gray-500'}`;
+        remSpan.className = `text-[9px] md:text-sm font-medium ${remaining < 0 ? 'text-red-500' : remaining === 0 ? 'text-green-600' : 'text-gray-500'}`;
     }
 
     window.closeBatchModal = function() {
@@ -787,8 +787,8 @@
 
         if (!cart.length) {
             container.innerHTML = `
-                <div class="text-gray-400 text-center py-6 text-sm">
-                    <i class="fas fa-wine-bottle text-3xl block mb-2 opacity-30"></i>
+                <div class="text-gray-400 text-center py-4 md:py-6 text-[9px] md:text-sm">
+                    <i class="fas fa-wine-bottle text-2xl md:text-3xl block mb-1 md:mb-2 opacity-30"></i>
                     Cart is empty
                 </div>
             `;
@@ -801,24 +801,24 @@
         cart.forEach((item, idx) => {
             grandTotal += item.final;
             const card = document.createElement('div');
-            card.className = 'border border-gray-100 rounded-xl p-3 bg-gray-50/60 hover:bg-gray-50 transition';
+            card.className = 'border border-gray-100 rounded-lg p-2 md:p-3 bg-gray-50/60 hover:bg-gray-50 transition';
             const fallbackWarning = item.isFallback ?
-                '<span class="text-orange-500 text-xs font-bold ml-2">⚠️ FALLBACK</span>' : '';
+                '<span class="text-orange-500 text-[8px] md:text-xs font-bold ml-1 md:ml-2">⚠️ FALLBACK</span>' : '';
             card.innerHTML = `
                 <div class="flex justify-between items-start">
                     <div class="flex-1">
-                        <div class="flex items-center flex-wrap gap-1">
-                            <strong class="text-gray-800"><i class="fas fa-wine-bottle text-purple-400 mr-1"></i> ${escapeHtml(item.product.name)}</strong>
-                            <span class="text-xs text-gray-400">(${escapeHtml(item.product.brand)})</span>
+                        <div class="flex items-center flex-wrap gap-0.5 md:gap-1">
+                            <strong class="text-gray-800 text-[10px] md:text-sm"><i class="fas fa-wine-bottle text-amber-400 mr-0.5 md:mr-1"></i> ${escapeHtml(item.product.name)}</strong>
+                            <span class="text-[8px] md:text-xs text-gray-400">(${escapeHtml(item.product.brand)})</span>
                             ${fallbackWarning}
                         </div>
-                        <div class="text-xs text-gray-500 mt-0.5">Qty: ${item.qty} | Discount: ${formatMoney(item.discount)}</div>
-                        <div class="text-xs text-gray-400 mt-0.5">${item.selectedBatches.map(b => `Batch #${b.batch_id}: ${b.qty}`).join(', ')}</div>
+                        <div class="text-[8px] md:text-xs text-gray-500 mt-0.5">Qty: ${item.qty} | Discount: ${formatMoney(item.discount)}</div>
+                        <div class="text-[7px] md:text-xs text-gray-400 mt-0.5">${item.selectedBatches.map(b => `Batch #${b.batch_id}: ${b.qty}`).join(', ')}</div>
                     </div>
                     <div class="text-right flex flex-col items-end">
-                        <div class="font-bold text-purple-600">${formatMoney(item.final)}</div>
-                        <button onclick="removeCartItem(${idx})" class="text-red-400 hover:text-red-600 text-xs transition mt-1">
-                            <i class="fas fa-times"></i> Remove
+                        <div class="font-bold text-amber-600 text-[10px] md:text-sm">${formatMoney(item.final)}</div>
+                        <button onclick="removeCartItem(${idx})" class="text-red-400 hover:text-red-600 text-[8px] md:text-xs transition mt-0.5">
+                            <i class="fas fa-times"></i> <span class="hidden xs:inline">Remove</span>
                         </button>
                     </div>
                 </div>
@@ -848,11 +848,11 @@
         document.getElementById('chequeInputContainer').classList.add('hidden');
 
         document.querySelectorAll('.payment-option').forEach(btn => {
-            btn.classList.remove('border-purple-500', 'bg-purple-50');
+            btn.classList.remove('border-amber-500', 'bg-amber-50');
         });
         if (event && event.target) {
             const clickedBtn = event.target.closest('.payment-option');
-            if (clickedBtn) clickedBtn.classList.add('border-purple-500', 'bg-purple-50');
+            if (clickedBtn) clickedBtn.classList.add('border-amber-500', 'bg-amber-50');
         }
     }
     window.selectPayment = selectPayment;
@@ -862,11 +862,11 @@
         document.getElementById('chequeInputContainer').classList.remove('hidden');
 
         document.querySelectorAll('.payment-option').forEach(btn => {
-            btn.classList.remove('border-purple-500', 'bg-purple-50');
+            btn.classList.remove('border-amber-500', 'bg-amber-50');
         });
         if (event && event.target) {
             const clickedBtn = event.target.closest('.payment-option');
-            if (clickedBtn) clickedBtn.classList.add('border-purple-500', 'bg-purple-50');
+            if (clickedBtn) clickedBtn.classList.add('border-amber-500', 'bg-amber-50');
         }
     }
     window.showChequeInput = showChequeInput;
@@ -875,7 +875,7 @@
         document.getElementById('paymentModal').classList.add('hidden');
         document.getElementById('chequeNumber').value = '';
         document.querySelectorAll('.payment-option').forEach(btn => {
-            btn.classList.remove('border-purple-500', 'bg-purple-50');
+            btn.classList.remove('border-amber-500', 'bg-amber-50');
         });
     }
 
@@ -936,7 +936,7 @@
             if (data.success) {
                 lastSale = data;
                 const receiptDiv = document.getElementById('receiptPreview');
-                receiptDiv.innerHTML = `<pre class="whitespace-pre-wrap text-xs">${data.receipt_text}</pre>`;
+                receiptDiv.innerHTML = `<pre class="whitespace-pre-wrap text-[8px] md:text-xs">${data.receipt_text}</pre>`;
                 receiptDiv.classList.remove('hidden');
                 document.getElementById('printReceiptBtn').disabled = false;
                 cart = [];
@@ -957,7 +957,7 @@
                 updateCart();
 
                 document.getElementById('receiptPreview').innerHTML = `
-                    <div class="bg-yellow-50 border border-yellow-400 text-yellow-700 p-3 rounded-xl text-xs">
+                    <div class="bg-yellow-50 border border-yellow-400 text-yellow-700 p-2 md:p-3 rounded-lg text-[8px] md:text-xs">
                         <strong>⚠️ Offline Sale Saved</strong><br>
                         This sale has been saved locally and will be synced when you reconnect.
                         <br><br>
@@ -965,7 +965,7 @@
                         <br>
                         <strong>Items:</strong> ${payload.cart_items.length}
                         <br><br>
-                        <span class="text-xs">Sale ID: pending (${new Date().toLocaleString()})</span>
+                        <span class="text-[7px] md:text-xs">Sale ID: pending (${new Date().toLocaleString()})</span>
                     </div>
                 `;
                 document.getElementById('receiptPreview').classList.remove('hidden');
@@ -1006,7 +1006,7 @@
         document.getElementById('chequeInputContainer').classList.add('hidden');
 
         document.querySelectorAll('.payment-option').forEach(btn => {
-            btn.classList.remove('border-purple-500', 'bg-purple-50');
+            btn.classList.remove('border-amber-500', 'bg-amber-50');
         });
 
         document.getElementById('paymentModal').classList.remove('hidden');

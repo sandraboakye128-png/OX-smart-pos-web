@@ -1,112 +1,120 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="p-4 md:p-6 space-y-6">
+<div class="p-4 md:p-6 space-y-4 md:space-y-6">
 
     <!-- Offline banner -->
-    <div id="offlineBanner" class="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-xl hidden">
+    <div id="offlineBanner" class="mb-3 md:mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-3 py-2 md:px-4 md:py-3 rounded-lg text-xs md:text-sm hidden">
         <i class="fas fa-exclamation-triangle mr-2"></i> You are offline – showing cached purchases. New purchases will be saved and synced when you reconnect.
     </div>
 
     <!-- Cache banner -->
-    <div id="cacheBanner" class="mb-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 px-4 py-3 rounded-xl hidden">
+    <div id="cacheBanner" class="mb-3 md:mb-4 bg-yellow-50 border-l-4 border-yellow-500 text-yellow-700 px-3 py-2 md:px-4 md:py-3 rounded-lg text-xs md:text-sm hidden">
         <i class="fas fa-database mr-2"></i> Showing cached data (last updated: <span id="cacheTimestamp"></span>).
         <button onclick="refreshData()" class="underline font-bold hover:text-yellow-800">Click here to refresh</button>
     </div>
 
     <!-- ===== HEADER ===== -->
-    <div class="flex flex-wrap justify-between items-center gap-3 bg-white p-4 rounded-3xl shadow-sm border border-gray-100/80">
-        <div class="flex items-center gap-3">
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <i class="fas fa-shopping-cart text-teal-500"></i> Purchases
+    <div class="flex flex-wrap justify-between items-center gap-3 bg-white p-3 md:p-4 rounded-2xl shadow-sm border border-gray-100/80">
+        <div class="flex items-center gap-2 md:gap-3">
+            <h1 class="text-lg md:text-2xl font-bold text-gray-800 flex items-center gap-1.5 md:gap-2">
+                <i class="fas fa-shopping-cart text-amber-500"></i> Purchases
             </h1>
-            <span class="bg-teal-100 text-teal-700 text-xs font-semibold px-3 py-1 rounded-full">General</span>
+            <span class="bg-amber-100 text-amber-700 text-[8px] md:text-xs font-semibold px-2 py-0.5 md:px-3 md:py-1 rounded-full">General</span>
         </div>
-        <div class="flex items-center gap-2">
-            <button id="viewPendingBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition flex items-center gap-2">
-                <i class="fas fa-clock"></i> Pending
-                <span id="pendingCount" class="bg-red-500 text-white text-xs rounded-full px-2 py-0.5 hidden">0</span>
+        <div class="flex items-center gap-1.5 md:gap-2">
+            <button id="viewPendingBtn" class="bg-amber-600 hover:bg-amber-700 text-white px-2.5 py-1 md:px-4 md:py-1.5 rounded-lg text-[10px] md:text-sm font-medium transition flex items-center gap-1 md:gap-2">
+                <i class="fas fa-clock"></i> <span class="hidden xs:inline">Pending</span>
+                <span id="pendingCount" class="bg-red-500 text-white text-[8px] md:text-xs rounded-full px-1.5 py-0.5 md:px-2 md:py-0.5 hidden">0</span>
             </button>
         </div>
     </div>
 
     <!-- ===== ADD / EDIT FORM ===== -->
-    <div class="bg-white rounded-3xl shadow-sm p-6 border border-gray-100/80">
-        <div class="flex items-center gap-2 mb-5">
-            <h2 class="text-xl font-bold text-gray-700" id="formTitle">
-                <i class="fas fa-plus-circle text-teal-500 mr-2"></i> Add Purchase
+    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-gray-100/80">
+        <div class="flex items-center gap-2 mb-3 md:mb-5">
+            <h2 class="text-base md:text-xl font-bold text-gray-700" id="formTitle">
+                <i class="fas fa-plus-circle text-amber-500 mr-1.5 md:mr-2"></i> Add Purchase
             </h2>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-2 md:gap-3">
             <div class="relative">
-                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Product Name</label>
-                <input type="text" id="name" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none" autocomplete="off">
-                <div id="nameSuggestions" class="absolute z-10 bg-white border border-gray-200 rounded-xl shadow-lg hidden w-full max-h-48 overflow-y-auto"></div>
+                <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Product Name</label>
+                <input type="text" id="name" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm focus:ring-2 focus:ring-amber-400 outline-none" autocomplete="off">
+                <div id="nameSuggestions" class="absolute z-10 bg-white border border-gray-200 rounded-lg shadow-lg hidden w-full max-h-40 md:max-h-48 overflow-y-auto"></div>
             </div>
             <div>
-                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Brand</label>
-                <input type="text" id="brand" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+                <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Brand</label>
+                <input type="text" id="brand" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
             </div>
             <div class="relative">
-                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Category</label>
-                <input type="text" id="category" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none" autocomplete="off" placeholder="Accessory">
-                <div id="categorySuggestions" class="absolute z-10 bg-white border border-gray-200 rounded-xl shadow-lg hidden w-full max-h-48 overflow-y-auto"></div>
+                <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Category</label>
+                <input type="text" id="category" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm focus:ring-2 focus:ring-amber-400 outline-none" placeholder="Accessory">
+                <div id="categorySuggestions" class="absolute z-10 bg-white border border-gray-200 rounded-lg shadow-lg hidden w-full max-h-40 md:max-h-48 overflow-y-auto"></div>
             </div>
             <div>
-                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Quantity</label>
-                <input type="number" id="quantity" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+                <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Quantity</label>
+                <input type="number" id="quantity" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Cost Price (₵)</label>
-                <input type="number" step="0.01" id="cost_price" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+                <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Cost Price (₵)</label>
+                <input type="number" step="0.01" id="cost_price" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Discount (₵)</label>
-                <input type="number" step="0.01" id="discount" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none" value="0">
+                <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Discount (₵)</label>
+                <input type="number" step="0.01" id="discount" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm focus:ring-2 focus:ring-amber-400 outline-none" value="0">
             </div>
             <div>
-                <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Selling Price (₵)</label>
-                <input type="number" step="0.01" id="selling_price" class="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+                <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Selling Price (₵)</label>
+                <input type="number" step="0.01" id="selling_price" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
+            </div>
+            <div class="relative">
+                <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Source</label>
+                <input type="text" id="source" class="w-full border border-gray-200 rounded-lg px-2 py-1.5 md:px-3 md:py-2 text-xs md:text-sm focus:ring-2 focus:ring-amber-400 outline-none" placeholder="e.g. Supplier, Wholesaler" autocomplete="off">
+                <div id="sourceSuggestions" class="absolute z-10 bg-white border border-gray-200 rounded-lg shadow-lg hidden w-full max-h-40 md:max-h-48 overflow-y-auto"></div>
             </div>
         </div>
-        <div class="mt-4 flex flex-wrap gap-3">
-            <button id="submitBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-xl text-sm font-medium transition shadow-sm hover:shadow">
-                <i class="fas fa-plus mr-2"></i> Add Purchase
+        <div class="mt-3 md:mt-4 flex flex-wrap gap-2 md:gap-3">
+            <button id="submitBtn" class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 md:px-6 md:py-2 rounded-lg text-xs md:text-sm font-medium transition shadow-sm hover:shadow">
+                <i class="fas fa-plus mr-1 md:mr-2"></i> Add Purchase
             </button>
-            <button id="cancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-xl text-sm font-medium transition hidden">
-                <i class="fas fa-times mr-2"></i> Cancel Edit
+            <button id="cancelBtn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-1.5 md:px-6 md:py-2 rounded-lg text-xs md:text-sm font-medium transition hidden">
+                <i class="fas fa-times mr-1 md:mr-2"></i> Cancel Edit
             </button>
         </div>
     </div>
 
     <!-- ===== SEARCH & FILTER BAR ===== -->
-    <div class="bg-white rounded-3xl shadow-sm p-4 border border-gray-100/80 flex flex-wrap gap-3 items-end">
-        <div class="flex-1 min-w-[180px]">
-            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">Search</label>
-            <input type="text" id="searchInput" placeholder="🔍 Name, brand, or category..." class="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+    <div class="bg-white rounded-2xl shadow-sm p-3 md:p-4 border border-gray-100/80 flex flex-wrap gap-2 md:gap-3 items-end">
+        <div class="flex-1 min-w-[140px] md:min-w-[180px]">
+            <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Search (name/brand/category/source)</label>
+            <input type="text" id="searchInput" placeholder="🔍 Name, brand, source..." class="w-full border border-gray-200 rounded-lg px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
         </div>
         <div>
-            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">From</label>
-            <input type="date" id="fromDate" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+            <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">From</label>
+            <input type="date" id="fromDate" class="border border-gray-200 rounded-lg px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
         </div>
         <div>
-            <label class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1">To</label>
-            <input type="date" id="toDate" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none">
+            <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">To</label>
+            <input type="date" id="toDate" class="border border-gray-200 rounded-lg px-2 py-1 md:px-3 md:py-1.5 text-xs md:text-sm focus:ring-2 focus:ring-amber-400 outline-none">
         </div>
-        <button id="filterBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">
-            <i class="fas fa-filter mr-1"></i> Filter
+        <button id="filterBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 md:px-4 md:py-1.5 rounded-lg text-[10px] md:text-sm font-medium transition">
+            <i class="fas fa-filter mr-0.5 md:mr-1"></i> Filter
         </button>
-        <button id="pdfBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-1.5 rounded-xl text-sm font-medium transition">
-            <i class="fas fa-file-pdf mr-1"></i> PDF Report
+        <button id="clearFilterBtn" class="bg-gray-400 hover:bg-gray-500 text-white px-2.5 py-1 md:px-4 md:py-1.5 rounded-lg text-[10px] md:text-sm font-medium transition">
+            <i class="fas fa-times mr-0.5 md:mr-1"></i> Clear
+        </button>
+        <button id="pdfBtn" class="bg-amber-500 hover:bg-amber-600 text-white px-2.5 py-1 md:px-4 md:py-1.5 rounded-lg text-[10px] md:text-sm font-medium transition">
+            <i class="fas fa-file-pdf mr-0.5 md:mr-1"></i> PDF Report
         </button>
     </div>
 
     <!-- ===== PURCHASES LIST ===== -->
-    <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
-        <div id="purchasesList" class="max-h-[500px] overflow-y-auto space-y-2 pr-1">
+    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-5 border border-gray-100/80">
+        <div id="purchasesList" class="max-h-[400px] md:max-h-[500px] overflow-y-auto space-y-1.5 md:space-y-2 pr-1">
             <!-- dynamically loaded -->
         </div>
-        <div id="summary" class="mt-4 pt-4 border-t border-gray-100">
+        <div id="summary" class="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-gray-100">
             <!-- dynamically loaded -->
         </div>
     </div>
@@ -114,26 +122,26 @@
 
 <!-- ===== PENDING PURCHASES MODAL ===== -->
 <div id="pendingModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
-    <div class="bg-white rounded-3xl shadow-2xl w-11/12 max-w-4xl max-h-[90vh] overflow-hidden">
-        <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-            <h3 class="text-xl font-bold text-gray-700 flex items-center gap-2">
-                <i class="fas fa-clock text-purple-600"></i> Pending Purchases
+    <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-4xl max-h-[90vh] overflow-hidden">
+        <div class="sticky top-0 bg-white p-3 md:p-4 border-b flex justify-between items-center">
+            <h3 class="text-base md:text-xl font-bold text-gray-700 flex items-center gap-1.5 md:gap-2">
+                <i class="fas fa-clock text-amber-600"></i> Pending Purchases
             </h3>
-            <button onclick="closePendingModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            <button onclick="closePendingModal()" class="text-gray-400 hover:text-gray-600 text-xl md:text-2xl">&times;</button>
         </div>
-        <div id="pendingList" class="p-4 space-y-3 overflow-y-auto max-h-[60vh]">
+        <div id="pendingList" class="p-3 md:p-4 space-y-2 md:space-y-3 overflow-y-auto max-h-[55vh]">
             <!-- dynamically loaded -->
         </div>
-        <div class="sticky bottom-0 bg-white p-4 border-t flex flex-wrap justify-between items-center gap-3">
-            <div class="flex flex-wrap gap-2">
-                <button onclick="syncAllPending()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
-                    <i class="fas fa-sync mr-1"></i> Sync All
+        <div class="sticky bottom-0 bg-white p-3 md:p-4 border-t flex flex-wrap justify-between items-center gap-2 md:gap-3">
+            <div class="flex flex-wrap gap-1.5 md:gap-2">
+                <button onclick="syncAllPending()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 md:px-4 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition">
+                    <i class="fas fa-sync mr-0.5 md:mr-1"></i> Sync All
                 </button>
-                <button onclick="clearAllPending()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">
-                    <i class="fas fa-trash mr-1"></i> Clear All
+                <button onclick="clearAllPending()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 md:px-4 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition">
+                    <i class="fas fa-trash mr-0.5 md:mr-1"></i> Clear All
                 </button>
             </div>
-            <button onclick="closePendingModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition">Close</button>
+            <button onclick="closePendingModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-3 py-1 md:px-4 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition">Close</button>
         </div>
     </div>
 </div>
@@ -149,6 +157,7 @@
 
     // ---------- Main variables ----------
     let currentPurchases = [];
+    let currentFilteredData = [];
     let editMode = false;
     let editBatchId = null;
     let isDataFresh = false;
@@ -234,37 +243,38 @@
 
         if (!pending.length) {
             container.innerHTML = `
-                <div class="text-center text-gray-400 py-10">
-                    <i class="fas fa-inbox text-4xl block mb-3"></i>
-                    <p>No pending purchases.</p>
-                    <p class="text-sm">All purchases have been synced to the server.</p>
+                <div class="text-center text-gray-400 py-6 md:py-10">
+                    <i class="fas fa-inbox text-2xl md:text-4xl block mb-2 md:mb-3"></i>
+                    <p class="text-xs md:text-sm">No pending purchases.</p>
+                    <p class="text-[9px] md:text-xs">All purchases have been synced to the server.</p>
                 </div>
             `;
         } else {
             container.innerHTML = pending.map((p, idx) => `
-                <div class="border border-gray-200 rounded-xl p-4 hover:shadow transition">
-                    <div class="flex flex-wrap justify-between items-start gap-3">
-                        <div>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <span class="text-xs font-semibold ${p.type === 'add' ? 'text-green-600' : 'text-yellow-600'}">
+                <div class="border border-gray-200 rounded-lg p-3 md:p-4 hover:shadow transition">
+                    <div class="flex flex-wrap justify-between items-start gap-2 md:gap-3">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                                <span class="text-[8px] md:text-xs font-semibold ${p.type === 'add' ? 'text-green-600' : 'text-yellow-600'}">
                                     ${p.type === 'add' ? '➕ Add' : '✏️ Update'}
                                 </span>
-                                <span class="text-xs text-gray-400">${new Date(p.timestamp).toLocaleString()}</span>
-                                ${p.batchId ? `<span class="text-xs bg-gray-100 px-2 py-0.5 rounded-full">#${p.batchId}</span>` : ''}
+                                <span class="text-[8px] md:text-xs text-gray-400">${new Date(p.timestamp).toLocaleString()}</span>
+                                ${p.batchId ? `<span class="text-[8px] md:text-xs bg-gray-100 px-1.5 py-0.5 rounded-full">#${p.batchId}</span>` : ''}
                             </div>
-                            <h3 class="font-bold text-gray-800 mt-1">${escapeHtml(p.data.name)} (${escapeHtml(p.data.brand)})</h3>
-                            <p class="text-sm text-gray-600">
+                            <h3 class="font-bold text-gray-800 text-sm md:text-base mt-0.5">${escapeHtml(p.data.name)} (${escapeHtml(p.data.brand)})</h3>
+                            <p class="text-[9px] md:text-sm text-gray-600">
                                 Qty: ${p.data.quantity} | Cost: ₵${p.data.cost_price.toFixed(2)} | Selling: ₵${p.data.selling_price.toFixed(2)}
                                 ${p.data.discount ? `| Discount: ₵${p.data.discount.toFixed(2)}` : ''}
                             </p>
-                            <p class="text-sm text-gray-500">Category: ${p.data.category || 'Accessory'}</p>
+                            <p class="text-[8px] md:text-xs text-gray-500">Category: ${p.data.category || 'Accessory'}</p>
+                            <p class="text-[8px] md:text-xs text-gray-500">Source: ${p.data.source || 'Unknown'}</p>
                         </div>
-                        <div class="flex flex-wrap gap-2">
-                            <button onclick="syncPendingItem(${idx})" class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-xl text-sm transition">
-                                <i class="fas fa-sync mr-1"></i> Sync
+                        <div class="flex flex-wrap gap-1 md:gap-2">
+                            <button onclick="syncPendingItem(${idx})" class="bg-green-500 hover:bg-green-600 text-white px-2 py-0.5 md:px-3 md:py-1 rounded-lg text-[8px] md:text-xs transition">
+                                <i class="fas fa-sync mr-0.5 md:mr-1"></i> Sync
                             </button>
-                            <button onclick="removePendingItem(${idx})" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-xl text-sm transition">
-                                <i class="fas fa-trash mr-1"></i> Remove
+                            <button onclick="removePendingItem(${idx})" class="bg-red-500 hover:bg-red-600 text-white px-2 py-0.5 md:px-3 md:py-1 rounded-lg text-[8px] md:text-xs transition">
+                                <i class="fas fa-trash mr-0.5 md:mr-1"></i> Remove
                             </button>
                         </div>
                     </div>
@@ -377,7 +387,7 @@
                     purchases = await res.json();
                     cachePurchases(purchases);
                     isDataFresh = true;
-                    // Auto-sync pending
+                    currentFilteredData = purchases;
                     const pending = getPendingPurchases();
                     if (pending.length) {
                         console.log(`📦 ${pending.length} pending purchases found - syncing...`);
@@ -390,11 +400,13 @@
                 console.warn('Using cached data:', err.message);
                 const cached = loadCachedPurchases();
                 purchases = cached || [];
+                currentFilteredData = purchases;
                 isDataFresh = false;
             }
         } else {
             const cached = loadCachedPurchases();
             purchases = cached || [];
+            currentFilteredData = purchases;
             isDataFresh = false;
         }
 
@@ -436,32 +448,35 @@
     function renderList(purchases) {
         const container = document.getElementById('purchasesList');
         if (!purchases.length) {
-            container.innerHTML = `<div class="text-center text-gray-400 py-10">
-                <i class="fas fa-box-open text-4xl block mb-3"></i>
-                <p>No purchase records found.</p>
+            container.innerHTML = `<div class="text-center text-gray-400 py-6 md:py-10">
+                <i class="fas fa-box-open text-3xl md:text-4xl block mb-2 md:mb-3"></i>
+                <p class="text-xs md:text-sm">No purchase records found.</p>
             </div>`;
             updateSummary([]);
             return;
         }
 
         container.innerHTML = purchases.map(p => `
-            <div class="border border-gray-100 rounded-xl p-4 hover:shadow-md transition">
-                <div class="flex flex-wrap justify-between items-start gap-3">
-                    <div>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h3 class="font-bold text-gray-800">${escapeHtml(p.name)}</h3>
-                            <span class="text-sm text-gray-500">(${escapeHtml(p.brand)})</span>
-                            <span class="text-xs bg-gray-100 px-2 py-0.5 rounded-full">#${p.batch_id}</span>
+            <div class="border border-gray-100 rounded-lg p-3 md:p-4 hover:shadow-md transition">
+                <div class="flex flex-wrap justify-between items-start gap-2 md:gap-3">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-1.5 md:gap-2 flex-wrap">
+                            <h3 class="font-bold text-gray-800 text-sm md:text-base">${escapeHtml(p.name)}</h3>
+                            <span class="text-gray-500 text-[9px] md:text-sm">(${escapeHtml(p.brand)})</span>
+                            <span class="text-[8px] md:text-xs bg-gray-100 px-1.5 py-0.5 rounded-full">#${p.batch_id}</span>
                         </div>
-                        <p class="text-sm text-gray-600 mt-1">
+                        <p class="text-[9px] md:text-sm text-gray-600 mt-0.5">
                             Qty: ${p.quantity} | Stock: ${p.remaining_quantity || p.quantity} | 
                             Cost: ₵${p.cost_price.toFixed(2)} | Discount: ₵${p.discount.toFixed(2)} | 
                             Selling: ₵${p.selling_price.toFixed(2)}
                         </p>
-                        <p class="text-sm text-gray-500">${formatDate(p.date)}</p>
+                        <p class="text-[9px] md:text-sm text-gray-600">
+                            Total: <strong>₵${p.total_cost.toFixed(2)}</strong> | Date: ${formatDate(p.date)}
+                        </p>
+                        <p class="text-[8px] md:text-xs text-gray-500"><span class="font-medium">Source:</span> ${escapeHtml(p.source || 'Unknown')}</p>
                     </div>
-                    <button onclick="editPurchase(${p.batch_id})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-1.5 rounded-xl text-sm transition">
-                        <i class="fas fa-edit mr-1"></i> Update
+                    <button onclick="editPurchase(${p.batch_id})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-0.5 md:px-4 md:py-1.5 rounded-lg text-[9px] md:text-sm transition">
+                        <i class="fas fa-edit mr-0.5 md:mr-1"></i> Update
                     </button>
                 </div>
             </div>
@@ -489,33 +504,33 @@
         const isCached = !isDataFresh && !isOffline;
 
         document.getElementById('summary').innerHTML = `
-            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
-                <div class="bg-gray-50 rounded-xl p-3 text-center">
-                    <p class="text-gray-400 text-xs uppercase">Batches</p>
-                    <p class="text-xl font-bold text-indigo-600">${purchases.length}</p>
+            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 text-[9px] md:text-sm">
+                <div class="bg-gray-50 rounded-lg p-2 md:p-3 text-center">
+                    <p class="text-gray-400 text-[7px] md:text-xs uppercase">Batches</p>
+                    <p class="text-base md:text-xl font-bold text-indigo-600">${purchases.length}</p>
                 </div>
-                <div class="bg-gray-50 rounded-xl p-3 text-center">
-                    <p class="text-gray-400 text-xs uppercase">Total Qty</p>
-                    <p class="text-xl font-bold text-blue-600">${totalQty}</p>
+                <div class="bg-gray-50 rounded-lg p-2 md:p-3 text-center">
+                    <p class="text-gray-400 text-[7px] md:text-xs uppercase">Total Qty</p>
+                    <p class="text-base md:text-xl font-bold text-blue-600">${totalQty}</p>
                 </div>
-                <div class="bg-gray-50 rounded-xl p-3 text-center">
-                    <p class="text-gray-400 text-xs uppercase">Capital</p>
-                    <p class="text-xl font-bold text-purple-600">${formatMoney(totalCapital)}</p>
+                <div class="bg-gray-50 rounded-lg p-2 md:p-3 text-center">
+                    <p class="text-gray-400 text-[7px] md:text-xs uppercase">Capital</p>
+                    <p class="text-base md:text-xl font-bold text-purple-600">${formatMoney(totalCapital)}</p>
                 </div>
-                <div class="bg-gray-50 rounded-xl p-3 text-center">
-                    <p class="text-gray-400 text-xs uppercase">Total Selling</p>
-                    <p class="text-xl font-bold text-green-600">${formatMoney(totalSelling)}</p>
+                <div class="bg-gray-50 rounded-lg p-2 md:p-3 text-center">
+                    <p class="text-gray-400 text-[7px] md:text-xs uppercase">Total Selling</p>
+                    <p class="text-base md:text-xl font-bold text-green-600">${formatMoney(totalSelling)}</p>
                 </div>
-                <div class="bg-gray-50 rounded-xl p-3 text-center">
-                    <p class="text-gray-400 text-xs uppercase">Discount</p>
-                    <p class="text-xl font-bold text-red-500">${formatMoney(totalDiscount)}</p>
+                <div class="bg-gray-50 rounded-lg p-2 md:p-3 text-center">
+                    <p class="text-gray-400 text-[7px] md:text-xs uppercase">Discount</p>
+                    <p class="text-base md:text-xl font-bold text-red-500">${formatMoney(totalDiscount)}</p>
                 </div>
-                <div class="bg-gray-50 rounded-xl p-3 text-center">
-                    <p class="text-gray-400 text-xs uppercase">Profit</p>
-                    <p class="text-xl font-bold ${totalProfit >= 0 ? 'text-teal-600' : 'text-red-600'}">${formatMoney(totalProfit)}</p>
+                <div class="bg-gray-50 rounded-lg p-2 md:p-3 text-center">
+                    <p class="text-gray-400 text-[7px] md:text-xs uppercase">Profit</p>
+                    <p class="text-base md:text-xl font-bold ${totalProfit >= 0 ? 'text-teal-600' : 'text-red-600'}">${formatMoney(totalProfit)}</p>
                 </div>
             </div>
-            <div class="mt-2 text-xs text-gray-400 text-center">
+            <div class="mt-1 md:mt-2 text-[8px] md:text-xs text-gray-400 text-center">
                 ${isOffline ? '⚠️ Offline mode' : ''}
                 ${isCached ? '📦 Showing cached data' : ''}
                 ${!isOffline && !isCached ? '✅ Live data' : ''}
@@ -546,7 +561,8 @@
             quantity: parseInt(document.getElementById('quantity').value),
             cost_price: parseFloat(document.getElementById('cost_price').value),
             discount: parseFloat(document.getElementById('discount').value) || 0,
-            selling_price: parseFloat(document.getElementById('selling_price').value)
+            selling_price: parseFloat(document.getElementById('selling_price').value),
+            source: document.getElementById('source').value.trim() || 'Unknown'
         };
 
         if (!payload.name || !payload.brand || !payload.quantity || !payload.cost_price || !payload.selling_price) {
@@ -601,15 +617,16 @@
         document.getElementById('cost_price').value = purchase.cost_price;
         document.getElementById('discount').value = purchase.discount;
         document.getElementById('selling_price').value = purchase.selling_price;
+        document.getElementById('source').value = purchase.source || 'Unknown';
 
         editMode = true;
         editBatchId = batchId;
 
-        document.getElementById('formTitle').innerHTML = `<i class="fas fa-edit text-yellow-500 mr-2"></i> Update Purchase`;
-        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save mr-2"></i> Update Purchase';
+        document.getElementById('formTitle').innerHTML = `<i class="fas fa-edit text-yellow-500 mr-1.5 md:mr-2"></i> Update Purchase`;
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save mr-1 md:mr-2"></i> Update Purchase';
         document.getElementById('cancelBtn').classList.remove('hidden');
 
-        document.querySelector('.bg-white.rounded-3xl.shadow-sm.p-6.border').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        document.querySelector('.bg-white.rounded-2xl.shadow-sm.p-4.md\\:p-6.border').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     function resetForm() {
@@ -620,12 +637,13 @@
         document.getElementById('cost_price').value = '';
         document.getElementById('discount').value = '0';
         document.getElementById('selling_price').value = '';
+        document.getElementById('source').value = '';
 
         editMode = false;
         editBatchId = null;
 
-        document.getElementById('formTitle').innerHTML = `<i class="fas fa-plus-circle text-teal-500 mr-2"></i> Add Purchase`;
-        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus mr-2"></i> Add Purchase';
+        document.getElementById('formTitle').innerHTML = `<i class="fas fa-plus-circle text-amber-500 mr-1.5 md:mr-2"></i> Add Purchase`;
+        document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus mr-1 md:mr-2"></i> Add Purchase';
         document.getElementById('cancelBtn').classList.add('hidden');
     }
 
@@ -633,38 +651,55 @@
     async function filterPurchases() {
         const from = document.getElementById('fromDate').value;
         const to = document.getElementById('toDate').value;
+        
         if (from && to) {
             try {
                 const res = await fetch(`/api/purchases/filter?start_date=${from}&end_date=${to}&exclude_category=Screen`);
                 if (!res.ok) throw new Error();
                 currentPurchases = await res.json();
+                currentFilteredData = currentPurchases;
                 cachePurchases(currentPurchases);
                 isDataFresh = true;
                 updateCacheBanner();
             } catch {
                 alert('Filter unavailable offline. Showing cached data.');
                 const cached = loadCachedPurchases();
-                if (cached) currentPurchases = cached;
+                if (cached) {
+                    currentPurchases = cached;
+                    currentFilteredData = cached;
+                }
                 isDataFresh = false;
                 updateCacheBanner();
             }
         } else {
             await loadPurchases();
+            currentFilteredData = currentPurchases;
         }
         applySearch();
     }
 
+    function clearFilters() {
+        document.getElementById('fromDate').value = '';
+        document.getElementById('toDate').value = '';
+        document.getElementById('searchInput').value = '';
+        currentFilteredData = currentPurchases;
+        loadPurchases(true);
+    }
+
     function applySearch() {
-        const keyword = document.getElementById('searchInput').value.toLowerCase();
+        const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
         if (!keyword) {
+            currentFilteredData = currentPurchases;
             renderList(currentPurchases);
             return;
         }
         const filtered = currentPurchases.filter(p =>
             (p.name && p.name.toLowerCase().includes(keyword)) ||
             (p.brand && p.brand.toLowerCase().includes(keyword)) ||
-            (p.category && p.category.toLowerCase().includes(keyword))
+            (p.category && p.category.toLowerCase().includes(keyword)) ||
+            (p.source && p.source.toLowerCase().includes(keyword))
         );
+        currentFilteredData = filtered;
         renderList(filtered);
     }
 
@@ -676,10 +711,15 @@
         }
         const from = document.getElementById('fromDate').value;
         const to = document.getElementById('toDate').value;
-        const data = { purchases: currentPurchases, from_date: from, to_date: to };
+        const purchasesToExport = currentFilteredData;
+
+        if (!purchasesToExport || purchasesToExport.length === 0) {
+            alert('No data to export. Please adjust your filters.');
+            return;
+        }
 
         let totalQty = 0, totalCost = 0, totalDiscount = 0, totalSelling = 0, totalProfit = 0, totalCapital = 0;
-        currentPurchases.forEach(p => {
+        purchasesToExport.forEach(p => {
             const qty = p.quantity || 0;
             const cost = p.cost_price || 0;
             const sell = p.selling_price || 0;
@@ -691,13 +731,25 @@
             totalProfit += (sell - cost) * qty - disc;
             totalCapital += (cost * qty) - disc;
         });
-        data.totals = { total_qty: totalQty, total_cost: totalCost, total_discount: totalDiscount, total_selling: totalSelling, total_profit: totalProfit, total_capital: totalCapital, total_batches: currentPurchases.length };
 
         try {
             const res = await fetch('/api/purchases/pdf', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify({
+                    purchases: purchasesToExport,
+                    from_date: from,
+                    to_date: to,
+                    totals: {
+                        total_qty: totalQty,
+                        total_cost: totalCost,
+                        total_discount: totalDiscount,
+                        total_selling: totalSelling,
+                        total_profit: totalProfit,
+                        total_capital: totalCapital,
+                        total_batches: purchasesToExport.length
+                    }
+                })
             });
             if (!res.ok) throw new Error();
             const blob = await res.blob();
@@ -715,7 +767,7 @@
     }
 
     // ---------- Autocomplete ----------
-    let nameTimeout, catTimeout;
+    let nameTimeout, catTimeout, sourceTimeout;
 
     async function fetchNameSuggestions() {
         if (!navigator.onLine) { document.getElementById('nameSuggestions').classList.add('hidden'); return; }
@@ -727,7 +779,7 @@
             const suggestions = await res.json();
             const box = document.getElementById('nameSuggestions');
             if (!suggestions.length) { box.classList.add('hidden'); return; }
-            box.innerHTML = suggestions.map(s => `<div class="px-3 py-1.5 hover:bg-teal-50 cursor-pointer" onclick="selectNameSuggestion('${escapeHtml(s.name)}','${escapeHtml(s.brand)}','${escapeHtml(s.category)}')">${escapeHtml(s.name)} (${escapeHtml(s.brand)})</div>`).join('');
+            box.innerHTML = suggestions.map(s => `<div class="px-2 py-1 md:px-3 md:py-1.5 hover:bg-amber-50 cursor-pointer text-xs md:text-sm" onclick="selectNameSuggestion('${escapeHtml(s.name)}','${escapeHtml(s.brand)}','${escapeHtml(s.category)}')">${escapeHtml(s.name)} (${escapeHtml(s.brand)})</div>`).join('');
             box.classList.remove('hidden');
             const rect = document.getElementById('name').getBoundingClientRect();
             box.style.top = (rect.bottom + window.scrollY + 4) + 'px';
@@ -746,13 +798,32 @@
             const suggestions = await res.json();
             const box = document.getElementById('categorySuggestions');
             if (!suggestions.length) { box.classList.add('hidden'); return; }
-            box.innerHTML = suggestions.map(s => `<div class="px-3 py-1.5 hover:bg-teal-50 cursor-pointer" onclick="selectCategorySuggestion('${escapeHtml(s.category)}')">${escapeHtml(s.category)}</div>`).join('');
+            box.innerHTML = suggestions.map(s => `<div class="px-2 py-1 md:px-3 md:py-1.5 hover:bg-amber-50 cursor-pointer text-xs md:text-sm" onclick="selectCategorySuggestion('${escapeHtml(s.category)}')">${escapeHtml(s.category)}</div>`).join('');
             box.classList.remove('hidden');
             const rect = document.getElementById('category').getBoundingClientRect();
             box.style.top = (rect.bottom + window.scrollY + 4) + 'px';
             box.style.left = rect.left + 'px';
             box.style.width = rect.width + 'px';
         } catch { document.getElementById('categorySuggestions').classList.add('hidden'); }
+    }
+
+    async function fetchSourceSuggestions() {
+        if (!navigator.onLine) { document.getElementById('sourceSuggestions').classList.add('hidden'); return; }
+        const q = document.getElementById('source').value.trim();
+        if (!q) { document.getElementById('sourceSuggestions').classList.add('hidden'); return; }
+        try {
+            const res = await fetch(`/api/purchases/suggestions/source?q=${encodeURIComponent(q)}`);
+            if (!res.ok) throw new Error();
+            const suggestions = await res.json();
+            const box = document.getElementById('sourceSuggestions');
+            if (!suggestions.length) { box.classList.add('hidden'); return; }
+            box.innerHTML = suggestions.map(s => `<div class="px-2 py-1 md:px-3 md:py-1.5 hover:bg-amber-50 cursor-pointer text-xs md:text-sm" onclick="selectSourceSuggestion('${escapeHtml(s.source)}')">${escapeHtml(s.source)}</div>`).join('');
+            box.classList.remove('hidden');
+            const rect = document.getElementById('source').getBoundingClientRect();
+            box.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+            box.style.left = rect.left + 'px';
+            box.style.width = rect.width + 'px';
+        } catch { document.getElementById('sourceSuggestions').classList.add('hidden'); }
     }
 
     window.selectNameSuggestion = function(name, brand, category) {
@@ -767,6 +838,11 @@
         document.getElementById('categorySuggestions').classList.add('hidden');
     };
 
+    window.selectSourceSuggestion = function(source) {
+        document.getElementById('source').value = source;
+        document.getElementById('sourceSuggestions').classList.add('hidden');
+    };
+
     // ---------- Event listeners ----------
     document.addEventListener('DOMContentLoaded', function() {
         loadPurchases();
@@ -775,16 +851,19 @@
         document.getElementById('submitBtn').addEventListener('click', submitPurchase);
         document.getElementById('cancelBtn').addEventListener('click', resetForm);
         document.getElementById('filterBtn').addEventListener('click', filterPurchases);
+        document.getElementById('clearFilterBtn').addEventListener('click', clearFilters);
         document.getElementById('pdfBtn').addEventListener('click', generatePDF);
         document.getElementById('searchInput').addEventListener('input', applySearch);
         document.getElementById('viewPendingBtn').addEventListener('click', viewPendingPurchases);
 
         document.getElementById('name').addEventListener('input', () => { clearTimeout(nameTimeout); nameTimeout = setTimeout(fetchNameSuggestions, 300); });
         document.getElementById('category').addEventListener('input', () => { clearTimeout(catTimeout); catTimeout = setTimeout(fetchCategorySuggestions, 300); });
+        document.getElementById('source').addEventListener('input', () => { clearTimeout(sourceTimeout); sourceTimeout = setTimeout(fetchSourceSuggestions, 300); });
 
         document.addEventListener('click', function(e) {
             if (!e.target.closest('#name')) document.getElementById('nameSuggestions').classList.add('hidden');
             if (!e.target.closest('#category')) document.getElementById('categorySuggestions').classList.add('hidden');
+            if (!e.target.closest('#source')) document.getElementById('sourceSuggestions').classList.add('hidden');
         });
     });
 

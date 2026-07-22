@@ -1,72 +1,99 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-teal-50 via-white to-indigo-50">
-    <div class="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-md border border-gray-100/80">
+<!-- Offline banner -->
+<div id="offlineBanner" class="fixed top-0 left-0 w-full bg-red-500 text-white text-center py-2 z-50 shadow-lg hidden">
+    <i class="fas fa-wifi-slash mr-2"></i> You are offline – cannot sign up. Please connect to the internet.
+</div>
+
+<div class="min-h-[80vh] flex items-center justify-center bg-gradient-to-br from-amber-50 via-white to-yellow-50">
+    <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 w-full max-w-md border border-gray-100/80">
+        
         <!-- Brand -->
-        <div class="text-center mb-7">
-            <div class="flex justify-center items-center gap-2 mb-2">
-                <span class="text-4xl">🧾</span>
-                <span class="text-3xl font-extrabold text-gray-800">Vendrex</span>
+        <div class="text-center mb-6 md:mb-7">
+            <div class="flex justify-center items-center gap-2 mb-1 md:mb-2">
+                <span class="text-3xl md:text-4xl">🧾</span>
+                <span class="text-2xl md:text-3xl font-extrabold text-gray-800">WESTLINK</span>
             </div>
-            <p class="text-gray-400 text-sm tracking-wide">Westlink Supermarket · POS</p>
-            <div class="w-16 h-1 bg-teal-400 rounded-full mx-auto mt-3"></div>
-            <h2 class="text-2xl font-bold text-gray-700 mt-4">Create Account</h2>
-            <p class="text-gray-400 text-sm mt-1">Sign up to continue</p>
+            <p class="text-gray-400 text-xs md:text-sm tracking-wide">Smart POS · Inventory System</p>
+            <div class="w-12 h-1 md:w-16 md:h-1 bg-amber-400 rounded-full mx-auto mt-2 md:mt-3"></div>
+            <h2 class="text-xl md:text-2xl font-bold text-gray-700 mt-3 md:mt-4">Create Account</h2>
+            <p class="text-gray-400 text-xs md:text-sm mt-0.5 md:mt-1">Sign up to continue</p>
         </div>
         
+        <!-- Signup Form -->
         <form id="signupForm">
-            <div class="mb-4">
-                <label class="block text-gray-600 text-sm font-semibold mb-1.5">
-                    <i class="fas fa-user text-teal-500 mr-2"></i> Username
+            <div class="mb-3 md:mb-4">
+                <label class="block text-gray-600 text-xs md:text-sm font-semibold mb-1 md:mb-1.5">
+                    <i class="fas fa-user text-amber-500 mr-1.5 md:mr-2"></i> Username
                 </label>
                 <input type="text" id="username" name="username" required autocomplete="off"
-                       class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition bg-gray-50/50">
+                       class="w-full px-3 py-2 md:px-4 md:py-2.5 border border-gray-200 rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition bg-gray-50/50 text-sm md:text-base">
             </div>
-            <div class="mb-4">
-                <label class="block text-gray-600 text-sm font-semibold mb-1.5">
-                    <i class="fas fa-lock text-teal-500 mr-2"></i> Password
+            <div class="mb-3 md:mb-4">
+                <label class="block text-gray-600 text-xs md:text-sm font-semibold mb-1 md:mb-1.5">
+                    <i class="fas fa-lock text-amber-500 mr-1.5 md:mr-2"></i> Password
                 </label>
                 <input type="password" id="password" name="password" required autocomplete="new-password"
-                       class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition bg-gray-50/50">
-                <p class="text-xs text-gray-400 mt-1"><i class="fas fa-info-circle mr-1"></i> Password must be at least 4 characters</p>
+                       class="w-full px-3 py-2 md:px-4 md:py-2.5 border border-gray-200 rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition bg-gray-50/50 text-sm md:text-base">
+                <p class="text-[8px] md:text-xs text-gray-400 mt-0.5 md:mt-1"><i class="fas fa-info-circle mr-0.5 md:mr-1"></i> Password must be at least 4 characters</p>
             </div>
-            <div class="mb-4 flex items-center">
+            <div class="mb-3 md:mb-4 flex items-center">
                 <label class="flex items-center cursor-pointer">
-                    <input type="checkbox" id="showPassword" class="mr-2 w-4 h-4 text-teal-500 rounded focus:ring-teal-400">
-                    <span class="text-sm text-gray-500"><i class="far fa-eye mr-1"></i> Show Password</span>
+                    <input type="checkbox" id="showPassword" class="mr-1.5 md:mr-2 w-3.5 h-3.5 md:w-4 md:h-4 text-amber-500 rounded focus:ring-amber-400">
+                    <span class="text-[10px] md:text-sm text-gray-500"><i class="far fa-eye mr-0.5 md:mr-1"></i> Show Password</span>
                 </label>
             </div>
-            <div id="roleContainer" class="mb-6">
-                <label class="block text-gray-600 text-sm font-semibold mb-1.5">
-                    <i class="fas fa-shield-alt text-teal-500 mr-2"></i> Role
+            <div id="roleContainer" class="mb-4 md:mb-6">
+                <label class="block text-gray-600 text-xs md:text-sm font-semibold mb-1 md:mb-1.5">
+                    <i class="fas fa-shield-alt text-amber-500 mr-1.5 md:mr-2"></i> Role
                 </label>
-                <select id="role" class="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent transition bg-gray-50/50">
+                <select id="role" class="w-full px-3 py-2 md:px-4 md:py-2.5 border border-gray-200 rounded-lg md:rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-400 focus:border-transparent transition bg-gray-50/50 text-sm md:text-base">
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
                 </select>
-                <p id="roleNote" class="text-xs text-gray-400 mt-1"></p>
+                <p id="roleNote" class="text-[8px] md:text-xs text-gray-400 mt-0.5 md:mt-1"></p>
             </div>
-            <button type="submit" class="w-full bg-teal-500 hover:bg-teal-600 text-white font-semibold py-2.5 px-4 rounded-xl transition shadow-md hover:shadow-lg flex items-center justify-center gap-2">
+            <button type="submit" id="signupBtn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 md:py-2.5 px-4 rounded-lg md:rounded-xl transition shadow-md hover:shadow-lg flex items-center justify-center gap-2 text-sm md:text-base">
                 <i class="fas fa-user-plus"></i> Register
             </button>
         </form>
         
-        <div class="mt-6 text-center">
-            <p class="text-gray-500 text-sm">Already have an account? 
-                <a href="/login" class="text-teal-500 hover:text-teal-600 font-semibold hover:underline">Login</a>
+        <!-- Login Link -->
+        <div class="mt-4 md:mt-6 text-center">
+            <p class="text-gray-500 text-xs md:text-sm">Already have an account? 
+                <a href="/login" class="text-amber-500 hover:text-amber-600 font-semibold hover:underline">Login</a>
             </p>
         </div>
 
         <!-- Footer note -->
-        <div class="mt-6 pt-4 border-t border-gray-100 text-center">
-            <p class="text-[0.6rem] text-gray-400 uppercase tracking-wider">Powered by Hummingbird Digital Solutions</p>
+        <div class="mt-4 md:mt-6 pt-3 md:pt-4 border-t border-gray-100 text-center">
+            <p class="text-[8px] md:text-[0.6rem] text-gray-400 uppercase tracking-wider">Powered by Hummingbird Digital Solutions</p>
         </div>
     </div>
 </div>
 
 <script>
-    // ----- CLEAR FORM FIELDS -----
+    // ===== OFFLINE BANNER =====
+    function updateOfflineBanner() {
+        const banner = document.getElementById('offlineBanner');
+        const signupBtn = document.getElementById('signupBtn');
+        if (!navigator.onLine) {
+            banner.classList.remove('hidden');
+            signupBtn.disabled = true;
+            signupBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            signupBtn.innerHTML = '<i class="fas fa-wifi-slash mr-2"></i> Offline – Cannot Sign Up';
+        } else {
+            banner.classList.add('hidden');
+            signupBtn.disabled = false;
+            signupBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            signupBtn.innerHTML = '<i class="fas fa-user-plus mr-2"></i> Register';
+        }
+    }
+    window.addEventListener('online', updateOfflineBanner);
+    window.addEventListener('offline', updateOfflineBanner);
+
+    // ===== CLEAR FORM FIELDS =====
     function clearFormFields() {
         document.querySelectorAll('#signupForm input[type="text"], #signupForm input[type="password"]').forEach(input => {
             input.value = '';
@@ -87,6 +114,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         forceClear();
         checkAdminCount();
+        updateOfflineBanner();
     });
 
     // Clear also when page is restored from bfcache (back/forward)
@@ -94,17 +122,18 @@
         if (event.persisted) {
             forceClear();
             checkAdminCount();
+            updateOfflineBanner();
         }
     });
 
-    // ----- TOGGLE PASSWORD VISIBILITY -----
+    // ===== TOGGLE PASSWORD VISIBILITY =====
     const showPasswordCheckbox = document.getElementById('showPassword');
     const passwordField = document.getElementById('password');
     showPasswordCheckbox.addEventListener('change', () => {
         passwordField.type = showPasswordCheckbox.checked ? 'text' : 'password';
     });
 
-    // ----- CHECK ADMIN COUNT -----
+    // ===== CHECK ADMIN COUNT =====
     async function checkAdminCount() {
         try {
             const res = await fetch('/api/auth/admin_count');
@@ -133,10 +162,16 @@
         }
     }
 
-    // ----- HANDLE SIGNUP SUBMISSION -----
+    // ===== HANDLE SIGNUP SUBMISSION =====
     const signupForm = document.getElementById('signupForm');
     signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        // Check offline
+        if (!navigator.onLine) {
+            alert('You are offline. Please connect to the internet and try again.');
+            return;
+        }
         
         const username = document.getElementById('username').value.trim();
         const password = document.getElementById('password').value;

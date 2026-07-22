@@ -1,25 +1,33 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="p-6">
-    <div class="flex justify-between items-center mb-6">
-        <div>
-            <h1 class="text-3xl font-bold text-indigo-600">📋 User Activity Logs</h1>
-            <p class="text-gray-500 text-sm mt-1">🔒 Only accessible by system administrator (oxbee)</p>
-        </div>
-        <div>
-            <button onclick="loadLogs()" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg">
-                🔄 Refresh
-            </button>
+<div class="p-4 md:p-6 space-y-4 md:space-y-6">
+
+    <!-- ===== HEADER ===== -->
+    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-gray-100/80">
+        <div class="flex flex-wrap justify-between items-center gap-3">
+            <div>
+                <h1 class="text-xl md:text-3xl font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-history text-amber-500"></i> User Activity Logs
+                </h1>
+                <p class="text-gray-500 text-xs md:text-sm mt-0.5">
+                    <i class="fas fa-lock text-amber-500 mr-1"></i> Only accessible by system administrator
+                </p>
+            </div>
+            <div>
+                <button onclick="loadLogs()" class="bg-amber-500 hover:bg-amber-600 text-white px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition flex items-center gap-1.5">
+                    <i class="fas fa-sync text-[10px] md:text-sm"></i> <span class="hidden xs:inline">Refresh</span><span class="xs:hidden">↻</span>
+                </button>
+            </div>
         </div>
     </div>
 
-    <!-- Filters -->
-    <div class="bg-white rounded-xl shadow-md p-4 mb-6">
-        <div class="flex flex-wrap gap-4 items-end">
+    <!-- ===== FILTERS ===== -->
+    <div class="bg-white rounded-2xl shadow-sm p-3 md:p-4 border border-gray-100/80">
+        <div class="flex flex-wrap gap-2 md:gap-4 items-end">
             <div>
-                <label class="block text-sm font-medium text-gray-700">Action Filter</label>
-                <select id="actionFilter" class="border rounded-lg px-3 py-2">
+                <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">Action</label>
+                <select id="actionFilter" class="border border-gray-200 rounded-lg px-2 py-1 md:px-3 md:py-2 text-[10px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
                     <option value="">All Actions</option>
                     <option value="login">Login</option>
                     <option value="logout">Logout</option>
@@ -27,46 +35,48 @@
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">User</label>
-                <select id="userFilter" class="border rounded-lg px-3 py-2">
+                <label class="block text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider mb-0.5">User</label>
+                <select id="userFilter" class="border border-gray-200 rounded-lg px-2 py-1 md:px-3 md:py-2 text-[10px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
                     <option value="">All Users</option>
                 </select>
             </div>
-            <button onclick="applyFilters()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg">
-                🔍 Apply Filters
+            <button onclick="applyFilters()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition flex items-center gap-1">
+                <i class="fas fa-filter text-[8px] md:text-xs"></i> <span class="hidden xs:inline">Apply Filters</span><span class="xs:hidden">Filter</span>
             </button>
-            <button onclick="clearFilters()" class="bg-gray-400 hover:bg-gray-500 text-white px-5 py-2 rounded-lg">
-                ✕ Clear
+            <button onclick="clearFilters()" class="bg-gray-400 hover:bg-gray-500 text-white px-3 py-1 md:px-5 md:py-2 rounded-lg text-[10px] md:text-sm font-medium transition flex items-center gap-1">
+                <i class="fas fa-times text-[8px] md:text-xs"></i> <span class="hidden xs:inline">Clear</span><span class="xs:hidden">✕</span>
             </button>
         </div>
     </div>
 
-    <!-- Logs Table -->
-    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+    <!-- ===== LOGS TABLE ===== -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100/80 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full">
-                <thead class="bg-gray-100 border-b">
+            <table class="w-full min-w-[600px]">
+                <thead class="bg-gray-50/80 border-b border-gray-100">
                     <tr>
-                        <th class="text-left px-4 py-3 text-sm font-semibold text-gray-600">Time</th>
-                        <th class="text-left px-4 py-3 text-sm font-semibold text-gray-600">User</th>
-                        <th class="text-left px-4 py-3 text-sm font-semibold text-gray-600">Action</th>
-                        <th class="text-left px-4 py-3 text-sm font-semibold text-gray-600">IP Address</th>
-                        <th class="text-left px-4 py-3 text-sm font-semibold text-gray-600">Device</th>
+                        <th class="text-left px-3 py-2 md:px-4 md:py-3 text-[8px] md:text-xs font-semibold text-gray-500 uppercase tracking-wider">Time</th>
+                        <th class="text-left px-3 py-2 md:px-4 md:py-3 text-[8px] md:text-xs font-semibold text-gray-500 uppercase tracking-wider">User</th>
+                        <th class="text-left px-3 py-2 md:px-4 md:py-3 text-[8px] md:text-xs font-semibold text-gray-500 uppercase tracking-wider">Action</th>
+                        <th class="text-left px-3 py-2 md:px-4 md:py-3 text-[8px] md:text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">IP Address</th>
+                        <th class="text-left px-3 py-2 md:px-4 md:py-3 text-[8px] md:text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Device</th>
                     </tr>
                 </thead>
-                <tbody id="logsTableBody">
+                <tbody id="logsTableBody" class="divide-y divide-gray-100">
                     <tr>
-                        <td colspan="5" class="text-center py-8 text-gray-400">Loading logs...</td>
+                        <td colspan="5" class="text-center py-6 md:py-8 text-gray-400 text-xs md:text-sm">Loading logs...</td>
                     </tr>
                 </tbody>
             </table>
         </div>
-        <div id="pagination" class="flex justify-between items-center px-4 py-3 border-t bg-gray-50">
-            <span id="totalLogs" class="text-sm text-gray-500">Loading...</span>
-            <div class="flex gap-2">
-                <button onclick="prevPage()" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50" id="prevBtn">Previous</button>
-                <span id="pageInfo" class="px-3 py-1 text-sm text-gray-600">Page 1</span>
-                <button onclick="nextPage()" class="px-3 py-1 border rounded hover:bg-gray-100 disabled:opacity-50" id="nextBtn">Next</button>
+        
+        <!-- ===== PAGINATION ===== -->
+        <div id="pagination" class="flex flex-wrap justify-between items-center gap-2 px-3 py-2 md:px-4 md:py-3 border-t border-gray-100 bg-gray-50/50">
+            <span id="totalLogs" class="text-[9px] md:text-sm text-gray-500">Loading...</span>
+            <div class="flex items-center gap-1 md:gap-2">
+                <button onclick="prevPage()" class="px-2 py-0.5 md:px-3 md:py-1 border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-[10px] md:text-sm transition" id="prevBtn">Previous</button>
+                <span id="pageInfo" class="px-2 py-0.5 md:px-3 md:py-1 text-[9px] md:text-sm text-gray-600">Page 1</span>
+                <button onclick="nextPage()" class="px-2 py-0.5 md:px-3 md:py-1 border border-gray-200 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed text-[10px] md:text-sm transition" id="nextBtn">Next</button>
             </div>
         </div>
     </div>
@@ -77,27 +87,31 @@
     const limit = 50;
     let totalRecords = 0;
 
+    // ===== GET ACTION BADGE =====
     function getActionBadge(action) {
         const badges = {
-            'login': '<span class="inline-flex items-center bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">✅ Login</span>',
-            'logout': '<span class="inline-flex items-center bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">🚪 Logout</span>',
-            'login_failed': '<span class="inline-flex items-center bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">❌ Failed Login</span>'
+            'login': '<span class="inline-flex items-center gap-0.5 md:gap-1 px-1.5 py-0.5 md:px-2.5 md:py-1 rounded-full text-[8px] md:text-xs font-medium bg-green-100 text-green-700"><i class="fas fa-sign-in-alt text-[6px] md:text-[10px]"></i> Login</span>',
+            'logout': '<span class="inline-flex items-center gap-0.5 md:gap-1 px-1.5 py-0.5 md:px-2.5 md:py-1 rounded-full text-[8px] md:text-xs font-medium bg-blue-100 text-blue-700"><i class="fas fa-sign-out-alt text-[6px] md:text-[10px]"></i> Logout</span>',
+            'login_failed': '<span class="inline-flex items-center gap-0.5 md:gap-1 px-1.5 py-0.5 md:px-2.5 md:py-1 rounded-full text-[8px] md:text-xs font-medium bg-red-100 text-red-700"><i class="fas fa-times-circle text-[6px] md:text-[10px]"></i> Failed</span>'
         };
         return badges[action] || action;
     }
 
+    // ===== FORMAT TIMESTAMP =====
     function formatTimestamp(ts) {
         if (!ts) return 'N/A';
         const date = new Date(ts);
         return date.toLocaleString();
     }
 
+    // ===== TRUNCATE USER AGENT =====
     function truncateUserAgent(ua) {
         if (!ua) return 'N/A';
-        if (ua.length > 40) return ua.substring(0, 40) + '...';
+        if (ua.length > 30) return ua.substring(0, 30) + '...';
         return ua;
     }
 
+    // ===== ESCAPE HTML =====
     function escapeHtml(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, function(m) {
@@ -108,12 +122,13 @@
         });
     }
 
+    // ===== LOAD LOGS =====
     async function loadLogs() {
         const actionFilter = document.getElementById('actionFilter').value;
         const userFilter = document.getElementById('userFilter').value;
         
         const tbody = document.getElementById('logsTableBody');
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">Loading logs...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 md:py-8 text-gray-400 text-xs md:text-sm"><i class="fas fa-spinner fa-spin mr-2"></i> Loading logs...</td></tr>';
 
         try {
             const offset = (currentPage - 1) * limit;
@@ -129,32 +144,34 @@
                 renderLogs(data.logs);
                 updatePagination();
             } else {
-                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Error: ${data.error}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 md:py-8 text-red-400 text-xs md:text-sm">❌ Error: ${escapeHtml(data.error)}</td></tr>`;
             }
         } catch (error) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-red-400">Failed to load logs: ${error.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 md:py-8 text-red-400 text-xs md:text-sm">❌ Failed to load logs: ${escapeHtml(error.message)}</td></tr>`;
         }
     }
 
+    // ===== RENDER LOGS =====
     function renderLogs(logs) {
         const tbody = document.getElementById('logsTableBody');
         
         if (!logs || logs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">No logs found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 md:py-8 text-gray-400 text-xs md:text-sm">📭 No logs found.</td></tr>';
             return;
         }
 
         tbody.innerHTML = logs.map(log => `
-            <tr class="border-b hover:bg-gray-50 transition">
-                <td class="px-4 py-3 text-sm text-gray-600">${formatTimestamp(log.timestamp)}</td>
-                <td class="px-4 py-3 text-sm font-medium text-indigo-600">${escapeHtml(log.username)}</td>
-                <td class="px-4 py-3">${getActionBadge(log.action)}</td>
-                <td class="px-4 py-3 text-sm text-gray-600">${escapeHtml(log.ip_address || 'N/A')}</td>
-                <td class="px-4 py-3 text-sm text-gray-600">${escapeHtml(truncateUserAgent(log.user_agent))}</td>
+            <tr class="hover:bg-gray-50/50 transition">
+                <td class="px-3 py-2 md:px-4 md:py-3 text-[9px] md:text-sm text-gray-600 whitespace-nowrap">${formatTimestamp(log.timestamp)}</td>
+                <td class="px-3 py-2 md:px-4 md:py-3 text-[9px] md:text-sm font-medium text-indigo-600 whitespace-nowrap">${escapeHtml(log.username)}</td>
+                <td class="px-3 py-2 md:px-4 md:py-3">${getActionBadge(log.action)}</td>
+                <td class="px-3 py-2 md:px-4 md:py-3 text-[9px] md:text-sm text-gray-600 hidden sm:table-cell">${escapeHtml(log.ip_address || 'N/A')}</td>
+                <td class="px-3 py-2 md:px-4 md:py-3 text-[8px] md:text-sm text-gray-600 hidden lg:table-cell max-w-[150px] truncate" title="${escapeHtml(log.user_agent || '')}">${escapeHtml(truncateUserAgent(log.user_agent))}</td>
             </tr>
         `).join('');
     }
 
+    // ===== UPDATE PAGINATION =====
     function updatePagination() {
         const totalPages = Math.ceil(totalRecords / limit);
         document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages || 1}`;
@@ -163,6 +180,7 @@
         document.getElementById('totalLogs').textContent = `Total: ${totalRecords} logs`;
     }
 
+    // ===== PAGINATION CONTROLS =====
     function prevPage() {
         if (currentPage > 1) {
             currentPage--;
@@ -175,6 +193,7 @@
         loadLogs();
     }
 
+    // ===== FILTER CONTROLS =====
     function applyFilters() {
         currentPage = 1;
         loadLogs();
@@ -187,11 +206,13 @@
         loadLogs();
     }
 
+    // ===== LOAD USERS FOR FILTER =====
     async function loadUsers() {
         try {
             const res = await fetch('/api/admin/users');
             const users = await res.json();
             const select = document.getElementById('userFilter');
+            select.innerHTML = '<option value="">All Users</option>';
             users.forEach(user => {
                 const option = document.createElement('option');
                 option.value = user.id;
@@ -203,7 +224,7 @@
         }
     }
 
-    // Initial load
+    // ===== INITIAL LOAD =====
     document.addEventListener('DOMContentLoaded', function() {
         loadUsers();
         loadLogs();

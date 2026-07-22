@@ -1,28 +1,31 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="p-4 md:p-6 space-y-6">
+<div class="p-4 md:p-6 space-y-4 md:space-y-6">
 
     <!-- Offline banner -->
-    <div id="offlineBanner" class="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-xl hidden">
+    <div id="offlineBanner" class="mb-3 md:mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 px-3 py-2 md:px-4 md:py-3 rounded-lg text-xs md:text-sm hidden">
         <i class="fas fa-exclamation-triangle mr-2"></i> You are offline – showing cached archive data. Changes will be synced when you reconnect.
     </div>
 
     <!-- ===== HEADER ===== -->
-    <div class="bg-white rounded-3xl shadow-sm p-6 border border-gray-100/80">
+    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-gray-100/80">
         <div class="flex flex-wrap justify-between items-center gap-3">
-            <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <i class="fas fa-archive text-amber-500"></i> Product Archive
-            </h1>
-            <div class="flex flex-wrap items-center gap-3">
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <i class="fas fa-archive text-amber-500"></i> Product Archive
+                </h1>
+                <p class="text-gray-500 text-xs md:text-sm mt-0.5">View and manage archived products, batches, and deletion history</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 md:gap-3">
                 <div class="relative">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                    <i class="fas fa-search absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-[10px] md:text-sm"></i>
                     <input type="text" id="searchInput" placeholder="Search product or brand..." 
-                           class="border border-gray-200 rounded-xl pl-9 pr-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none w-48 md:w-56">
+                           class="border border-gray-200 rounded-lg pl-7 pr-2 py-1 md:pl-9 md:pr-3 md:py-1.5 text-[10px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none w-32 md:w-56">
                 </div>
-                <div class="flex items-center gap-2">
-                    <label class="text-xs font-semibold text-gray-600 uppercase tracking-wider">Filter:</label>
-                    <select id="statusFilter" class="border border-gray-200 rounded-xl px-3 py-1.5 text-sm focus:ring-2 focus:ring-teal-300 outline-none bg-white">
+                <div class="flex items-center gap-1 md:gap-2">
+                    <label class="text-[8px] md:text-xs font-semibold text-gray-600 uppercase tracking-wider">Filter:</label>
+                    <select id="statusFilter" class="border border-gray-200 rounded-lg px-1.5 py-1 md:px-3 md:py-1.5 text-[10px] md:text-sm focus:ring-2 focus:ring-amber-400 outline-none bg-white">
                         <option value="ALL">ALL</option>
                         <option value="ACTIVE">ACTIVE</option>
                         <option value="UPDATED">UPDATED</option>
@@ -34,15 +37,14 @@
                 </div>
             </div>
         </div>
-        <p class="text-gray-500 text-sm mt-1">View and manage archived products, batches, and deletion history</p>
     </div>
 
     <!-- ===== ARCHIVE LIST ===== -->
-    <div class="bg-white rounded-3xl shadow-sm p-5 border border-gray-100/80">
-        <div id="archiveList" class="space-y-3 max-h-[600px] overflow-y-auto pr-1">
-            <div class="text-center text-gray-400 py-10">
-                <i class="fas fa-spinner fa-spin text-3xl block mb-3"></i>
-                <p>Loading archive data...</p>
+    <div class="bg-white rounded-2xl shadow-sm p-4 md:p-5 border border-gray-100/80">
+        <div id="archiveList" class="space-y-2 md:space-y-3 max-h-[500px] md:max-h-[600px] overflow-y-auto pr-1">
+            <div class="text-center text-gray-400 py-6 md:py-10">
+                <i class="fas fa-spinner fa-spin text-2xl md:text-3xl block mb-2 md:mb-3"></i>
+                <p class="text-xs md:text-sm">Loading archive data...</p>
             </div>
         </div>
     </div>
@@ -50,16 +52,16 @@
 
 <!-- ===== MODAL: View Batches ===== -->
 <div id="batchModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center backdrop-blur-sm">
-    <div class="bg-white rounded-3xl shadow-2xl w-11/12 max-w-2xl max-h-[80vh] overflow-hidden">
-        <div class="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-            <h3 class="text-xl font-bold text-gray-700" id="batchModalTitle">
-                <i class="fas fa-layer-group text-blue-500 mr-2"></i> Batches
+    <div class="bg-white rounded-2xl shadow-2xl w-11/12 max-w-2xl max-h-[80vh] overflow-hidden">
+        <div class="sticky top-0 bg-white p-3 md:p-4 border-b flex justify-between items-center">
+            <h3 class="text-base md:text-xl font-bold text-gray-700" id="batchModalTitle">
+                <i class="fas fa-layer-group text-amber-500 mr-2"></i> Batches
             </h3>
-            <button onclick="closeBatchModal()" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            <button onclick="closeBatchModal()" class="text-gray-400 hover:text-gray-600 text-xl md:text-2xl">&times;</button>
         </div>
-        <div id="batchList" class="p-4 space-y-2 overflow-y-auto max-h-[60vh]"></div>
-        <div class="sticky bottom-0 bg-white p-4 border-t text-right">
-            <button onclick="closeBatchModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-xl text-sm font-medium transition">Close</button>
+        <div id="batchList" class="p-3 md:p-4 space-y-2 overflow-y-auto max-h-[55vh]"></div>
+        <div class="sticky bottom-0 bg-white p-3 md:p-4 border-t text-right">
+            <button onclick="closeBatchModal()" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg text-xs md:text-sm font-medium transition">Close</button>
         </div>
     </div>
 </div>
@@ -147,9 +149,9 @@
         currentStatus = status;
         const container = document.getElementById('archiveList');
         container.innerHTML = `
-            <div class="text-center text-gray-400 py-10">
-                <i class="fas fa-spinner fa-spin text-3xl block mb-3"></i>
-                <p>Loading archive data...</p>
+            <div class="text-center text-gray-400 py-6 md:py-10">
+                <i class="fas fa-spinner fa-spin text-2xl md:text-3xl block mb-2 md:mb-3"></i>
+                <p class="text-xs md:text-sm">Loading archive data...</p>
             </div>
         `;
         let data = [];
@@ -177,7 +179,7 @@
         
         if (fromCache && data.length) {
             const note = document.createElement('div');
-            note.className = 'text-xs text-yellow-500 text-center mt-2';
+            note.className = 'text-[9px] md:text-xs text-yellow-500 text-center mt-2';
             note.innerHTML = '<i class="fas fa-database mr-1"></i> Showing cached data (may be outdated)';
             container.appendChild(note);
         }
@@ -201,9 +203,9 @@
         const container = document.getElementById('archiveList');
         if (!items || !items.length) {
             container.innerHTML = `
-                <div class="text-center text-gray-400 py-10">
-                    <i class="fas fa-archive text-4xl block mb-3"></i>
-                    <p>No archive data available.</p>
+                <div class="text-center text-gray-400 py-6 md:py-10">
+                    <i class="fas fa-archive text-3xl md:text-4xl block mb-2 md:mb-3"></i>
+                    <p class="text-xs md:text-sm">No archive data available.</p>
                 </div>
             `;
             return;
@@ -212,21 +214,21 @@
         container.innerHTML = '';
         items.forEach(item => {
             const card = document.createElement('div');
-            card.className = 'bg-white border border-gray-100 rounded-2xl p-4 hover:shadow-md transition';
+            card.className = 'bg-white border border-gray-100 rounded-xl md:rounded-2xl p-3 md:p-4 hover:shadow-md transition';
 
             // Header
             const headerDiv = document.createElement('div');
-            headerDiv.className = 'flex flex-wrap justify-between items-start gap-2 mb-2';
+            headerDiv.className = 'flex flex-wrap justify-between items-start gap-2 mb-1.5 md:mb-2';
             const statusColor = getStatusColor(item.action);
             const statusIcon = getStatusIcon(item.action);
             headerDiv.innerHTML = `
                 <div>
-                    <span class="font-bold text-lg text-gray-800">${escapeHtml(item.name)}</span>
-                    <span class="text-gray-500 text-sm">(${escapeHtml(item.brand)})</span>
+                    <span class="font-bold text-base md:text-lg text-gray-800">${escapeHtml(item.name)}</span>
+                    <span class="text-gray-500 text-[10px] md:text-sm">(${escapeHtml(item.brand)})</span>
                 </div>
                 <div>
-                    <span class="text-sm font-medium inline-flex items-center gap-1 px-2.5 py-1 rounded-full" style="color: ${statusColor}; background: ${statusColor}15;">
-                        <i class="fas ${statusIcon}"></i> ${item.action}
+                    <span class="text-[10px] md:text-sm font-medium inline-flex items-center gap-0.5 md:gap-1 px-1.5 py-0.5 md:px-2.5 md:py-1 rounded-full" style="color: ${statusColor}; background: ${statusColor}15;">
+                        <i class="fas ${statusIcon} text-[8px] md:text-xs"></i> <span class="hidden xs:inline">${item.action}</span><span class="xs:hidden">${item.action.substring(0,4)}</span>
                     </span>
                 </div>
             `;
@@ -234,34 +236,34 @@
 
             // Details
             const detailsDiv = document.createElement('div');
-            detailsDiv.className = 'text-sm text-gray-600 mb-3 space-y-0.5';
+            detailsDiv.className = 'text-[10px] md:text-sm text-gray-600 mb-2 md:mb-3 space-y-0.5';
             
             if (item.action === 'ACTIVE') {
                 detailsDiv.innerHTML = `
-                    <div class="flex flex-wrap gap-3">
-                        <span><i class="fas fa-box text-blue-400 mr-1"></i> Stock: <strong>${item.stock}</strong></span>
-                        <span><i class="fas fa-money-bill-wave text-green-400 mr-1"></i> Cost: ${formatMoney(item.cost)}</span>
-                        <span><i class="fas fa-tag text-purple-400 mr-1"></i> Selling: ${formatMoney(item.price)}</span>
-                        <span><i class="fas fa-percent text-red-400 mr-1"></i> Disc: ${formatMoney(item.discount)}</span>
-                        <span><i class="fas fa-folder text-amber-400 mr-1"></i> ${escapeHtml(item.category)}</span>
+                    <div class="flex flex-wrap gap-1.5 md:gap-3">
+                        <span><i class="fas fa-box text-blue-400 mr-0.5 md:mr-1"></i> Stock: <strong>${item.stock}</strong></span>
+                        <span><i class="fas fa-money-bill-wave text-green-400 mr-0.5 md:mr-1"></i> Cost: ${formatMoney(item.cost)}</span>
+                        <span><i class="fas fa-tag text-purple-400 mr-0.5 md:mr-1"></i> Selling: ${formatMoney(item.price)}</span>
+                        <span><i class="fas fa-percent text-red-400 mr-0.5 md:mr-1"></i> Disc: ${formatMoney(item.discount)}</span>
+                        <span><i class="fas fa-folder text-amber-400 mr-0.5 md:mr-1"></i> ${escapeHtml(item.category)}</span>
                     </div>
                 `;
             } else {
                 let details = `
-                    <div class="flex flex-wrap gap-3">
-                        <span><i class="fas fa-folder text-amber-400 mr-1"></i> ${escapeHtml(item.category)}</span>
-                        <span><i class="fas fa-box text-blue-400 mr-1"></i> Stock: ${item.stock}</span>
-                        <span><i class="fas fa-money-bill-wave text-green-400 mr-1"></i> Cost: ${formatMoney(item.cost)}</span>
-                        <span><i class="fas fa-tag text-purple-400 mr-1"></i> Selling: ${formatMoney(item.price)}</span>
-                        <span><i class="fas fa-percent text-red-400 mr-1"></i> Disc: ${formatMoney(item.discount)}</span>
+                    <div class="flex flex-wrap gap-1.5 md:gap-3">
+                        <span><i class="fas fa-folder text-amber-400 mr-0.5 md:mr-1"></i> ${escapeHtml(item.category)}</span>
+                        <span><i class="fas fa-box text-blue-400 mr-0.5 md:mr-1"></i> Stock: ${item.stock}</span>
+                        <span><i class="fas fa-money-bill-wave text-green-400 mr-0.5 md:mr-1"></i> Cost: ${formatMoney(item.cost)}</span>
+                        <span><i class="fas fa-tag text-purple-400 mr-0.5 md:mr-1"></i> Selling: ${formatMoney(item.price)}</span>
+                        <span><i class="fas fa-percent text-red-400 mr-0.5 md:mr-1"></i> Disc: ${formatMoney(item.discount)}</span>
                     </div>
-                    <div class="text-xs text-gray-400 mt-1"><i class="far fa-calendar-alt mr-1"></i> ${formatDate(item.date)}</div>
+                    <div class="text-[9px] md:text-xs text-gray-400 mt-0.5"><i class="far fa-calendar-alt mr-0.5 md:mr-1"></i> ${formatDate(item.date)}</div>
                 `;
                 if (item.action === 'BATCH DELETED' && item.batch_id) {
-                    details += `<div class="text-xs text-gray-500 mt-1"><i class="fas fa-hashtag mr-1"></i> Batch #${item.batch_id} | Original Qty: ${item.batch_quantity} | Remaining: ${item.batch_remaining}</div>`;
+                    details += `<div class="text-[9px] md:text-xs text-gray-500 mt-0.5"><i class="fas fa-hashtag mr-0.5 md:mr-1"></i> Batch #${item.batch_id} | Original: ${item.batch_quantity} | Remaining: ${item.batch_remaining}</div>`;
                 }
                 if (item.action === 'PRODUCT DELETED' && item.product_id) {
-                    details += `<div class="text-xs text-gray-500 mt-1"><i class="fas fa-id-badge mr-1"></i> Product ID: #${item.product_id} | All batches archived</div>`;
+                    details += `<div class="text-[9px] md:text-xs text-gray-500 mt-0.5"><i class="fas fa-id-badge mr-0.5 md:mr-1"></i> Product ID: #${item.product_id} | All batches archived</div>`;
                 }
                 detailsDiv.innerHTML = details;
             }
@@ -269,13 +271,13 @@
 
             // Buttons
             const btnDiv = document.createElement('div');
-            btnDiv.className = 'flex flex-wrap justify-end gap-2 mt-2 pt-2 border-t border-gray-100';
+            btnDiv.className = 'flex flex-wrap justify-end gap-1.5 md:gap-2 mt-1.5 md:mt-2 pt-1.5 md:pt-2 border-t border-gray-100';
             
             // View Batches button for ACTIVE items
             if (item.action === 'ACTIVE') {
                 const viewBtn = document.createElement('button');
-                viewBtn.innerHTML = '<i class="fas fa-layer-group mr-1"></i> View Batches';
-                viewBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-xl text-sm font-medium transition';
+                viewBtn.innerHTML = '<i class="fas fa-layer-group mr-0.5 md:mr-1"></i> <span class="hidden xs:inline">View Batches</span><span class="xs:hidden">Batches</span>';
+                viewBtn.className = 'bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-sm font-medium transition';
                 viewBtn.onclick = () => viewBatches(item.name, item.brand);
                 btnDiv.appendChild(viewBtn);
             }
@@ -286,20 +288,20 @@
             
             if (isPermanent) {
                 const disabledBtn = document.createElement('button');
-                disabledBtn.innerHTML = '<i class="fas fa-times mr-1"></i> Cannot Restore';
-                disabledBtn.className = 'bg-gray-400 text-white px-3 py-1.5 rounded-xl text-sm font-medium cursor-not-allowed';
+                disabledBtn.innerHTML = '<i class="fas fa-times mr-0.5 md:mr-1"></i> Cannot Restore';
+                disabledBtn.className = 'bg-gray-400 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-sm font-medium cursor-not-allowed';
                 disabledBtn.disabled = true;
                 btnDiv.appendChild(disabledBtn);
             } else if (canRestore && item.id && !item.is_permanent) {
                 const restoreBtn = document.createElement('button');
-                restoreBtn.innerHTML = '<i class="fas fa-undo mr-1"></i> Restore';
-                restoreBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-xl text-sm font-medium transition';
+                restoreBtn.innerHTML = '<i class="fas fa-undo mr-0.5 md:mr-1"></i> Restore';
+                restoreBtn.className = 'bg-green-600 hover:bg-green-700 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-sm font-medium transition';
                 restoreBtn.onclick = () => restoreItem(item.id);
                 btnDiv.appendChild(restoreBtn);
             } else if (item.action === 'UPDATED') {
                 const infoBtn = document.createElement('button');
-                infoBtn.innerHTML = '<i class="fas fa-info-circle mr-1"></i> Update History';
-                infoBtn.className = 'bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded-xl text-sm font-medium transition';
+                infoBtn.innerHTML = '<i class="fas fa-info-circle mr-0.5 md:mr-1"></i> <span class="hidden xs:inline">Update History</span><span class="xs:hidden">Info</span>';
+                infoBtn.className = 'bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 md:px-3 md:py-1.5 rounded-lg text-[10px] md:text-sm font-medium transition';
                 infoBtn.onclick = () => alert('This is an update history record.\n\nIt tracks changes made to products and cannot be restored.\n\n✅ The actual product is still active in inventory.');
                 btnDiv.appendChild(infoBtn);
             }
@@ -314,12 +316,12 @@
         const modalTitle = document.getElementById('batchModalTitle');
         const container = document.getElementById('batchList');
         container.innerHTML = `
-            <div class="text-center text-gray-400 py-6">
-                <i class="fas fa-spinner fa-spin text-2xl block mb-2"></i>
-                <p>Loading batches...</p>
+            <div class="text-center text-gray-400 py-4 md:py-6">
+                <i class="fas fa-spinner fa-spin text-xl md:text-2xl block mb-2"></i>
+                <p class="text-xs md:text-sm">Loading batches...</p>
             </div>
         `;
-        modalTitle.innerHTML = `<i class="fas fa-layer-group text-blue-500 mr-2"></i> Batches – ${escapeHtml(name)} (${escapeHtml(brand)})`;
+        modalTitle.innerHTML = `<i class="fas fa-layer-group text-amber-500 mr-2"></i> Batches – ${escapeHtml(name)} (${escapeHtml(brand)})`;
         document.getElementById('batchModal').classList.remove('hidden');
 
         const cacheKey = `batches_${name}_${brand}`;
@@ -337,33 +339,33 @@
 
         if (!batches || !batches.length) {
             container.innerHTML = `
-                <div class="text-gray-400 text-center py-6">
-                    <i class="fas fa-inbox text-3xl block mb-2"></i>
-                    <p>No batches found.</p>
+                <div class="text-gray-400 text-center py-4 md:py-6">
+                    <i class="fas fa-inbox text-2xl md:text-3xl block mb-2"></i>
+                    <p class="text-xs md:text-sm">No batches found.</p>
                 </div>
             `;
         } else {
             container.innerHTML = '';
             batches.forEach(b => {
                 const div = document.createElement('div');
-                div.className = 'border border-gray-100 rounded-xl p-3 hover:bg-gray-50/50 transition';
+                div.className = 'border border-gray-100 rounded-lg p-2 md:p-3 hover:bg-gray-50/50 transition';
                 div.innerHTML = `
-                    <div class="flex justify-between items-start">
+                    <div class="flex flex-wrap justify-between items-start">
                         <div>
-                            <strong class="text-indigo-600">#${b.batch_id}</strong>
-                            <span class="text-xs text-gray-400 ml-2">${formatDate(b.date)}</span>
+                            <strong class="text-indigo-600 text-xs md:text-sm">#${b.batch_id}</strong>
+                            <span class="text-[9px] md:text-xs text-gray-400 ml-1 md:ml-2">${formatDate(b.date)}</span>
                         </div>
-                        <span class="text-xs font-medium ${b.remaining_quantity > 0 ? 'text-green-600' : 'text-red-500'}">
+                        <span class="text-[9px] md:text-xs font-medium ${b.remaining_quantity > 0 ? 'text-green-600' : 'text-red-500'}">
                             ${b.remaining_quantity > 0 ? '● In Stock' : '● Depleted'}
                         </span>
                     </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-1.5 text-xs text-gray-600">
-                        <span><i class="fas fa-box mr-1"></i> Qty: <strong>${b.quantity}</strong></span>
-                        <span><i class="fas fa-box-open mr-1"></i> Remaining: <strong>${b.remaining_quantity}</strong></span>
-                        <span><i class="fas fa-coins mr-1"></i> Cost: ${formatMoney(b.cost_price)}</span>
-                        <span><i class="fas fa-tag mr-1"></i> Selling: ${formatMoney(b.selling_price)}</span>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-1 md:gap-2 mt-1 text-[9px] md:text-xs text-gray-600">
+                        <span><i class="fas fa-box mr-0.5 md:mr-1"></i> Qty: <strong>${b.quantity}</strong></span>
+                        <span><i class="fas fa-box-open mr-0.5 md:mr-1"></i> Remaining: <strong>${b.remaining_quantity}</strong></span>
+                        <span><i class="fas fa-coins mr-0.5 md:mr-1"></i> Cost: ${formatMoney(b.cost_price)}</span>
+                        <span><i class="fas fa-tag mr-0.5 md:mr-1"></i> Selling: ${formatMoney(b.selling_price)}</span>
                     </div>
-                    ${b.discount > 0 ? `<div class="text-xs text-red-400 mt-1"><i class="fas fa-percent mr-1"></i> Discount: ${formatMoney(b.discount)}</div>` : ''}
+                    ${b.discount > 0 ? `<div class="text-[9px] md:text-xs text-red-400 mt-0.5"><i class="fas fa-percent mr-0.5 md:mr-1"></i> Discount: ${formatMoney(b.discount)}</div>` : ''}
                 `;
                 container.appendChild(div);
             });

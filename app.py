@@ -12,6 +12,7 @@ from services.purchase_service import (
     get_purchases_by_date_range,
     get_product_suggestions,
     get_category_suggestions,
+    get_source_suggestions,  # ✅ ADDED
     update_product
 )
 
@@ -56,10 +57,10 @@ from services.auth_service import (
     get_all_users,
     update_user_role,
     delete_user,
-    logout_user,          # ✅ Added
-    get_user_by_id,       # ✅ Added
-    is_protected_user,    # ✅ Added
-    get_user_logs         # ✅ Added (for logs API)
+    logout_user,
+    get_user_by_id,
+    is_protected_user,
+    get_user_logs
 )
 
 # ---------- IMPORT ARCHIVE SERVICES ----------
@@ -100,13 +101,8 @@ def parse_date_cell(value):
     # Case 1: Excel serial number (float or int like 44927)
     if isinstance(value, (int, float)):
         try:
-            # Excel serial date: starts from 1900-01-01, but Excel incorrectly treats 1900 as leap year
-            # So we use 1899-12-30 as base
             dt = datetime(1899, 12, 30) + timedelta(days=float(value))
-            # Verify it's a reasonable date (between 2000 and 2050)
             if dt.year < 2000 or dt.year > 2050:
-                # If it's outside reasonable range, try to interpret as DD/MM/YYYY text
-                # Some Excel cells might be stored as numbers but actually are dates
                 pass
             return dt
         except:
@@ -126,58 +122,31 @@ def parse_date_cell(value):
         if not s:
             return None
         
-        # 🚨 CRITICAL: Try DD/MM/YYYY FIRST (most common in your data)
-        # This prevents the system from misinterpreting 21/5/2026 as MM/DD/YYYY
         date_formats = [
-            # Day-first formats (most common in your Excel)
-            '%d/%m/%Y',      # 28/01/2023
-            '%d/%m/%y',      # 28/01/23
-            '%d-%m-%Y',      # 28-01-2023
-            '%d-%m-%y',      # 28-01-23
-            '%d.%m.%Y',      # 28.01.2023
-            '%d.%m.%y',      # 28.01.23
-            '%d %b %Y',      # 28 Jan 2023
-            '%d %B %Y',      # 28 January 2023
-            '%d/%m/%Y %H:%M:%S',  # 28/01/2023 14:30:00
-            '%d-%m-%Y %H:%M:%S',  # 28-01-2023 14:30:00
-            
-            # Month-first formats (US style - less common in your data)
-            '%m/%d/%Y',      # 01/28/2023
-            '%m/%d/%y',      # 01/28/23
-            '%m-%d-%Y',      # 01-28-2023
-            '%m-%d-%y',      # 01-28-23
-            
-            # Year-first formats
-            '%Y-%m-%d',      # 2023-01-28
-            '%Y/%m/%d',      # 2023/01/28
-            '%Y%m%d',        # 20230128
-            
-            # Month name formats
-            '%b %d, %Y',     # Jan 28, 2023
-            '%B %d, %Y',     # January 28, 2023
+            '%d/%m/%Y', '%d/%m/%y', '%d-%m-%Y', '%d-%m-%y',
+            '%d.%m.%Y', '%d.%m.%y', '%d %b %Y', '%d %B %Y',
+            '%d/%m/%Y %H:%M:%S', '%d-%m-%Y %H:%M:%S',
+            '%m/%d/%Y', '%m/%d/%y', '%m-%d-%Y', '%m-%d-%y',
+            '%Y-%m-%d', '%Y/%m/%d', '%Y%m%d',
+            '%b %d, %Y', '%B %d, %Y'
         ]
         
-        # Try each format
         for fmt in date_formats:
             try:
                 dt = datetime.strptime(s, fmt)
-                # Validate the date is reasonable (between 2000 and 2050)
                 if dt.year >= 2000 and dt.year <= 2050:
                     return dt
             except ValueError:
                 continue
         
-        # Try dateutil parser as fallback (if available)
         if HAS_DATEUTIL:
             try:
-                # Force day-first parsing
                 dt = date_parser.parse(s, dayfirst=True, fuzzy=False)
                 if dt.year >= 2000 and dt.year <= 2050:
                     return dt
             except:
                 pass
         
-        # Last resort: try to parse just the date part (ignore time)
         try:
             date_part = s.split(' ')[0]
             for fmt in ['%d/%m/%Y', '%Y-%m-%d', '%m/%d/%Y', '%d-%m-%Y', '%Y/%m/%d']:
@@ -190,16 +159,13 @@ def parse_date_cell(value):
         except:
             pass
         
-        # If all parsing fails, return None (will be handled by caller)
         return None
     
-    # If we can't parse it, return None
     return None
 
 app = Flask(__name__)
 app.secret_key = os.getenv("SECRET_KEY", "temporary-dev-key")
 
-# ===================== LICENSE / TRIAL SYSTEM =====================
 # ===================== LICENSE / TRIAL SYSTEM =====================
 import json
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -207,18 +173,12 @@ LICENSE_FILE = os.path.join(BASE_DIR, "license.json")
 TRIAL_DAYS = 3
 MASTER_KEY = "OXSMART-1234-KEY"
 
-# ===================== TRIAL END TIME =====================
 def get_trial_end_time():
-    """
-    Returns the trial end time.
-    Currently set to tomorrow at 5:00 AM.
-    """
     now = datetime.now()
     tomorrow = now + timedelta(days=1)
     end_time = datetime(tomorrow.year, tomorrow.month, tomorrow.day, 5, 0, 0)
     return end_time
 
-# ===================== IMPORT JOB TRACKING =====================
 def init_import_jobs_table():
     conn = get_connection()
     cursor = conn.cursor()
@@ -265,7 +225,6 @@ def update_job_progress(job_id, **kwargs):
 
 init_import_jobs_table()
 
-# ---------- LICENSE FUNCTIONS ----------
 def load_license_data():
     try:
         if os.path.exists(LICENSE_FILE):
@@ -295,7 +254,6 @@ def get_trial_start():
     return None
 
 def get_trial_end():
-    # This now uses the specific end time
     return get_trial_end_time()
 
 def get_remaining_trial():
@@ -317,6 +275,7 @@ def is_trial_active():
         return True
     rem = get_remaining_trial()
     return rem is not None and rem.total_seconds() > 0
+
 # ---------------------- CONTEXT PROCESSOR ----------------------
 @app.context_processor
 def inject_user():
@@ -466,7 +425,6 @@ def api_auth_login():
     username = data.get('username')
     password = data.get('password')
     
-    # Get client info
     ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
     user_agent = request.headers.get('User-Agent')
     
@@ -479,20 +437,19 @@ def api_auth_login():
     else:
         return jsonify({'success': False, 'error': 'Invalid credentials'}), 401
 
-
 @app.route('/api/auth/logout', methods=['POST'])
 @login_required
 def api_auth_logout():
     user_id = session.get('user_id')
     username = session.get('username')
     
-    # Log logout
     ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
     user_agent = request.headers.get('User-Agent')
     logout_user(user_id, username, ip_address, user_agent)
     
     session.clear()
     return jsonify({'success': True})
+
 @app.route('/api/auth/signup', methods=['POST'])
 def api_auth_signup():
     data = request.json
@@ -519,7 +476,6 @@ def api_auth_signup():
     else:
         return jsonify({'success': False, 'error': 'Username already exists'}), 400
 
-
 @app.route('/api/auth/check', methods=['GET'])
 def api_auth_check():
     if 'user_id' in session:
@@ -544,7 +500,6 @@ def api_auth_admin_count():
 @app.route("/admin/users/<int:user_id>/edit")
 @admin_required
 def admin_edit_user(user_id):
-    """Edit user page - admin only"""
     from services.auth_service import get_user_by_id, is_protected_user
     
     user = get_user_by_id(user_id)
@@ -554,15 +509,14 @@ def admin_edit_user(user_id):
     is_oxbee = is_protected_user(user_id)
     
     return render_template("edit_user.html", user_id=user_id, is_oxbee=is_oxbee)
+
 # ===================== USER LOGS API (OXBEE ONLY) =====================
 @app.route('/api/user/logs', methods=['GET'])
 @login_required
 def api_user_logs():
-    """Get user logs - ONLY accessible by oxbee"""
     current_user_id = session.get('user_id')
     current_username = session.get('username')
     
-    # Only oxbee can view logs
     if current_username.lower() != 'oxbee':
         return jsonify({'success': False, 'error': 'Unauthorized - Only system administrator can view logs'}), 403
     
@@ -575,7 +529,6 @@ def api_user_logs():
     
     logs = get_user_logs(user_id, limit, offset, action)
     
-    # Get total count
     conn = get_connection()
     cursor = conn.cursor()
     try:
@@ -606,26 +559,19 @@ def api_user_logs():
         'offset': offset
     })
 
-
-# ===================== LOGS PAGE (OXBEE ONLY) =====================
 @app.route("/logs")
 @login_required
 def logs():
-    """Logs page - ONLY accessible by oxbee"""
     current_username = session.get('username')
     
-    # Only oxbee can view logs
     if current_username.lower() != 'oxbee':
         return render_template("error.html", message="Unauthorized - Only system administrator can view logs"), 403
     
     return render_template("logs.html")
 
-
-# ===================== GET SINGLE USER (Admin) =====================
 @app.route('/api/admin/users/<int:user_id>', methods=['GET'])
 @admin_required
 def api_admin_get_user(user_id):
-    """Get a single user's details (for editing)"""
     from services.auth_service import get_user_by_id
     
     user = get_user_by_id(user_id)
@@ -634,15 +580,11 @@ def api_admin_get_user(user_id):
     
     return jsonify({'success': True, 'user': user})
 
-
-# ===================== UPDATE USER PASSWORD (Admin) =====================
 @app.route('/api/admin/users/<int:user_id>/password', methods=['PUT'])
 @admin_required
 def api_admin_update_user_password(user_id):
-    """Admin can update a user's password"""
     from services.auth_service import update_user_password, is_protected_user
     
-    # Prevent modifying oxbee
     if is_protected_user(user_id):
         return jsonify({'success': False, 'error': 'Cannot modify the system administrator (oxbee)'}), 403
     
@@ -688,7 +630,6 @@ def api_admin_delete_user(user_id):
     if user_id == session.get('user_id'):
         return jsonify({'success': False, 'error': 'Cannot delete your own account'}), 400
     
-    # Prevent deleting oxbee
     if is_protected_user(user_id):
         return jsonify({'success': False, 'error': 'Cannot delete the system administrator (oxbee)'}), 400
     
@@ -698,13 +639,11 @@ def api_admin_delete_user(user_id):
     else:
         return jsonify({'success': False, 'error': 'Delete failed'}), 400
 
-
 @app.route('/api/admin/users/<int:user_id>/role', methods=['PUT'])
 @admin_required
 def api_admin_update_role(user_id):
     from services.auth_service import is_protected_user
     
-    # Prevent modifying oxbee
     if is_protected_user(user_id):
         return jsonify({'success': False, 'error': 'Cannot modify the system administrator (oxbee)'}), 400
     
@@ -717,6 +656,7 @@ def api_admin_update_role(user_id):
         return jsonify({'success': True})
     else:
         return jsonify({'success': False, 'error': 'Update failed'}), 400
+
 # ===================== DASHBOARD API =====================
 @app.route('/api/dashboard/summary', methods=['GET'])
 @login_required
@@ -793,7 +733,7 @@ def api_dashboard_sales_history():
         })
     return jsonify(result)
 
-# ===================== PURCHASES API (with category filter) =====================
+# ===================== PURCHASES API (with category filter and source) =====================
 def serialize_purchase(p):
     p_copy = p.copy()
     if 'date' in p_copy and p_copy['date']:
@@ -829,7 +769,8 @@ def api_add_purchase():
             quantity=int(data['quantity']),
             cost_price=float(data['cost_price']),
             discount=float(data.get('discount', 0)),
-            selling_price=float(data['selling_price'])
+            selling_price=float(data['selling_price']),
+            source=data.get('source', 'Unknown')  # ✅ Added source
         )
         return jsonify({'success': True, 'batch_id': batch_id})
     except Exception as e:
@@ -848,7 +789,8 @@ def api_update_purchase(batch_id):
             quantity=int(data['quantity']),
             cost_price=float(data['cost_price']),
             discount=float(data.get('discount', 0)),
-            selling_price=float(data['selling_price'])
+            selling_price=float(data['selling_price']),
+            source=data.get('source', 'Unknown')  # ✅ Added source
         )
         return jsonify({'success': True})
     except Exception as e:
@@ -900,6 +842,16 @@ def api_suggest_category():
         suggestions = [s for s in suggestions if s.get('category') != exclude_category]
     return jsonify(suggestions)
 
+# ✅ Source suggestions endpoint - ADDED
+@app.route('/api/purchases/suggestions/source', methods=['GET'])
+@login_required
+def api_suggest_source():
+    q = request.args.get('q', '')
+    if not q:
+        return jsonify([])
+    suggestions = get_source_suggestions(q)
+    return jsonify(suggestions)
+
 @app.route('/api/purchases/pdf', methods=['POST'])
 @login_required
 def api_purchases_pdf():
@@ -915,7 +867,6 @@ def api_purchases_pdf():
     styles = getSampleStyleSheet()
     elements = []
     
-    # Title
     elements.append(Paragraph("📦 Purchases Report", styles["Title"]))
     elements.append(Spacer(1, 6))
     elements.append(Paragraph(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]))
@@ -923,8 +874,7 @@ def api_purchases_pdf():
         elements.append(Paragraph(f"Date Range: {from_date} → {to_date}", styles["Normal"]))
     elements.append(Spacer(1, 12))
 
-    # Table data
-    table_data = [["ID", "Name", "Brand", "Qty", "Stock", "Cost", "Discount", "Total", "Selling", "Date/Time"]]
+    table_data = [["ID", "Name", "Brand", "Qty", "Stock", "Cost", "Discount", "Total", "Selling", "Source", "Date/Time"]]
     total_qty = total_cost = total_discount = total_selling = 0
     row_colors = [colors.whitesmoke, colors.lightgrey]
 
@@ -938,12 +888,16 @@ def api_purchases_pdf():
                 date_str = str(date_str)[:16]
 
         table_data.append([
-            p["batch_id"], p["name"], p["brand"],
-            p["quantity"], p["remaining_quantity"],
+            p["batch_id"], 
+            p["name"], 
+            p["brand"],
+            p["quantity"], 
+            p["remaining_quantity"],
             f"₵{p.get('cost_price', 0):.2f}",
             f"₵{p.get('discount', 0):.2f}",
             f"₵{p.get('total_cost', 0):.2f}",
             f"₵{p.get('selling_price', 0):.2f}",
+            p.get('source', 'Unknown'),
             date_str
         ])
         total_qty += p.get("quantity", 0)
@@ -952,14 +906,14 @@ def api_purchases_pdf():
         total_selling += p.get("selling_price", 0) * p.get("quantity", 0)
 
     table = Table(table_data, repeatRows=1, hAlign='LEFT',
-                  colWidths=[1.8*cm, 4.5*cm, 4*cm, 2*cm, 2*cm, 2.5*cm, 2.5*cm, 2.5*cm, 2.5*cm, 3.5*cm])
+                  colWidths=[1.8*cm, 4.5*cm, 3.5*cm, 1.8*cm, 1.8*cm, 2.2*cm, 2.2*cm, 2.5*cm, 2.5*cm, 3*cm, 3.5*cm])
     style = TableStyle([
         ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#00CFCF")),
         ("TEXTCOLOR", (0,0), (-1,0), colors.whitesmoke),
         ("ALIGN", (3,1), (-2,-1), "CENTER"),
         ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
         ("GRID", (0,0), (-1,-1), 0.4, colors.black),
-        ("FONTSIZE", (0,0), (-1,-1), 8.5),
+        ("FONTSIZE", (0,0), (-1,-1), 7.5),
     ])
     for i in range(1, len(table_data)):
         style.add("BACKGROUND", (0,i), (-1,i), row_colors[i%2])
@@ -967,13 +921,9 @@ def api_purchases_pdf():
     elements.append(table)
     elements.append(Spacer(1, 12))
 
-    # ================================================================
-    # ENHANCED SUMMARY SECTION WITH GRAND TOTAL, CAPITAL, AND PROFIT
-    # ================================================================
     elements.append(Paragraph("📊 Summary", styles["Heading2"]))
     elements.append(Spacer(1, 6))
     
-    # Use totals from request if provided, otherwise calculate from data
     if totals:
         total_batches_export = totals.get('total_batches', len(purchases))
         total_qty_export = totals.get('total_qty', total_qty)
@@ -983,7 +933,6 @@ def api_purchases_pdf():
         total_capital_export = totals.get('total_capital', total_cost - total_discount)
         total_profit_export = totals.get('total_profit', total_selling - (total_cost - total_discount))
     else:
-        # Calculate from data
         total_batches_export = len(purchases)
         total_qty_export = total_qty
         total_cost_export = total_cost
@@ -992,7 +941,6 @@ def api_purchases_pdf():
         total_capital_export = total_cost - total_discount
         total_profit_export = total_selling - total_capital_export
     
-    # Create a nice summary table
     summary_data = [
         ["Metric", "Value"],
         ["📦 Total Batches", str(total_batches_export)],
@@ -1018,7 +966,6 @@ def api_purchases_pdf():
     ]))
     elements.append(summary_table)
     
-    # Add profit status indicator
     profit_color = colors.green if total_profit_export >= 0 else colors.red
     profit_status = "📈 PROFIT" if total_profit_export >= 0 else "📉 LOSS"
     elements.append(Spacer(1, 6))
@@ -1134,13 +1081,11 @@ def api_sales_products():
     exclude_category = request.args.get('exclude_category')
     products = get_products_for_sale()
     
-    # Filter by category
     if category:
         products = [p for p in products if p.get('category') == category]
     if exclude_category:
         products = [p for p in products if p.get('category') != exclude_category]
     
-    # ✅ GROUP products by name + brand, PRESERVING batches
     grouped = {}
     for p in products:
         key = (p['name'], p['brand'])
@@ -1156,16 +1101,13 @@ def api_sales_products():
                 'stock': 0,
                 'batches': []
             }
-        # Sum stock across all batches
         grouped[key]['stock'] += p.get('stock', 0)
         
-        # ✅ PRESERVE BATCHES from each product entry
         if 'batches' in p and p['batches']:
             existing_batch_ids = {b.get('batch_id') for b in grouped[key]['batches']}
             for batch in p['batches']:
                 if batch.get('batch_id') not in existing_batch_ids:
                     grouped[key]['batches'].append(batch)
-        # ✅ Handle case where p itself is a batch
         elif p.get('batch_id'):
             grouped[key]['batches'].append({
                 'batch_id': p.get('batch_id'),
@@ -1175,10 +1117,8 @@ def api_sales_products():
                 'batch_quantity': p.get('batch_quantity', p.get('stock', 0))
             })
     
-    # Convert back to list
     result = list(grouped.values())
     
-    # ✅ Log for debugging
     for r in result:
         if r.get('batches') and len(r['batches']) > 0:
             print(f"✅ {r['name']}: {len(r['batches'])} batches, stock: {r['stock']}")
@@ -1193,12 +1133,11 @@ def api_sales_batches(product_id):
     batches = get_batches_for_product(product_id)
     return jsonify(batches)
 
-# ✅ ========== ADD THIS NEW ENDPOINT HERE ==========
 @app.route('/api/sales/batches/by_name', methods=['GET'])
 @login_required
 def api_sales_batches_by_name():
     name = request.args.get('name')
-    brand = request.args.get('brand', '')  # Brand is optional
+    brand = request.args.get('brand', '')
     
     if not name:
         return jsonify([])
@@ -1206,8 +1145,6 @@ def api_sales_batches_by_name():
     conn = get_connection()
     cursor = conn.cursor()
     
-    # If brand is provided, match both name and brand
-    # If brand is empty, match only name
     if brand:
         cursor.execute("""
             SELECT pb.id, pb.product_id, pb.quantity, pb.remaining_quantity, 
@@ -1262,7 +1199,6 @@ def api_sales_batches_by_name():
         })
     
     return jsonify(result)
-
 
 @app.route('/api/sales/complete', methods=['POST'])
 @login_required
@@ -1435,7 +1371,7 @@ def api_reverse_sale_items():
     finally:
         conn.close()
 
-# ===================== TODAY'S SALES API (with category filter and username) =====================
+# ===================== TODAY'S SALES API =====================
 @app.route('/api/today_sales', methods=['GET'])
 @login_required
 def api_today_sales():
@@ -1492,7 +1428,6 @@ def api_today_sales():
             where_conditions.append("EXTRACT(YEAR FROM sales.date) = EXTRACT(YEAR FROM CURRENT_DATE) AND EXTRACT(MONTH FROM sales.date) = EXTRACT(MONTH FROM CURRENT_DATE)")
         elif period == 'yearly':
             where_conditions.append("EXTRACT(YEAR FROM sales.date) = EXTRACT(YEAR FROM CURRENT_DATE)")
-        # period == 'all' – no date filter
     
     if category:
         where_conditions.append("products.category = %s")
@@ -2105,7 +2040,7 @@ def api_archive_batches():
     batches = [b for b in purchases if b['name'] == name and b['brand'] == brand]
     return jsonify(batches)
 
-# ===================== IMPORT ENDPOINTS (with progress) =====================
+# ===================== IMPORT ENDPOINTS =====================
 import openpyxl
 from openpyxl import load_workbook
 from werkzeug.utils import secure_filename
@@ -2122,11 +2057,9 @@ def allowed_file(filename):
 def import_inventory_page():
     return render_template('import_inventory.html')
 
-# ---------- CANCEL FLAGS (in-memory) ----------
 cancel_flags = {}
 
-
-# ========== FIXED INVENTORY IMPORT (WITH ENHANCED DATE PARSING) ==========
+# ========== INVENTORY IMPORT ==========
 def run_inventory_import(job_id, file_stream, target_category, mode='append'):
     conn = None
     try:
@@ -2136,7 +2069,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
         update_job_progress(job_id, status='error', errors=[f"Unable to read workbook: {str(e)}"])
         return
 
-    # --- Header detection (enhanced) ---
     header_row_idx = None
     header_row = None
     for i, row in enumerate(ws.iter_rows(min_row=1, max_row=20, values_only=True)):
@@ -2168,7 +2100,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
                 header_map['date'] = idx
             elif cell_lower in ['discount']:
                 header_map['discount'] = idx
-            # Note: We intentionally don't map 'category' column - we always use target_category
 
     required = ['name']
     missing = [f for f in required if f not in header_map]
@@ -2198,7 +2129,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
                 })
                 continue
 
-            # Quantity
             try:
                 quantity = float(row[header_map['quantity']]) if header_map.get('quantity') is not None and row[header_map['quantity']] is not None else 0
                 if quantity < 0:
@@ -2208,7 +2138,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
                 quantity = 0
                 warning_rows.append(f"Row {row_idx}: Invalid quantity, set to 0")
 
-            # Cost price per unit (optional)
             cost_price = 0
             if 'cost_price' in header_map and row[header_map['cost_price']] is not None:
                 try:
@@ -2220,7 +2149,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
                     cost_price = 0
                     warning_rows.append(f"Row {row_idx}: Invalid cost price, set to 0")
 
-            # Total cost (amount) – if present, use it, else compute from cost_price * qty
             total_cost = 0
             if 'total_cost' in header_map and row[header_map['total_cost']] is not None:
                 try:
@@ -2239,7 +2167,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
 
             cost_per_unit = total_cost / quantity if quantity > 0 else 0
 
-            # Selling price – either from column or computed with markup
             selling_price = 0
             if 'selling_price' in header_map and row[header_map['selling_price']] is not None:
                 try:
@@ -2257,8 +2184,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
                 else:
                     selling_price = 0
 
-                        # Discount
-                     # Discount
             try:
                 discount = float(row[header_map.get('discount')]) if header_map.get('discount') is not None and row[header_map['discount']] is not None else 0
                 if discount < 0:
@@ -2266,25 +2191,20 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
             except:
                 discount = 0
 
-            # ========== ENHANCED DATE PARSING WITH AUTO-CORRECTION ==========
             purchase_date = None
             if 'date' in header_map and row[header_map['date']] is not None:
                 date_value = row[header_map['date']]
                 try:
-                    # Use the improved parse_date_cell function
                     purchase_date = parse_date_cell(date_value)
                     
-                    # If parse_date_cell returned None or invalid date, fallback to current date
                     if purchase_date is None:
                         purchase_date = datetime.now()
                         warning_rows.append(f"Row {row_idx}: Could not parse date '{date_value}', using current date")
-                    # Auto-correct future dates (more than 1 day ahead)
                     elif purchase_date > datetime.now() + timedelta(days=1):
-                        warning_rows.append(f"Row {row_idx}: Date '{purchase_date.strftime('%Y-%m-%d')}' is in the future (original: '{date_value}') - AUTO-CORRECTED to today")
+                        warning_rows.append(f"Row {row_idx}: Date '{purchase_date.strftime('%Y-%m-%d')}' is in the future - AUTO-CORRECTED to today")
                         purchase_date = datetime.now()
-                    # Auto-correct dates before year 2000
                     elif purchase_date.year < 2000:
-                        warning_rows.append(f"Row {row_idx}: Date '{purchase_date.strftime('%Y-%m-%d')}' is before year 2000 (original: '{date_value}') - AUTO-CORRECTED to today")
+                        warning_rows.append(f"Row {row_idx}: Date '{purchase_date.strftime('%Y-%m-%d')}' is before year 2000 - AUTO-CORRECTED to today")
                         purchase_date = datetime.now()
                 except Exception as e:
                     purchase_date = datetime.now()
@@ -2292,8 +2212,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
             else:
                 purchase_date = datetime.now()
 
-            # ✅ FIXED: ALWAYS use target_category, ignore category column from file
-            # The user's selection in the UI is the source of truth
             category = target_category
 
             rows_to_process.append({
@@ -2331,7 +2249,7 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
     if total_rows == 0:
         update_job_progress(job_id, status='done',
                             result={'imported': 0, 'skipped': skipped_rows, 'warnings': warning_rows,
-                                    'message': 'No valid rows to import (all missing product name or had fatal errors)'})
+                                    'message': 'No valid rows to import'})
         return
 
     if not DATABASE_URL:
@@ -2346,7 +2264,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
         conn.autocommit = False
         cursor = conn.cursor()
 
-        # --- REPLACE MODE: delete products for each category found in the file ---
         if mode == 'replace':
             categories_in_file = set(item['category'] for item in rows_to_process)
             for cat in categories_in_file:
@@ -2356,12 +2273,10 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
                 """, (cat,))
                 cursor.execute("DELETE FROM purchases WHERE category = %s", (cat,))
                 cursor.execute("DELETE FROM products WHERE category = %s", (cat,))
-            # Reset sequences
             cursor.execute("SELECT setval('products_id_seq', (SELECT COALESCE(MAX(id), 1) FROM products))")
             cursor.execute("SELECT setval('purchases_id_seq', (SELECT COALESCE(MAX(id), 1) FROM purchases))")
             cursor.execute("SELECT setval('purchase_batches_id_seq', (SELECT COALESCE(MAX(id), 1) FROM purchase_batches))")
 
-        # ---- Process rows ----
         for idx, item in enumerate(rows_to_process, start=1):
             if mode == 'replace':
                 cursor.execute("""
@@ -2371,7 +2286,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
                 """, (item['name'], item['brand'], item['cost_price'], item['selling_price'], 0, item['category']))
                 product_id = cursor.fetchone()[0]
             else:
-                # FIX: Match by name + brand ONLY – ignore category
                 cursor.execute("""
                     SELECT p.id, p.cost_price, p.selling_price, p.category
                     FROM products p
@@ -2382,14 +2296,12 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
 
                 if product:
                     product_id, existing_cost, existing_selling, existing_category = product
-                    # Update category if different
                     if existing_category != item['category']:
                         cursor.execute("""
                             UPDATE products
                             SET category = %s
                             WHERE id = %s
                         """, (item['category'], product_id))
-                    # Update cost and selling price if changed
                     if (existing_cost != item['cost_price'] or existing_selling != item['selling_price']):
                         cursor.execute("""
                             UPDATE products
@@ -2404,7 +2316,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
                     """, (item['name'], item['brand'], item['cost_price'], item['selling_price'], 0, item['category']))
                     product_id = cursor.fetchone()[0]
 
-            # ---- Insert into purchases table ----
             total = item['total_cost'] - item['discount']
             cursor.execute("""
                 INSERT INTO purchases
@@ -2413,7 +2324,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
             """, (item['name'], item['brand'], item['category'], item['quantity'],
                   item['cost_price'], item['discount'], total, item['selling_price'], item['purchase_date']))
 
-            # ---- Insert into purchase_batches ----
             cursor.execute("""
                 INSERT INTO purchase_batches
                 (product_id, quantity, remaining_quantity, cost_price, selling_price, discount, date, action)
@@ -2422,7 +2332,6 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
             """, (product_id, item['quantity'], item['quantity'], item['cost_price'],
                   item['selling_price'], item['discount'], item['purchase_date'], "added"))
 
-            # ---- Update product stock ----
             if item['quantity'] != 0:
                 cursor.execute("""
                     UPDATE products SET stock = stock + %s WHERE id = %s
@@ -2467,9 +2376,8 @@ def run_inventory_import(job_id, file_stream, target_category, mode='append'):
         if conn:
             conn.close()
         cancel_flags.pop(job_id, None)
-# ========== FIXED SALES IMPORT ==========
-# ========== FIXED SALES IMPORT (WITH IMPROVED PRODUCT MATCHING) ==========
-# ========== FIXED SALES IMPORT (WITH IMPROVED PRODUCT MATCHING & STOCK HANDLING) ==========
+
+# ========== SALES IMPORT ==========
 def run_sales_import(job_id, file_stream, target_category, mode='append', user_id=None):
     try:
         wb = load_workbook(file_stream, data_only=True)
@@ -2478,7 +2386,6 @@ def run_sales_import(job_id, file_stream, target_category, mode='append', user_i
         update_job_progress(job_id, status='error', errors=[f"Unable to read workbook: {str(e)}"])
         return
 
-    # Find header
     header_row_idx = None
     header_row = None
     for i, row in enumerate(ws.iter_rows(min_row=1, max_row=20, values_only=True)):
@@ -2562,16 +2469,13 @@ def run_sales_import(job_id, file_stream, target_category, mode='append', user_i
 
             discount = float(row[header_map.get('discount')]) if header_map.get('discount') is not None and row[header_map['discount']] is not None else 0.0
 
-            # ========== DATE PARSING WITH AUTO-CORRECTION ==========
             sale_date = None
             if 'date' in header_map and row[header_map['date']] is not None:
                 parsed = parse_date_cell(row[header_map['date']])
                 if parsed:
-                    # Auto-correct future dates (more than 1 day ahead)
                     if parsed > datetime.now() + timedelta(days=1):
                         error_rows.append(f"Row {row_idx}: Date '{parsed.strftime('%Y-%m-%d')}' is in the future - AUTO-CORRECTED to today")
                         sale_date = datetime.now()
-                    # Auto-correct dates before year 2000
                     elif parsed.year < 2000:
                         error_rows.append(f"Row {row_idx}: Date '{parsed.strftime('%Y-%m-%d')}' is before year 2000 - AUTO-CORRECTED to today")
                         sale_date = datetime.now()
@@ -2622,13 +2526,11 @@ def run_sales_import(job_id, file_stream, target_category, mode='append', user_i
     imported_count = 0
     overall_errors = error_rows.copy()
 
-    # ----- SINGLE TRANSACTION -----
     try:
         conn = psycopg2.connect(DATABASE_URL, sslmode='require')
         conn.autocommit = False
         cursor = conn.cursor()
 
-        # --- REPLACE MODE: delete existing sales for the category (if target_category != 'All') ---
         if mode == 'replace' and target_category != 'All':
             cursor.execute("""
                 DELETE FROM sales_items
@@ -2641,22 +2543,18 @@ def run_sales_import(job_id, file_stream, target_category, mode='append', user_i
                 WHERE id NOT IN (SELECT sale_id FROM sales_items)
             """)
 
-        # ---- Process rows ----
         for idx, entry in enumerate(rows_to_process, start=1):
-            # Find product by exact match first, then try partial match
             product = None
             product_id = None
             product_category = None
             product_name = None
             
-            # Step 1: Try exact match
             cursor.execute(
                 "SELECT id, category, name FROM products WHERE name = %s",
                 (entry['item'],)
             )
             product = cursor.fetchone()
             
-            # Step 2: If no exact match, try partial match (case-insensitive)
             if not product:
                 search_term = entry['item'].strip()
                 cursor.execute("""
@@ -2676,7 +2574,6 @@ def run_sales_import(job_id, file_stream, target_category, mode='append', user_i
                 if product:
                     overall_errors.append(f"Row {entry['row_idx']}: Product '{entry['item']}' matched to '{product[2]}' (partial match)")
             
-            # Step 3: If still no match, try removing common suffixes
             if not product:
                 import re
                 cleaned_name = re.sub(r'\s+\d+$', '', entry['item'])
@@ -2703,14 +2600,10 @@ def run_sales_import(job_id, file_stream, target_category, mode='append', user_i
                 
             product_id, product_category, product_name = product[0], product[1], product[2]
 
-            # ✅ FIXED: Only skip "Accessory" category when importing to "Screens"
-            # Allow "Others" category to be imported
             if target_category == 'Screen' and product_category == 'Accessory':
-                overall_errors.append(f"Row {entry['row_idx']}: Product '{entry['item']}' is in 'Accessory' category - skipping (only Screens/Others allowed)")
+                overall_errors.append(f"Row {entry['row_idx']}: Product '{entry['item']}' is in 'Accessory' category - skipping")
                 continue
             
-            # If target_category is 'All', import everything
-            # If target_category is 'Accessory', only import Accessory
             if target_category == 'Accessory' and product_category != 'Accessory':
                 overall_errors.append(f"Row {entry['row_idx']}: Product '{entry['item']}' category '{product_category}' != 'Accessory' - skipping")
                 continue
@@ -2725,7 +2618,6 @@ def run_sales_import(job_id, file_stream, target_category, mode='append', user_i
             """, (entry['sale_date'], subtotal, entry['discount'], total, 0, 0, 'cash', user_id))
             sale_id = cursor.fetchone()[0]
 
-            # ✅ FIXED: Try to find a batch with stock, but if none, record the sale without reducing stock
             cursor.execute("""
                 SELECT id, cost_price, selling_price, remaining_quantity
                 FROM purchase_batches
@@ -2738,9 +2630,7 @@ def run_sales_import(job_id, file_stream, target_category, mode='append', user_i
             if batch_info:
                 batch_id, cost_price, selling_price, remaining_qty = batch_info
                 
-                # Check if there's enough stock
                 if remaining_qty >= entry['qty']:
-                    # Normal sale with stock deduction
                     selling_price = entry['rate']
                     item_profit = (selling_price - cost_price) * entry['qty'] - entry['discount']
                     
@@ -2769,8 +2659,6 @@ def run_sales_import(job_id, file_stream, target_category, mode='append', user_i
                     """, (item_profit, sale_id))
                     
                 else:
-                    # ✅ PARTIAL STOCK: Sell what's available, record the rest as a sale without stock deduction
-                    # Use available stock
                     available = remaining_qty
                     selling_price = entry['rate']
                     cost_price = float(cost_price) if cost_price else 0
@@ -2800,9 +2688,8 @@ def run_sales_import(job_id, file_stream, target_category, mode='append', user_i
                         WHERE id = %s
                     """, (item_profit, sale_id))
                     
-                    overall_errors.append(f"Row {entry['row_idx']}: Product '{entry['item']}' had only {available} stock (needed {entry['qty']}) - sold {available}, rest recorded without stock")
+                    overall_errors.append(f"Row {entry['row_idx']}: Product '{entry['item']}' had only {available} stock (needed {entry['qty']}) - sold {available}")
             else:
-                # ✅ NO STOCK: Record the sale without any stock deduction
                 cost_price = 0
                 selling_price = entry['rate']
                 item_profit = (selling_price - cost_price) * entry['qty'] - entry['discount']
@@ -2850,6 +2737,7 @@ def run_sales_import(job_id, file_stream, target_category, mode='append', user_i
         if conn:
             conn.close()
         cancel_flags.pop(job_id, None)
+
 # ----- INVENTORY IMPORT ENDPOINT -----
 @app.route('/api/inventory/import', methods=['POST'])
 @admin_required
@@ -2909,7 +2797,6 @@ def api_import_sales():
     if not allowed_file(file.filename):
         return jsonify({'success': False, 'error': 'File type not allowed'}), 400
 
-    # Allow 'All' to import sales for any product category
     target_category = request.form.get('target_category', 'All')
     if target_category not in ['Accessory', 'Screen', 'All']:
         return jsonify({'success': False, 'error': 'Invalid target category'}), 400
@@ -3144,7 +3031,6 @@ def verify_import(job_id, file_stream, target_category):
             except:
                 discount = 0
 
-            # ✅ FIXED: Removed "AND p.brand = ''" condition
             cursor.execute("""
                 SELECT p.id, p.stock, p.cost_price, p.selling_price, p.discount
                 FROM products p
