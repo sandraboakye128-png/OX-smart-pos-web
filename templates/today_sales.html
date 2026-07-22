@@ -464,6 +464,7 @@
                                 <span>Qty: <strong>${item.quantity}</strong></span>
                                 <span>Selling: ${formatMoney(item.selling_price)}</span>
                                 <span>Batch: #${item.batch_id === -1 ? 'DEL' : item.batch_id}</span>
+                                <span>Cost: ${formatMoney(item.cost_price)}</span>
                                 <span>Profit: <span class="${item.profit >= 0 ? 'text-green-600' : 'text-red-500'}">${formatMoney(item.profit)}</span></span>
                             </div>
                         </div>

@@ -414,6 +414,9 @@
         renderList(currentPurchases);
         updateCacheBanner();
         updatePendingBadge();
+
+        // ✅ CHECK FOR BATCH EDIT AFTER LOADING
+        checkForBatchEdit();
     }
 
     async function syncAllPendingSilently() {
@@ -607,16 +610,22 @@
 
     // ---------- Edit / Reset ----------
     function editPurchase(batchId) {
+        console.log('✏️ Editing purchase:', batchId);
         const purchase = currentPurchases.find(p => p.batch_id === batchId);
-        if (!purchase) return;
+        if (!purchase) {
+            console.warn('Purchase not found:', batchId);
+            return;
+        }
 
-        document.getElementById('name').value = purchase.name;
-        document.getElementById('brand').value = purchase.brand;
+        console.log('📦 Purchase data:', purchase);
+
+        document.getElementById('name').value = purchase.name || '';
+        document.getElementById('brand').value = purchase.brand || '';
         document.getElementById('category').value = purchase.category || 'Accessory';
-        document.getElementById('quantity').value = purchase.quantity;
-        document.getElementById('cost_price').value = purchase.cost_price;
-        document.getElementById('discount').value = purchase.discount;
-        document.getElementById('selling_price').value = purchase.selling_price;
+        document.getElementById('quantity').value = purchase.quantity || '';
+        document.getElementById('cost_price').value = purchase.cost_price || '';
+        document.getElementById('discount').value = purchase.discount || 0;
+        document.getElementById('selling_price').value = purchase.selling_price || '';
         document.getElementById('source').value = purchase.source || 'Unknown';
 
         editMode = true;
@@ -626,7 +635,58 @@
         document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save mr-1 md:mr-2"></i> Update Purchase';
         document.getElementById('cancelBtn').classList.remove('hidden');
 
-        document.querySelector('.bg-white.rounded-2xl.shadow-sm.p-4.md\\:p-6.border').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const form = document.querySelector('.bg-white.rounded-2xl.shadow-sm.p-4.md\\:p-6.border');
+        if (form) {
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            form.style.border = '3px solid #f59e0b';
+            form.style.transition = 'border-color 0.5s';
+            setTimeout(() => {
+                form.style.border = 'none';
+            }, 3000);
+        }
+    }
+
+    // ✅ FIXED: Check for batch edit with polling
+    function checkForBatchEdit() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const batchId = urlParams.get('edit_batch');
+        if (batchId) {
+            console.log('🔍 Batch edit requested for:', batchId);
+
+            // Try immediately if data is already loaded
+            const purchase = currentPurchases.find(p => p.batch_id === parseInt(batchId));
+            if (purchase) {
+                console.log('✅ Found purchase immediately:', purchase);
+                editPurchase(parseInt(batchId));
+                return;
+            }
+
+            // Otherwise wait for data to load with polling
+            let attempts = 0;
+            const maxAttempts = 15; // 15 * 200ms = 3 seconds
+            const checkInterval = setInterval(function() {
+                attempts++;
+                const purchase = currentPurchases.find(p => p.batch_id === parseInt(batchId));
+                if (purchase) {
+                    clearInterval(checkInterval);
+                    console.log('✅ Found purchase after wait:', purchase);
+                    editPurchase(parseInt(batchId));
+                    const form = document.querySelector('.bg-white.rounded-2xl.shadow-sm.p-4.md\\:p-6.border');
+                    if (form) {
+                        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        form.style.border = '3px solid #f59e0b';
+                        form.style.transition = 'border-color 0.5s';
+                        setTimeout(() => {
+                            form.style.border = 'none';
+                        }, 3000);
+                    }
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    console.warn('⚠️ Batch #' + batchId + ' not found after timeout');
+                    alert('Batch #' + batchId + ' not found. It may have been deleted.');
+                }
+            }, 200);
+        }
     }
 
     function resetForm() {
@@ -645,6 +705,12 @@
         document.getElementById('formTitle').innerHTML = `<i class="fas fa-plus-circle text-amber-500 mr-1.5 md:mr-2"></i> Add Purchase`;
         document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus mr-1 md:mr-2"></i> Add Purchase';
         document.getElementById('cancelBtn').classList.add('hidden');
+        
+        // Remove URL parameter
+        if (window.history && window.history.pushState) {
+            const newUrl = window.location.pathname;
+            window.history.pushState({}, '', newUrl);
+        }
     }
 
     // ---------- Filter ----------
